@@ -1,0 +1,136 @@
+import { supabase } from "@/lib/supabase/client";
+import { createStoryBundle } from "@/app/admin/actions";
+import StoryRichEditor from "@/components/editor/StoryRichEditor";
+
+
+export default async function NewStoryPage() {
+  const { data: cards } = await supabase
+    .from("cards")
+    .select(`
+      id,
+      title,
+      slug,
+      rarity,
+      release_year,
+      characters (
+        name_ko
+      )
+    `)
+    .eq("is_published", true)
+    .order("created_at", { ascending: false });
+
+  return (
+    <main>
+      <header className="page-header">
+        <div className="page-eyebrow">Admin / Stories</div>
+        <h1 className="page-title">스토리 통합 등록</h1>
+        <p className="page-desc">
+          스토리 기본 정보, 번역, 영상, 카드 연결을 한 화면에서 등록합니다.
+        </p>
+      </header>
+
+      <form action={createStoryBundle} className="form-panel">
+        <div className="form-grid">
+          <label className="form-field form-field-full">
+            <span>title</span>
+            <input name="title" required />
+          </label>
+
+          <label className="form-field">
+            <span>subtype</span>
+            <select name="subtype" defaultValue="card_story">
+              <option value="card_story">card_story</option>
+              <option value="asmr">asmr</option>
+              <option value="side_story">side_story</option>
+              <option value="main_story">main_story</option>
+              <option value="behind_story">behind_story</option>
+              <option value="xiyue_story">xiyue_story</option>
+              <option value="myhome_story">myhome_story</option>
+              <option value="company_project">company_project</option>
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>release_year</span>
+            <input name="releaseYear" type="number" defaultValue={2025} required />
+          </label>
+
+          <label className="form-field">
+            <span>release_date</span>
+            <input name="releaseDate" type="date" />
+          </label>
+
+          <label className="form-field">
+            <span>server</span>
+            <select name="serverKey" defaultValue="kr">
+              <option value="kr">kr</option>
+              <option value="cn">cn</option>
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>character</span>
+            <select name="characterKey" defaultValue="baiqi">
+              <option value="baiqi">baiqi</option>
+              <option value="lizeyan">lizeyan</option>
+              <option value="zhouqiluo">zhouqiluo</option>
+              <option value="lingxiao">lingxiao</option>
+              <option value="xumo">xumo</option>
+            </select>
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>summary</span>
+            <textarea name="summary" rows={4} />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>youtube url</span>
+            <input name="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..." />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>image url</span>
+            <input name="imageUrl" placeholder="https://..." />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>translation title</span>
+            <input name="translationTitle" />
+          </label>
+
+<StoryRichEditor
+  name="translationBody"
+  label="translation body"
+  initialValue=""
+  height="700px"
+/>
+
+
+
+          <label className="form-field form-field-full">
+            <span>linked card (optional)</span>
+            <select name="cardSlug" defaultValue="">
+              <option value="">선택 안 함</option>
+              {cards?.map((card) => {
+                const characterName = Array.isArray(card.characters)
+                  ? card.characters[0]?.name_ko
+                  : (card.characters as { name_ko?: string } | null)?.name_ko;
+
+                return (
+                  <option key={card.id} value={card.slug}>
+                    [{characterName || "공용"}] [{card.rarity}] [{card.release_year}] {card.title}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+        </div>
+
+        <button type="submit" className="primary-button">
+          스토리 통합 등록
+        </button>
+      </form>
+    </main>
+  );
+}
