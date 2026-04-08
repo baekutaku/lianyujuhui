@@ -1,6 +1,14 @@
 import { createStoryBundle } from "@/app/admin/actions";
 import SmartEditor from "@/components/editor/SmartEditor";
 
+function safeDecode(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export default async function NewStoryPage({
   searchParams,
 }: {
@@ -31,7 +39,7 @@ export default async function NewStoryPage({
             whiteSpace: "pre-wrap",
           }}
         >
-          {decodeURIComponent(error)}
+          {safeDecode(error)}
         </p>
       ) : null}
 
@@ -58,7 +66,12 @@ export default async function NewStoryPage({
 
           <label className="form-field">
             <span>release_year</span>
-            <input name="releaseYear" type="number" defaultValue={2025} required />
+            <input
+              name="releaseYear"
+              type="number"
+              defaultValue={2025}
+              required
+            />
           </label>
 
           <label className="form-field">
@@ -111,12 +124,12 @@ export default async function NewStoryPage({
             <input name="translationTitle" />
           </label>
 
-          <SmartEditor
-            name="translationBody"
-            label="translation body"
-            initialValue=""
-            height="700px"
-          />
+<SmartEditor
+  name="translationBody"
+  label="translation body"
+  initialValue=""
+  height={700}
+/>
 
           <label className="form-field form-field-full">
             <span>linked card slug (optional)</span>

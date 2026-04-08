@@ -9,48 +9,73 @@ type StoryPageProps = {
   }>;
 };
 
+function looksLikeHtml(value: string) {
+  return /<\/?[a-z][\s\S]*>/i.test(value);
+}
+
 export default async function StoryDetailPage({ params }: StoryPageProps) {
   const { slug } = await params;
   const admin = await isAdmin();
 
- const { data: story, error: storyError } = await supabase
-  .from("stories")
-  .select("id, title, slug, subtype, release_year, is_published")
-  .eq("slug", slug)
-  .maybeSingle();
+  const { data: story, error: storyError } = await supabase
+    .from("stories")
+    .select("id, title, slug, subtype, release_year, is_published")
+    .eq("slug", slug)
+    .maybeSingle();
 
-if (storyError) {
-  console.error("[stories/[slug]] story fetch error:", storyError);
-}
+  if (storyError) {
+    console.error("[stories/[slug]] story fetch error:", storyError);
+  }
 
-if (!story) {
-  notFound();
-}
+  if (!story) {
+    notFound();
+  }
+
+  if (!story.is_published && !admin) {
+    notFound();
+  }
 
   const { data: translations, error: translationError } = await supabase
     .from("translations")
-    .select("id, title, body, translation_type, is_primary")
+    .select("id, title, body, translation_type, is_primary, is_published, created_at")
     .eq("parent_type", "story")
     .eq("parent_id", story.id)
-    .eq("is_published", true)
     .order("is_primary", { ascending: false })
     .order("created_at", { ascending: true });
 
-  const { data: media } = await supabase
+  if (translationError) {
+    console.error("[stories/[slug]] translations fetch error:", translationError);
+  }
+
+  const visibleTranslations = admin
+    ? (translations ?? [])
+    : (translations ?? []).filter((translation) => translation.is_published);
+
+  const { data: media, error: mediaError } = await supabase
     .from("media_assets")
-    .select("id, media_type, usage_type, url, youtube_video_id, title, is_primary, sort_order")
+    .select(
+      "id, media_type, usage_type, url, youtube_video_id, title, is_primary, sort_order"
+    )
     .eq("parent_type", "story")
     .eq("parent_id", story.id)
     .order("is_primary", { ascending: false })
     .order("sort_order", { ascending: true });
 
+  if (mediaError) {
+    console.error("[stories/[slug]] media fetch error:", mediaError);
+  }
+
   const primaryMedia = media?.[0] ?? null;
 
-  const { data: relations } = await supabase
+  const { data: relations, error: relationsError } = await supabase
     .from("item_relations")
     .select("id, parent_type, parent_id, child_type, child_id, relation_type")
     .eq("child_type", "story")
     .eq("child_id", story.id);
+
+  if (relationsError) {
+    console.error("[stories/[slug]] relations fetch error:", relationsError);
+  }
 
   let relatedCards: { id: string; title: string; slug: string }[] = [];
 
@@ -60,10 +85,14 @@ if (!story) {
       .map((rel) => rel.parent_id);
 
     if (cardRelationIds.length > 0) {
-      const { data: cards } = await supabase
+      const { data: cards, error: cardsError } = await supabase
         .from("cards")
         .select("id, title, slug")
         .in("id", cardRelationIds);
+
+      if (cardsError) {
+        console.error("[stories/[slug]] related cards fetch error:", cardsError);
+      }
 
       relatedCards = cards ?? [];
     }
@@ -79,10 +108,16 @@ if (!story) {
           <div className="meta-row story-top-meta">
             <span className="meta-pill">type: {story.subtype}</span>
             <span className="meta-pill">year: {story.release_year}</span>
+            {!story.is_published && admin ? (
+              <span className="meta-pill">draft</span>
+            ) : null}
           </div>
 
           <div className="story-top-actions">
-            <Link href="/stories" className="story-action-button story-action-muted">
+            <Link
+              href="/stories"
+              className="story-action-button story-action-muted"
+            >
               목록으로
             </Link>
 
@@ -103,7 +138,11 @@ if (!story) {
             <div className="story-side-links">
               {relatedCards.length > 0 ? (
                 relatedCards.map((card) => (
-                  <Link key={card.id} href={`/cards/${card.slug}`} className="meta-pill">
+                  <Link
+                    key={card.id}
+                    href={`/cards/${card.slug}`}
+                    className="meta-pill"
+                  >
                     {card.title}
                   </Link>
                 ))
@@ -133,7 +172,8 @@ if (!story) {
         <div className="detail-panel story-media-panel">
           <div className="story-media-box">
             {primaryMedia ? (
-              primaryMedia.media_type === "youtube" && primaryMedia.youtube_video_id ? (
+              primaryMedia.media_type === "youtube" &&
+              primaryMedia.youtube_video_id ? (
                 <div className="media-embed-wrap">
                   <iframe
                     src={`https://www.youtube.com/embed/${primaryMedia.youtube_video_id}`}
@@ -149,7 +189,9 @@ if (!story) {
                   className="story-detail-image"
                 />
               ) : (
-                <div className="empty-box">지원되지 않는 미디어 형식입니다.</div>
+                <div className="empty-box">
+                  지원되지 않는 미디어 형식입니다.
+                </div>
               )
             ) : (
               <div className="empty-box">등록된 영상/이미지가 없습니다.</div>
@@ -166,26 +208,38 @@ if (!story) {
             </pre>
           )}
 
-          {!translations || translations.length === 0 ? (
+          {!visibleTranslations || visibleTranslations.length === 0 ? (
             <div className="empty-box">등록된 번역이 없습니다.</div>
           ) : (
-<div className="translation-scroll-panel">
-  <div style={{ display: "grid", gap: "20px" }}>
-    {translations.map((translation) => (
-      <section key={translation.id}>
-        {translation.title && (
-          <h3 className="story-translation-title">{translation.title}</h3>
-        )}
+            <div className="translation-scroll-panel">
+              <div style={{ display: "grid", gap: "20px" }}>
+                {visibleTranslations.map((translation) => (
+                  <section key={translation.id}>
+                    {translation.title ? (
+                      <h3 className="story-translation-title">
+                        {translation.title}
+                      </h3>
+                    ) : null}
 
-        <div
-          className="translation-body rich-content"
-          dangerouslySetInnerHTML={{ __html: translation.body || "" }}
-        />
-      </section>
-    ))}
-  </div>
-</div>
-
+                    {looksLikeHtml(translation.body || "") ? (
+                      <div
+                        className="translation-body rich-content"
+                        dangerouslySetInnerHTML={{
+                          __html: translation.body || "",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        className="translation-body rich-content"
+                        style={{ whiteSpace: "pre-wrap" }}
+                      >
+                        {translation.body || ""}
+                      </div>
+                    )}
+                  </section>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </section>
