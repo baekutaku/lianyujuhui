@@ -13,16 +13,19 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
   const { slug } = await params;
   const admin = await isAdmin();
 
-  const { data: story, error: storyError } = await supabase
-    .from("stories")
-    .select("id, title, slug, subtype, release_year")
-    .eq("slug", slug)
-    .eq("is_published", true)
-    .single();
+ const { data: story, error: storyError } = await supabase
+  .from("stories")
+  .select("id, title, slug, subtype, release_year, is_published")
+  .eq("slug", slug)
+  .maybeSingle();
 
-  if (storyError || !story) {
-    notFound();
-  }
+if (storyError) {
+  console.error("[stories/[slug]] story fetch error:", storyError);
+}
+
+if (!story) {
+  notFound();
+}
 
   const { data: translations, error: translationError } = await supabase
     .from("translations")

@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { updateStoryBundle } from "@/app/admin/actions";
-import TiptapEditor from "@/components/editor/StoryRichEditor";
-
+import SmartEditor from "@/components/editor/SmartEditor";
 
 type EditStoryPageProps = {
   params: Promise<{
@@ -17,7 +16,7 @@ export default async function EditStoryPage({ params }: EditStoryPageProps) {
     .from("stories")
     .select("id, title, slug, subtype, release_year, release_date, summary")
     .eq("slug", slug)
-    .single();
+    .maybeSingle();
 
   if (error || !story) {
     notFound();
@@ -39,6 +38,15 @@ export default async function EditStoryPage({ params }: EditStoryPageProps) {
     .eq("media_type", "youtube")
     .maybeSingle();
 
+  const { data: coverMedia } = await supabase
+    .from("media_assets")
+    .select("id, url")
+    .eq("parent_type", "story")
+    .eq("parent_id", story.id)
+    .eq("media_type", "image")
+    .eq("usage_type", "cover")
+    .maybeSingle();
+
   const { data: relation } = await supabase
     .from("item_relations")
     .select("id, parent_id")
@@ -49,18 +57,9 @@ export default async function EditStoryPage({ params }: EditStoryPageProps) {
 
   const { data: cards } = await supabase
     .from("cards")
-    .select(`
-      id,
-      title,
-      slug,
-      rarity,
-      release_year,
-      characters (
-        name_ko
-      )
-    `)
+    .select("id, title, slug, rarity, release_year")
     .eq("is_published", true)
-    .order("created_at", { ascending: false });
+    .order("release_year", { ascending: false });
 
   let linkedCardSlug = "";
 
@@ -69,7 +68,7 @@ export default async function EditStoryPage({ params }: EditStoryPageProps) {
       .from("cards")
       .select("slug")
       .eq("id", relation.parent_id)
-      .single();
+      .maybeSingle();
 
     linkedCardSlug = linkedCard?.slug ?? "";
   }
@@ -89,6 +88,7 @@ export default async function EditStoryPage({ params }: EditStoryPageProps) {
         <input type="hidden" name="slug" value={story.slug} />
         <input type="hidden" name="translationId" value={translation?.id ?? ""} />
         <input type="hidden" name="mediaId" value={media?.id ?? ""} />
+        <input type="hidden" name="coverMediaId" value={coverMedia?.id ?? ""} />
         <input type="hidden" name="relationId" value={relation?.id ?? ""} />
 
         <div className="form-grid">
@@ -149,35 +149,38 @@ export default async function EditStoryPage({ params }: EditStoryPageProps) {
           </label>
 
           <label className="form-field form-field-full">
+            <span>cover image url</span>
+            <input
+              name="coverImageUrl"
+              defaultValue={coverMedia?.url ?? ""}
+              placeholder="https://..."
+            />
+          </label>
+
+          <label className="form-field form-field-full">
             <span>translation title</span>
             <input
               name="translationTitle"
               defaultValue={translation?.title ?? ""}
             />
           </label>
-<TiptapEditor
-  name="translationBody"
-  label="translation body"
-  initialValue={translation?.body ?? ""}
-/>
 
-
+          <SmartEditor
+            name="translationBody"
+            label="translation body"
+            initialValue={translation?.body ?? ""}
+            height="700px"
+          />
 
           <label className="form-field form-field-full">
             <span>linked card</span>
             <select name="cardSlug" defaultValue={linkedCardSlug}>
               <option value="">선택 안 함</option>
-              {cards?.map((card) => {
-                const characterName = Array.isArray(card.characters)
-                  ? card.characters[0]?.name_ko
-                  : (card.characters as { name_ko?: string } | null)?.name_ko;
-
-                return (
-                  <option key={card.id} value={card.slug}>
-                    [{characterName || "공용"}] [{card.rarity}] [{card.release_year}] {card.title}
-                  </option>
-                );
-              })}
+              {cards?.map((card) => (
+                <option key={card.id} value={card.slug}>
+                  [{card.rarity}] [{card.release_year}] {card.title}
+                </option>
+              ))}
             </select>
           </label>
         </div>

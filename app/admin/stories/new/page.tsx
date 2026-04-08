@@ -1,23 +1,13 @@
-import { supabase } from "@/lib/supabase/client";
 import { createStoryBundle } from "@/app/admin/actions";
-import StoryRichEditor from "@/components/editor/StoryRichEditor";
+import SmartEditor from "@/components/editor/SmartEditor";
 
-
-export default async function NewStoryPage() {
-  const { data: cards } = await supabase
-    .from("cards")
-    .select(`
-      id,
-      title,
-      slug,
-      rarity,
-      release_year,
-      characters (
-        name_ko
-      )
-    `)
-    .eq("is_published", true)
-    .order("created_at", { ascending: false });
+export default async function NewStoryPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
+  const params = searchParams ? await searchParams : undefined;
+  const error = params?.error ?? "";
 
   return (
     <main>
@@ -28,6 +18,22 @@ export default async function NewStoryPage() {
           스토리 기본 정보, 번역, 영상, 카드 연결을 한 화면에서 등록합니다.
         </p>
       </header>
+
+      {error ? (
+        <p
+          style={{
+            marginBottom: "16px",
+            padding: "12px 14px",
+            borderRadius: "10px",
+            background: "#3a1f1f",
+            color: "#ffb4b4",
+            border: "1px solid #6b2d2d",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {decodeURIComponent(error)}
+        </p>
+      ) : null}
 
       <form action={createStoryBundle} className="form-panel">
         <div className="form-grid">
@@ -86,12 +92,18 @@ export default async function NewStoryPage() {
 
           <label className="form-field form-field-full">
             <span>youtube url</span>
-            <input name="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..." />
+            <input
+              name="youtubeUrl"
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
           </label>
 
           <label className="form-field form-field-full">
-            <span>image url</span>
-            <input name="imageUrl" placeholder="https://..." />
+            <span>cover image url</span>
+            <input
+              name="coverImageUrl"
+              placeholder="https://..."
+            />
           </label>
 
           <label className="form-field form-field-full">
@@ -99,31 +111,19 @@ export default async function NewStoryPage() {
             <input name="translationTitle" />
           </label>
 
-<StoryRichEditor
-  name="translationBody"
-  label="translation body"
-  initialValue=""
-  height="700px"
-/>
-
-
+          <SmartEditor
+            name="translationBody"
+            label="translation body"
+            initialValue=""
+            height="700px"
+          />
 
           <label className="form-field form-field-full">
-            <span>linked card (optional)</span>
-            <select name="cardSlug" defaultValue="">
-              <option value="">선택 안 함</option>
-              {cards?.map((card) => {
-                const characterName = Array.isArray(card.characters)
-                  ? card.characters[0]?.name_ko
-                  : (card.characters as { name_ko?: string } | null)?.name_ko;
-
-                return (
-                  <option key={card.id} value={card.slug}>
-                    [{characterName || "공용"}] [{card.rarity}] [{card.release_year}] {card.title}
-                  </option>
-                );
-              })}
-            </select>
+            <span>linked card slug (optional)</span>
+            <input
+              name="cardSlug"
+              placeholder="예: baiqi-ssr-some-card"
+            />
           </label>
         </div>
 

@@ -6,12 +6,10 @@ import { supabase } from "@/lib/supabase/client";
 import { buildCardKeys, buildStoryKeys } from "@/lib/utils/admin-keys";
 
 function extractYoutubeVideoId(url: string) {
-  const regExp =
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/;
+  const regExp = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/;
   const match = url.match(regExp);
   return match ? match[1] : null;
 }
-
 
 export async function createCard(formData: FormData) {
   const title = String(formData.get("title") || "");
@@ -119,7 +117,9 @@ export async function createStory(formData: FormData) {
     throw new Error(error.message);
   }
 
-  redirect(`/stories/${slug}`);
+  revalidatePath("/admin/stories");
+  revalidatePath("/stories");
+  redirect("/admin/stories");
 }
 
 export async function createTranslation(formData: FormData) {
@@ -152,7 +152,9 @@ export async function createTranslation(formData: FormData) {
     throw new Error(error.message);
   }
 
-  redirect(`/stories/${storySlug}`);
+  revalidatePath("/admin/stories");
+  revalidatePath("/stories");
+  redirect("/admin/stories");
 }
 
 export async function createCardStoryRelation(formData: FormData) {
@@ -193,7 +195,6 @@ export async function createCardStoryRelation(formData: FormData) {
 
 export async function updateStory(formData: FormData) {
   const storyId = String(formData.get("storyId") || "");
-  const slug = String(formData.get("slug") || "");
   const title = String(formData.get("title") || "");
   const subtype = String(formData.get("subtype") || "card_story");
   const releaseYear = Number(formData.get("releaseYear") || 2025);
@@ -215,8 +216,11 @@ export async function updateStory(formData: FormData) {
     throw new Error(error.message);
   }
 
-  redirect(`/stories/${slug}`);
+  revalidatePath("/admin/stories");
+  revalidatePath("/stories");
+  redirect("/admin/stories");
 }
+
 export async function updateCard(formData: FormData) {
   const cardId = String(formData.get("cardId") || "");
   const slug = String(formData.get("slug") || "");
@@ -245,9 +249,9 @@ export async function updateCard(formData: FormData) {
 
   redirect(`/cards/${slug}`);
 }
+
 export async function updateTranslation(formData: FormData) {
   const translationId = String(formData.get("translationId") || "");
-  const storySlug = String(formData.get("storySlug") || "");
   const title = String(formData.get("title") || "");
   const body = String(formData.get("body") || "");
 
@@ -263,137 +267,175 @@ export async function updateTranslation(formData: FormData) {
     throw new Error(error.message);
   }
 
-  redirect(`/stories/${storySlug}`);
+  revalidatePath("/admin/stories");
+  revalidatePath("/stories");
+  redirect("/admin/stories");
 }
+
 export async function createStoryBundle(formData: FormData) {
-  const title = String(formData.get("title") || "");
-  const subtype = String(formData.get("subtype") || "card_story");
-  const releaseYear = Number(formData.get("releaseYear") || 2025);
-  const releaseDate = String(formData.get("releaseDate") || "");
-  const summary = String(formData.get("summary") || "");
-  const serverKey = String(formData.get("serverKey") || "kr");
-  const characterKey = String(formData.get("characterKey") || "baiqi");
+  let createdStoryId: string | null = null;
+  let targetSlug = "";
 
-  const translationTitle = String(formData.get("translationTitle") || "");
-  const translationBody = String(formData.get("translationBody") || "");
+  try {
+    const title = String(formData.get("title") || "").trim();
+    const subtype = String(formData.get("subtype") || "card_story").trim();
+    const releaseYear = Number(formData.get("releaseYear") || 2025);
+    const releaseDate = String(formData.get("releaseDate") || "").trim();
+    const summary = String(formData.get("summary") || "").trim();
+    const serverKey = String(formData.get("serverKey") || "kr").trim();
+    const characterKey = String(formData.get("characterKey") || "baiqi").trim();
 
-  const youtubeUrl = String(formData.get("youtubeUrl") || "");
-  const coverImageUrl = String(formData.get("coverImageUrl") || "");
+    const translationTitle = String(formData.get("translationTitle") || "").trim();
+    const translationBody = String(formData.get("translationBody") || "").trim();
 
-  const cardSlug = String(formData.get("cardSlug") || "");
+    const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
+    const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
+    const cardSlug = String(formData.get("cardSlug") || "").trim();
 
-  const { slug, originKey, contentId } = buildStoryKeys({
-    subtype,
-    characterKey,
-    title,
-    year: releaseYear,
-    serverKey,
-  });
+    if (!title) {
+      throw new Error("title이 비어 있습니다.");
+    }
 
-  const { data: server } = await supabase
-    .from("servers")
-    .select("id")
-    .eq("key", serverKey)
-    .single();
+    if (!Number.isFinite(releaseYear)) {
+      throw new Error("releaseYear가 올바르지 않습니다.");
+    }
 
-  const { data: character } = await supabase
-    .from("characters")
-    .select("id")
-    .eq("key", characterKey)
-    .single();
-
-  if (!server || !character) {
-    throw new Error("server 또는 character를 찾을 수 없습니다.");
-  }
-
-  const { data: insertedStory, error: storyError } = await supabase
-    .from("stories")
-    .insert({
-      content_id: contentId,
-      origin_key: originKey,
-      server_id: server.id,
-      primary_character_id: character.id,
-      title,
-      slug,
+    const { slug, originKey, contentId } = buildStoryKeys({
       subtype,
-      release_year: releaseYear,
-      release_date: releaseDate || null,
-      summary,
-      is_published: true,
-    })
-    .select("id")
-    .single();
+      characterKey,
+      title,
+      year: releaseYear,
+      serverKey,
+    });
 
-  if (storyError || !insertedStory) {
-    throw new Error(storyError?.message || "스토리 저장 실패");
-  }
+    targetSlug = slug;
 
-  if (translationBody.trim()) {
-    const { error: translationError } = await supabase
-      .from("translations")
-      .insert({
-        parent_type: "story",
-        parent_id: insertedStory.id,
-        language_code: "ko",
-        translation_type: "full",
-        title: translationTitle || null,
-        body: translationBody,
-        is_primary: true,
-        is_published: true,
-      });
-
-    if (translationError) {
-      throw new Error(translationError.message);
-    }
-  }
-
-  if (coverImageUrl.trim()) {
-    const { error: imageError } = await supabase
-      .from("media_assets")
-      .insert({
-        parent_type: "story",
-        parent_id: insertedStory.id,
-        media_type: "image",
-        usage_type: "cover",
-        url: coverImageUrl,
-        title: `${title} 대표 이미지`,
-        is_primary: true,
-        sort_order: 0,
-      });
-
-    if (imageError) {
-      throw new Error(imageError.message);
-    }
-  }
-
-  if (youtubeUrl.trim()) {
-    const { error: mediaError } = await supabase
-      .from("media_assets")
-      .insert({
-        parent_type: "story",
-        parent_id: insertedStory.id,
-        media_type: "youtube",
-        usage_type: "pv",
-        url: youtubeUrl,
-        youtube_video_id: extractYoutubeVideoId(youtubeUrl),
-        title: `${title} PV`,
-        is_primary: !coverImageUrl.trim(),
-        sort_order: coverImageUrl.trim() ? 1 : 0,
-      });
-
-    if (mediaError) {
-      throw new Error(mediaError.message);
-    }
-  }
-
-  if (cardSlug.trim()) {
-    const { data: card } = await supabase
-      .from("cards")
+    const { data: server, error: serverError } = await supabase
+      .from("servers")
       .select("id")
-      .eq("slug", cardSlug)
+      .eq("key", serverKey)
       .single();
 
-    if (card) {
+    if (serverError || !server) {
+      console.error("[createStoryBundle] server lookup error:", serverError);
+      throw new Error(`server 조회 실패: ${serverError?.message || serverKey}`);
+    }
+
+    const { data: character, error: characterError } = await supabase
+      .from("characters")
+      .select("id")
+      .eq("key", characterKey)
+      .single();
+
+    if (characterError || !character) {
+      console.error("[createStoryBundle] character lookup error:", characterError);
+      throw new Error(`character 조회 실패: ${characterError?.message || characterKey}`);
+    }
+
+    const { data: insertedStory, error: storyError } = await supabase
+      .from("stories")
+      .insert({
+        content_id: contentId,
+        origin_key: originKey,
+        server_id: server.id,
+        primary_character_id: character.id,
+        title,
+        slug,
+        subtype,
+        release_year: releaseYear,
+        release_date: releaseDate || null,
+        summary,
+        is_published: true,
+      })
+      .select("id")
+      .single();
+
+    if (storyError || !insertedStory) {
+      console.error("[createStoryBundle] story insert error:", storyError);
+      throw new Error(storyError?.message || "stories 저장 실패");
+    }
+
+    createdStoryId = insertedStory.id;
+
+    if (translationBody) {
+      const { error: translationError } = await supabase
+        .from("translations")
+        .insert({
+          parent_type: "story",
+          parent_id: insertedStory.id,
+          language_code: "ko",
+          translation_type: "full",
+          title: translationTitle || null,
+          body: translationBody,
+          is_primary: true,
+          is_published: true,
+        });
+
+      if (translationError) {
+        console.error("[createStoryBundle] translation insert error:", translationError);
+        throw new Error(`translations 저장 실패: ${translationError.message}`);
+      }
+    }
+
+    if (coverImageUrl) {
+      const { error: imageError } = await supabase
+        .from("media_assets")
+        .insert({
+          parent_type: "story",
+          parent_id: insertedStory.id,
+          media_type: "image",
+          usage_type: "cover",
+          url: coverImageUrl,
+          title: `${title} 대표 이미지`,
+          is_primary: true,
+          sort_order: 0,
+        });
+
+      if (imageError) {
+        console.error("[createStoryBundle] cover insert error:", imageError);
+        throw new Error(`cover 이미지 저장 실패: ${imageError.message}`);
+      }
+    }
+
+    if (youtubeUrl) {
+      const youtubeVideoId = extractYoutubeVideoId(youtubeUrl);
+
+      const { error: mediaError } = await supabase
+        .from("media_assets")
+        .insert({
+          parent_type: "story",
+          parent_id: insertedStory.id,
+          media_type: "youtube",
+          usage_type: "pv",
+          url: youtubeUrl,
+          youtube_video_id: youtubeVideoId,
+          title: `${title} PV`,
+          is_primary: !coverImageUrl,
+          sort_order: coverImageUrl ? 1 : 0,
+        });
+
+      if (mediaError) {
+        console.error("[createStoryBundle] youtube insert error:", mediaError);
+        throw new Error(`youtube 저장 실패: ${mediaError.message}`);
+      }
+    }
+
+    if (cardSlug) {
+      const { data: card, error: cardError } = await supabase
+        .from("cards")
+        .select("id")
+        .eq("slug", cardSlug)
+        .single();
+
+      if (cardError) {
+        console.error("[createStoryBundle] card lookup error:", cardError);
+        throw new Error(`card 조회 실패: ${cardError.message}`);
+      }
+
+      if (!card) {
+        throw new Error(`연결할 card를 찾을 수 없습니다: ${cardSlug}`);
+      }
+
       const { error: relationError } = await supabase
         .from("item_relations")
         .insert({
@@ -406,19 +448,36 @@ export async function createStoryBundle(formData: FormData) {
         });
 
       if (relationError) {
-        throw new Error(relationError.message);
+        console.error("[createStoryBundle] relation insert error:", relationError);
+        throw new Error(`card relation 저장 실패: ${relationError.message}`);
       }
     }
+
+    revalidatePath("/admin/stories");
+    revalidatePath("/stories");
+  } catch (error) {
+    console.error("[createStoryBundle] fatal error:", error);
+
+    if (createdStoryId) {
+      console.error(
+        "[createStoryBundle] 부분 저장됨. story id:",
+        createdStoryId,
+        "slug:",
+        targetSlug
+      );
+    }
+
+    const message =
+      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+
+    redirect(`/admin/stories/new?error=${encodeURIComponent(message)}`);
   }
 
-  redirect(`/stories/${slug}`);
+  redirect("/admin/stories");
 }
-
 
 export async function updateStoryBundle(formData: FormData) {
   const storyId = String(formData.get("storyId") || "");
-  const slug = String(formData.get("slug") || "");
-
   const title = String(formData.get("title") || "");
   const subtype = String(formData.get("subtype") || "card_story");
   const releaseYear = Number(formData.get("releaseYear") || 2025);
@@ -595,8 +654,11 @@ export async function updateStoryBundle(formData: FormData) {
     }
   }
 
-  redirect(`/stories/${slug}`);
+  revalidatePath("/admin/stories");
+  revalidatePath("/stories");
+  redirect("/admin/stories");
 }
+
 export async function deleteStoryBundle(formData: FormData) {
   const storyId = String(formData.get("storyId") ?? "").trim();
 
