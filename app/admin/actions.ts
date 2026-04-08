@@ -40,58 +40,123 @@ function extractYoutubeVideoId(url: string) {
 }
 
 export async function createCard(formData: FormData) {
-  const title = String(formData.get("title") || "");
-  const rarity = String(formData.get("rarity") || "ssr");
-  const attribute = String(formData.get("attribute") || "affinity");
-  const releaseYear = Number(formData.get("releaseYear") || 2025);
-  const releaseDate = String(formData.get("releaseDate") || "");
-  const summary = String(formData.get("summary") || "");
-  const serverKey = String(formData.get("serverKey") || "kr");
-  const characterKey = String(formData.get("characterKey") || "baiqi");
+  let targetSlug = "";
 
-  const { slug, originKey, contentId } = buildCardKeys({
-    characterKey,
-    title,
-    year: releaseYear,
-    serverKey,
-  });
+  try {
+    const title = String(formData.get("title") || "").trim();
+    const rarity = String(formData.get("rarity") || "ssr").trim();
+    const attribute = String(formData.get("attribute") || "affinity").trim();
+    const releaseYear = Number(formData.get("releaseYear") || 2025);
+    const releaseDate = String(formData.get("releaseDate") || "").trim();
+    const summary = String(formData.get("summary") || "").trim();
+    const serverKey = String(formData.get("serverKey") || "kr").trim();
+    const characterKey = String(formData.get("characterKey") || "baiqi").trim();
+    const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
+    const thumbnailAfterUrl = String(formData.get("thumbnailAfterUrl") || "").trim();
+    const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
+    const coverAfterUrl = String(formData.get("coverAfterUrl") || "").trim();
 
-  const { data: server } = await supabase
-    .from("servers")
-    .select("id")
-    .eq("key", serverKey)
-    .single();
+    if (!title) throw new Error("title이 비어 있습니다.");
+    if (!Number.isFinite(releaseYear)) throw new Error("releaseYear가 올바르지 않습니다.");
 
-  const { data: character } = await supabase
-    .from("characters")
-    .select("id")
-    .eq("key", characterKey)
-    .single();
+    const { slug, originKey, contentId } = buildCardKeys({
+      characterKey,
+      title,
+      year: releaseYear,
+      serverKey,
+    });
 
-  if (!server || !character) {
-    throw new Error("server 또는 character를 찾을 수 없습니다.");
+    targetSlug = slug;
+
+    const { data: server, error: serverError } = await supabase
+      .from("servers")
+      .select("id")
+      .eq("key", serverKey)
+      .single();
+
+    if (serverError || !server) {
+      throw new Error(`server 조회 실패: ${serverError?.message || serverKey}`);
+    }
+
+    const { data: character, error: characterError } = await supabase
+      .from("characters")
+      .select("id")
+      .eq("key", characterKey)
+      .single();
+
+    if (characterError || !character) {
+      throw new Error(`character 조회 실패: ${characterError?.message || characterKey}`);
+    }
+
+    const { data: insertedCard, error: cardError } = await supabase
+      .from("cards")
+      .insert({
+        content_id: contentId,
+        origin_key: originKey,
+        server_id: server.id,
+        primary_character_id: character.id,
+        title,
+        slug,
+        rarity,
+        attribute,
+        release_year: releaseYear,
+        release_date: releaseDate || null,
+        thumbnail_url: thumbnailUrl || null,
+        cover_image_url: coverImageUrl || null,
+        summary,
+        is_published: true,
+      })
+      .select("id")
+      .single();
+
+    if (cardError || !insertedCard) {
+      throw new Error(cardError?.message || "cards 저장 실패");
+    }
+
+    if (thumbnailAfterUrl) {
+      const { error: thumbAfterError } = await supabase
+        .from("media_assets")
+        .insert({
+          parent_type: "card",
+          parent_id: insertedCard.id,
+          media_type: "image",
+          usage_type: "thumbnail",
+          url: thumbnailAfterUrl,
+          title: "evolution_after",
+          is_primary: false,
+          sort_order: 10,
+        });
+
+      if (thumbAfterError) throw new Error(thumbAfterError.message);
+    }
+
+    if (coverAfterUrl) {
+      const { error: coverAfterError } = await supabase
+        .from("media_assets")
+        .insert({
+          parent_type: "card",
+          parent_id: insertedCard.id,
+          media_type: "image",
+          usage_type: "cover",
+          url: coverAfterUrl,
+          title: "evolution_after",
+          is_primary: false,
+          sort_order: 11,
+        });
+
+      if (coverAfterError) throw new Error(coverAfterError.message);
+    }
+
+    revalidatePath("/admin/cards");
+    revalidatePath("/cards");
+  } catch (error) {
+    console.error("[createCard] fatal error:", error);
+    const message =
+      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+    redirect(`/admin/cards/new?error=${encodeURIComponent(message)}`);
   }
 
-  const { error } = await supabase.from("cards").insert({
-    content_id: contentId,
-    origin_key: originKey,
-    server_id: server.id,
-    primary_character_id: character.id,
-    title,
-    slug,
-    rarity,
-    attribute,
-    release_year: releaseYear,
-    release_date: releaseDate || null,
-    summary,
-    is_published: true,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  redirect(`/cards/${slug}`);
+  redirect(`/cards/${targetSlug}`);
 }
 
 export async function createStory(formData: FormData) {
@@ -250,32 +315,124 @@ export async function updateStory(formData: FormData) {
 }
 
 export async function updateCard(formData: FormData) {
-  const cardId = String(formData.get("cardId") || "");
-  const slug = String(formData.get("slug") || "");
-  const title = String(formData.get("title") || "");
-  const rarity = String(formData.get("rarity") || "ssr");
-  const attribute = String(formData.get("attribute") || "affinity");
-  const releaseYear = Number(formData.get("releaseYear") || 2025);
-  const releaseDate = String(formData.get("releaseDate") || "");
-  const summary = String(formData.get("summary") || "");
+  const rawSlug = String(formData.get("slug") || "").trim();
+  const safeSlug = encodeURIComponent(rawSlug);
 
-  const { error } = await supabase
-    .from("cards")
-    .update({
-      title,
-      rarity,
-      attribute,
-      release_year: releaseYear,
-      release_date: releaseDate || null,
-      summary,
-    })
-    .eq("id", cardId);
+  try {
+    const cardId = String(formData.get("cardId") || "").trim();
+    const title = String(formData.get("title") || "").trim();
+    const rarity = String(formData.get("rarity") || "ssr").trim();
+    const attribute = String(formData.get("attribute") || "affinity").trim();
+    const releaseYear = Number(formData.get("releaseYear") || 2025);
+    const releaseDate = String(formData.get("releaseDate") || "").trim();
+    const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
+    const thumbnailAfterUrl = String(formData.get("thumbnailAfterUrl") || "").trim();
+    const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
+    const coverAfterUrl = String(formData.get("coverAfterUrl") || "").trim();
+    const summary = String(formData.get("summary") || "").trim();
 
-  if (error) {
-    throw new Error(error.message);
+    if (!cardId) {
+      throw new Error("cardId가 없습니다.");
+    }
+
+    const { error } = await supabase
+      .from("cards")
+      .update({
+        title,
+        rarity,
+        attribute,
+        release_year: releaseYear,
+        release_date: releaseDate || null,
+        thumbnail_url: thumbnailUrl || null,
+        cover_image_url: coverImageUrl || null,
+        summary,
+      })
+      .eq("id", cardId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const { data: existingThumbAfter } = await supabase
+      .from("media_assets")
+      .select("id")
+      .eq("parent_type", "card")
+      .eq("parent_id", cardId)
+      .eq("media_type", "image")
+      .eq("usage_type", "thumbnail")
+      .eq("title", "evolution_after")
+      .maybeSingle();
+
+    if (existingThumbAfter?.id && thumbnailAfterUrl) {
+      const { error: thumbUpdateError } = await supabase
+        .from("media_assets")
+        .update({ url: thumbnailAfterUrl })
+        .eq("id", existingThumbAfter.id);
+
+      if (thumbUpdateError) throw new Error(thumbUpdateError.message);
+    } else if (!existingThumbAfter?.id && thumbnailAfterUrl) {
+      const { error: thumbInsertError } = await supabase
+        .from("media_assets")
+        .insert({
+          parent_type: "card",
+          parent_id: cardId,
+          media_type: "image",
+          usage_type: "thumbnail",
+          url: thumbnailAfterUrl,
+          title: "evolution_after",
+          is_primary: false,
+          sort_order: 10,
+        });
+
+      if (thumbInsertError) throw new Error(thumbInsertError.message);
+    }
+
+    const { data: existingCoverAfter } = await supabase
+      .from("media_assets")
+      .select("id")
+      .eq("parent_type", "card")
+      .eq("parent_id", cardId)
+      .eq("media_type", "image")
+      .eq("usage_type", "cover")
+      .eq("title", "evolution_after")
+      .maybeSingle();
+
+    if (existingCoverAfter?.id && coverAfterUrl) {
+      const { error: coverUpdateError } = await supabase
+        .from("media_assets")
+        .update({ url: coverAfterUrl })
+        .eq("id", existingCoverAfter.id);
+
+      if (coverUpdateError) throw new Error(coverUpdateError.message);
+    } else if (!existingCoverAfter?.id && coverAfterUrl) {
+      const { error: coverInsertError } = await supabase
+        .from("media_assets")
+        .insert({
+          parent_type: "card",
+          parent_id: cardId,
+          media_type: "image",
+          usage_type: "cover",
+          url: coverAfterUrl,
+          title: "evolution_after",
+          is_primary: false,
+          sort_order: 11,
+        });
+
+      if (coverInsertError) throw new Error(coverInsertError.message);
+    }
+
+    revalidatePath("/admin/cards");
+    revalidatePath("/cards");
+  } catch (error) {
+    console.error("[updateCard] fatal error:", error);
+
+    const message =
+      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+
+    redirect(`/admin/cards/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
   }
 
-  redirect(`/cards/${slug}`);
+  redirect("/admin/cards");
 }
 
 export async function updateTranslation(formData: FormData) {
@@ -1320,4 +1477,44 @@ export async function deleteEventBundle(formData: FormData) {
   revalidatePath("/admin/events");
   revalidatePath("/events");
   redirect("/admin/events");
+}
+
+export async function deleteCard(formData: FormData) {
+  const cardId = String(formData.get("cardId") ?? "").trim();
+
+  if (!cardId) {
+    throw new Error("cardId가 없습니다.");
+  }
+
+  const { error: relationError } = await supabase
+    .from("item_relations")
+    .delete()
+    .or(`parent_id.eq.${cardId},child_id.eq.${cardId}`);
+
+  if (relationError) {
+    throw new Error(`item_relations 삭제 실패: ${relationError.message}`);
+  }
+
+  const { error: mediaError } = await supabase
+    .from("media_assets")
+    .delete()
+    .eq("parent_type", "card")
+    .eq("parent_id", cardId);
+
+  if (mediaError) {
+    throw new Error(`media_assets 삭제 실패: ${mediaError.message}`);
+  }
+
+  const { error: cardError } = await supabase
+    .from("cards")
+    .delete()
+    .eq("id", cardId);
+
+  if (cardError) {
+    throw new Error(`cards 삭제 실패: ${cardError.message}`);
+  }
+
+  revalidatePath("/admin/cards");
+  revalidatePath("/cards");
+  redirect("/admin/cards");
 }

@@ -1,36 +1,52 @@
 import { createCard } from "@/app/admin/actions";
 
-export default function NewCardPage() {
+function safeDecode(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+export default async function NewCardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
+  const params = searchParams ? await searchParams : undefined;
+  const error = params?.error ?? "";
+
   return (
     <main>
       <header className="page-header">
         <div className="page-eyebrow">Admin / Cards</div>
-        <h1 className="page-title">카드 등록</h1>
+        <h1 className="page-title">새 카드 등록</h1>
         <p className="page-desc">
-          새 카드 메타 정보를 등록합니다.
+          카드 기본 정보와 썸네일/대표 이미지를 등록합니다.
         </p>
       </header>
 
+      {error ? (
+        <p
+          style={{
+            marginBottom: "16px",
+            padding: "12px 14px",
+            borderRadius: "10px",
+            background: "#3a1f1f",
+            color: "#ffb4b4",
+            border: "1px solid #6b2d2d",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {safeDecode(error)}
+        </p>
+      ) : null}
+
       <form action={createCard} className="form-panel">
         <div className="form-grid">
-          <label className="form-field">
-            <span>content_id</span>
-            <input name="contentId" required />
-          </label>
-
-          <label className="form-field">
-            <span>origin_key</span>
-            <input name="originKey" required />
-          </label>
-
-          <label className="form-field">
+          <label className="form-field form-field-full">
             <span>title</span>
             <input name="title" required />
-          </label>
-
-          <label className="form-field">
-            <span>slug</span>
-            <input name="slug" required />
           </label>
 
           <label className="form-field">
@@ -88,8 +104,28 @@ export default function NewCardPage() {
           </label>
 
           <label className="form-field form-field-full">
+            <span>thumbnail url</span>
+            <input name="thumbnailUrl" placeholder="https://..." />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>cover image url</span>
+            <input name="coverImageUrl" placeholder="https://..." />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>thumbnail after url (optional)</span>
+            <input name="thumbnailAfterUrl" placeholder="https://..." />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>cover after url (optional)</span>
+            <input name="coverAfterUrl" placeholder="https://..." />
+          </label>
+
+          <label className="form-field form-field-full">
             <span>summary</span>
-            <textarea name="summary" rows={4} />
+            <textarea name="summary" rows={5} />
           </label>
         </div>
 

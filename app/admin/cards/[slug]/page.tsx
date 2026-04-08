@@ -1,15 +1,12 @@
 import { redirect } from "next/navigation";
 
-type AdminCardSlugPageProps = {
+type PageProps = {
   params: Promise<{
     slug: string;
   }>;
 };
 
-export default async function AdminCardSlugPage({
-  params,
-}: AdminCardSlugPageProps) {
+export default async function AdminCardSlugPage({ params }: PageProps) {
   const { slug } = await params;
-
   redirect(`/admin/cards/${slug}/edit`);
 }
