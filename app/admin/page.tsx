@@ -34,6 +34,13 @@ export default function AdminPage() {
             스토리 목록 확인, 새 스토리 등록, 스토리 수정
           </p>
         </Link>
+        <Link href="/admin/events" className="quick-card">
+  <span className="quick-card-label">Events</span>
+  <h2 className="quick-card-title">이벤트 관리</h2>
+  <p className="quick-card-text">
+    이벤트 목록 확인, 새 이벤트 등록, 이벤트 수정
+  </p>
+</Link>
 
         <Link href="/admin/translations" className="quick-card">
           <span className="quick-card-label">Translations</span>
@@ -47,7 +54,7 @@ export default function AdminPage() {
           <span className="quick-card-label">Relations</span>
           <h2 className="quick-card-title">연결 관리</h2>
           <p className="quick-card-text">
-            카드와 스토리 연결 확인, 새 연결 등록
+            카드, 스토리, 이벤트 연결 확인, 새 연결 등록
           </p>
         </Link>
       </section>

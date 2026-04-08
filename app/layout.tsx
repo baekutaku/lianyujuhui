@@ -24,7 +24,7 @@ export default async function RootLayout({
               <Link href="/" className="brand">
                 <span className="brand-sub">LOVE AND PRODUCER ARCHIVE</span>
                 <strong className="brand-title">
-                  연모고 동창회 백기유연 위주 아카이브
+                  연모고 동창회
                 </strong>
                 <span className="brand-desc">Baiqi Archive / KR · CN</span>
               </Link>
@@ -51,9 +51,9 @@ export default async function RootLayout({
               </nav>
 
               <div className="sidebar-box">
-                <p className="sidebar-box-title">테마</p>
+                <p className="sidebar-box-title">CP 백업</p>
                 <p className="sidebar-box-text">
-                  백기 테마의 연한 하늘빛 아카이브
+                  백기유연
                 </p>
               </div>
             </div>

@@ -5,6 +5,34 @@ import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { buildCardKeys, buildStoryKeys } from "@/lib/utils/admin-keys";
 
+function slugify(input: string) {
+  return input
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9가-힣\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "") || "event";
+}
+
+function buildEventKeys(params: {
+  subtype: string;
+  characterKey: string;
+  title: string;
+  year: number;
+  serverKey: string;
+}) {
+  const base = slugify(params.title);
+
+  return {
+    slug: `${params.serverKey}-${params.year}-${params.subtype}-${params.characterKey}-${base}`,
+    originKey: `event:${params.serverKey}:${params.year}:${params.subtype}:${params.characterKey}:${base}`,
+    contentId: `event_${params.serverKey}_${params.year}_${params.subtype}_${params.characterKey}_${base}`,
+  };
+}
+
+
 function extractYoutubeVideoId(url: string) {
   const regExp = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/;
   const match = url.match(regExp);
@@ -707,4 +735,589 @@ export async function deleteStoryBundle(formData: FormData) {
   revalidatePath("/admin/stories");
   revalidatePath("/stories");
   redirect("/admin/stories");
+}
+
+export async function createEventBundle(formData: FormData) {
+  let createdEventId: string | null = null;
+  let targetSlug = "";
+
+  try {
+    const title = String(formData.get("title") || "").trim();
+    const subtype = String(formData.get("subtype") || "game_event").trim();
+    const releaseYear = Number(formData.get("releaseYear") || 2025);
+    const startDate = String(formData.get("startDate") || "").trim();
+    const endDate = String(formData.get("endDate") || "").trim();
+    const summary = String(formData.get("summary") || "").trim();
+    const serverKey = String(formData.get("serverKey") || "kr").trim();
+    const characterKey = String(formData.get("characterKey") || "baiqi").trim();
+
+    const translationTitle = String(formData.get("translationTitle") || "").trim();
+    const translationBody = String(formData.get("translationBody") || "").trim();
+
+    const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
+    const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
+    const cardSlug = String(formData.get("cardSlug") || "").trim();
+    const relatedEventSlug = String(formData.get("relatedEventSlug") || "").trim();
+
+    if (!title) {
+      throw new Error("title이 비어 있습니다.");
+    }
+
+    if (!Number.isFinite(releaseYear)) {
+      throw new Error("releaseYear가 올바르지 않습니다.");
+    }
+
+    const { slug, originKey, contentId } = buildEventKeys({
+      subtype,
+      characterKey,
+      title,
+      year: releaseYear,
+      serverKey,
+    });
+
+    targetSlug = slug;
+
+    const { data: server, error: serverError } = await supabase
+      .from("servers")
+      .select("id")
+      .eq("key", serverKey)
+      .single();
+
+    if (serverError || !server) {
+      throw new Error(`server 조회 실패: ${serverError?.message || serverKey}`);
+    }
+
+    const { data: character, error: characterError } = await supabase
+      .from("characters")
+      .select("id")
+      .eq("key", characterKey)
+      .single();
+
+    if (characterError || !character) {
+      throw new Error(`character 조회 실패: ${characterError?.message || characterKey}`);
+    }
+
+    const { data: insertedEvent, error: eventError } = await supabase
+      .from("events")
+      .insert({
+        content_id: contentId,
+        origin_key: originKey,
+        server_id: server.id,
+        primary_character_id: character.id,
+        title,
+        slug,
+        subtype,
+        release_year: releaseYear,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        thumbnail_url: thumbnailUrl || null,
+        summary,
+        is_published: true,
+      })
+      .select("id")
+      .single();
+
+    if (eventError || !insertedEvent) {
+      throw new Error(eventError?.message || "events 저장 실패");
+    }
+
+    createdEventId = insertedEvent.id;
+
+    if (translationBody) {
+      const { error: translationError } = await supabase
+        .from("translations")
+        .insert({
+          parent_type: "event",
+          parent_id: insertedEvent.id,
+          language_code: "ko",
+          translation_type: "full",
+          title: translationTitle || null,
+          body: translationBody,
+          is_primary: true,
+          is_published: true,
+        });
+
+      if (translationError) {
+        throw new Error(`translations 저장 실패: ${translationError.message}`);
+      }
+    }
+
+    if (thumbnailUrl) {
+      const { error: imageError } = await supabase
+        .from("media_assets")
+        .insert({
+          parent_type: "event",
+          parent_id: insertedEvent.id,
+          media_type: "image",
+          usage_type: "thumbnail",
+          url: thumbnailUrl,
+          title: `${title} 썸네일`,
+          is_primary: !youtubeUrl,
+          sort_order: youtubeUrl ? 1 : 0,
+        });
+
+      if (imageError) {
+        throw new Error(`thumbnail 이미지 저장 실패: ${imageError.message}`);
+      }
+    }
+
+    if (youtubeUrl) {
+      const youtubeVideoId = extractYoutubeVideoId(youtubeUrl);
+
+      const { error: mediaError } = await supabase
+        .from("media_assets")
+        .insert({
+          parent_type: "event",
+          parent_id: insertedEvent.id,
+          media_type: "youtube",
+          usage_type: "pv",
+          url: youtubeUrl,
+          youtube_video_id: youtubeVideoId,
+          title: `${title} PV`,
+          is_primary: true,
+          sort_order: 0,
+        });
+
+      if (mediaError) {
+        throw new Error(`youtube 저장 실패: ${mediaError.message}`);
+      }
+    }
+
+    if (cardSlug) {
+      const { data: card, error: cardError } = await supabase
+        .from("cards")
+        .select("id")
+        .eq("slug", cardSlug)
+        .single();
+
+      if (cardError || !card) {
+        throw new Error(`card 조회 실패: ${cardError?.message || cardSlug}`);
+      }
+
+      const { error: relationError } = await supabase
+        .from("item_relations")
+        .insert({
+          parent_type: "card",
+          parent_id: card.id,
+          child_type: "event",
+          child_id: insertedEvent.id,
+          relation_type: "related_card",
+          sort_order: 0,
+        });
+
+      if (relationError) {
+        throw new Error(`card relation 저장 실패: ${relationError.message}`);
+      }
+    }
+
+    if (relatedEventSlug) {
+      const { data: relatedEvent, error: relatedEventError } = await supabase
+        .from("events")
+        .select("id")
+        .eq("slug", relatedEventSlug)
+        .single();
+
+      if (relatedEventError || !relatedEvent) {
+        throw new Error(`related event 조회 실패: ${relatedEventError?.message || relatedEventSlug}`);
+      }
+
+      const { error: relationError } = await supabase
+        .from("item_relations")
+        .insert({
+          parent_type: "event",
+          parent_id: relatedEvent.id,
+          child_type: "event",
+          child_id: insertedEvent.id,
+          relation_type: "related_event",
+          sort_order: 0,
+        });
+
+      if (relationError) {
+        throw new Error(`event relation 저장 실패: ${relationError.message}`);
+      }
+    }
+
+    revalidatePath("/admin/events");
+    revalidatePath("/events");
+  } catch (error) {
+    console.error("[createEventBundle] fatal error:", error);
+
+    if (createdEventId) {
+      console.error(
+        "[createEventBundle] 부분 저장됨. event id:",
+        createdEventId,
+        "slug:",
+        targetSlug
+      );
+    }
+
+    const message =
+      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+
+    redirect(`/admin/events/new?error=${encodeURIComponent(message)}`);
+  }
+
+  redirect("/admin/events");
+}
+
+export async function updateEventBundle(formData: FormData) {
+  const eventId = String(formData.get("eventId") || "").trim();
+  const title = String(formData.get("title") || "").trim();
+  const subtype = String(formData.get("subtype") || "game_event").trim();
+  const releaseYear = Number(formData.get("releaseYear") || 2025);
+  const startDate = String(formData.get("startDate") || "").trim();
+  const endDate = String(formData.get("endDate") || "").trim();
+  const summary = String(formData.get("summary") || "").trim();
+  const serverKey = String(formData.get("serverKey") || "kr").trim();
+  const characterKey = String(formData.get("characterKey") || "baiqi").trim();
+
+  const translationId = String(formData.get("translationId") || "").trim();
+  const translationTitle = String(formData.get("translationTitle") || "").trim();
+  const translationBody = String(formData.get("translationBody") || "").trim();
+
+  const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
+  const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
+  const isPublished = String(formData.get("isPublished") || "true").trim() === "true";
+
+  const hasCardSlugField = formData.has("cardSlug");
+  const hasRelatedEventSlugField = formData.has("relatedEventSlug");
+  const cardSlug = String(formData.get("cardSlug") || "").trim();
+  const relatedEventSlug = String(formData.get("relatedEventSlug") || "").trim();
+
+  if (!eventId) {
+    throw new Error("eventId가 없습니다.");
+  }
+
+  const { data: server, error: serverError } = await supabase
+    .from("servers")
+    .select("id")
+    .eq("key", serverKey)
+    .single();
+
+  if (serverError || !server) {
+    throw new Error(`server 조회 실패: ${serverError?.message || serverKey}`);
+  }
+
+  const { data: character, error: characterError } = await supabase
+    .from("characters")
+    .select("id")
+    .eq("key", characterKey)
+    .single();
+
+  if (characterError || !character) {
+    throw new Error(`character 조회 실패: ${characterError?.message || characterKey}`);
+  }
+
+  const { error: eventError } = await supabase
+    .from("events")
+    .update({
+      title,
+      subtype,
+      release_year: releaseYear,
+      start_date: startDate || null,
+      end_date: endDate || null,
+      summary,
+      server_id: server.id,
+      primary_character_id: character.id,
+      thumbnail_url: thumbnailUrl || null,
+      is_published: isPublished,
+    })
+    .eq("id", eventId);
+
+  if (eventError) {
+    throw new Error(eventError.message);
+  }
+
+  if (translationId) {
+    const { error: translationError } = await supabase
+      .from("translations")
+      .update({
+        title: translationTitle || null,
+        body: translationBody,
+      })
+      .eq("id", translationId);
+
+    if (translationError) {
+      throw new Error(translationError.message);
+    }
+  } else if (translationBody) {
+    const { error: translationInsertError } = await supabase
+      .from("translations")
+      .insert({
+        parent_type: "event",
+        parent_id: eventId,
+        language_code: "ko",
+        translation_type: "full",
+        title: translationTitle || null,
+        body: translationBody,
+        is_primary: true,
+        is_published: true,
+      });
+
+    if (translationInsertError) {
+      throw new Error(translationInsertError.message);
+    }
+  }
+
+  const { data: existingYoutube } = await supabase
+    .from("media_assets")
+    .select("id")
+    .eq("parent_type", "event")
+    .eq("parent_id", eventId)
+    .eq("media_type", "youtube")
+    .limit(1)
+    .maybeSingle();
+
+  const { data: existingImage } = await supabase
+    .from("media_assets")
+    .select("id")
+    .eq("parent_type", "event")
+    .eq("parent_id", eventId)
+    .eq("media_type", "image")
+    .limit(1)
+    .maybeSingle();
+
+  if (existingYoutube?.id && youtubeUrl) {
+    const { error } = await supabase
+      .from("media_assets")
+      .update({
+        url: youtubeUrl,
+        youtube_video_id: extractYoutubeVideoId(youtubeUrl),
+        usage_type: "pv",
+        media_type: "youtube",
+        title: `${title} PV`,
+        is_primary: true,
+        sort_order: 0,
+      })
+      .eq("id", existingYoutube.id);
+
+    if (error) throw new Error(error.message);
+  } else if (!existingYoutube?.id && youtubeUrl) {
+    const { error } = await supabase
+      .from("media_assets")
+      .insert({
+        parent_type: "event",
+        parent_id: eventId,
+        media_type: "youtube",
+        usage_type: "pv",
+        url: youtubeUrl,
+        youtube_video_id: extractYoutubeVideoId(youtubeUrl),
+        title: `${title} PV`,
+        is_primary: true,
+        sort_order: 0,
+      });
+
+    if (error) throw new Error(error.message);
+  } else if (existingYoutube?.id && !youtubeUrl) {
+    const { error } = await supabase
+      .from("media_assets")
+      .delete()
+      .eq("id", existingYoutube.id);
+
+    if (error) throw new Error(error.message);
+  }
+
+  if (existingImage?.id && thumbnailUrl) {
+    const { error } = await supabase
+      .from("media_assets")
+      .update({
+        url: thumbnailUrl,
+        usage_type: "thumbnail",
+        media_type: "image",
+        title: `${title} 썸네일`,
+        is_primary: !youtubeUrl,
+        sort_order: youtubeUrl ? 1 : 0,
+      })
+      .eq("id", existingImage.id);
+
+    if (error) throw new Error(error.message);
+  } else if (!existingImage?.id && thumbnailUrl) {
+    const { error } = await supabase
+      .from("media_assets")
+      .insert({
+        parent_type: "event",
+        parent_id: eventId,
+        media_type: "image",
+        usage_type: "thumbnail",
+        url: thumbnailUrl,
+        title: `${title} 썸네일`,
+        is_primary: !youtubeUrl,
+        sort_order: youtubeUrl ? 1 : 0,
+      });
+
+    if (error) throw new Error(error.message);
+  } else if (existingImage?.id && !thumbnailUrl) {
+    const { error } = await supabase
+      .from("media_assets")
+      .delete()
+      .eq("id", existingImage.id);
+
+    if (error) throw new Error(error.message);
+  }
+
+  if (hasCardSlugField) {
+    const { data: existingCardRelation } = await supabase
+      .from("item_relations")
+      .select("id")
+      .eq("child_type", "event")
+      .eq("child_id", eventId)
+      .eq("parent_type", "card")
+      .limit(1)
+      .maybeSingle();
+
+    if (cardSlug) {
+      const { data: card, error: cardError } = await supabase
+        .from("cards")
+        .select("id")
+        .eq("slug", cardSlug)
+        .single();
+
+      if (cardError || !card) {
+        throw new Error(`card 조회 실패: ${cardError?.message || cardSlug}`);
+      }
+
+      if (existingCardRelation?.id) {
+        const { error } = await supabase
+          .from("item_relations")
+          .update({
+            parent_id: card.id,
+            relation_type: "related_card",
+          })
+          .eq("id", existingCardRelation.id);
+
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await supabase
+          .from("item_relations")
+          .insert({
+            parent_type: "card",
+            parent_id: card.id,
+            child_type: "event",
+            child_id: eventId,
+            relation_type: "related_card",
+            sort_order: 0,
+          });
+
+        if (error) throw new Error(error.message);
+      }
+    } else if (existingCardRelation?.id) {
+      const { error } = await supabase
+        .from("item_relations")
+        .delete()
+        .eq("id", existingCardRelation.id);
+
+      if (error) throw new Error(error.message);
+    }
+  }
+
+  if (hasRelatedEventSlugField) {
+    const { data: existingEventRelation } = await supabase
+      .from("item_relations")
+      .select("id")
+      .eq("child_type", "event")
+      .eq("child_id", eventId)
+      .eq("parent_type", "event")
+      .limit(1)
+      .maybeSingle();
+
+    if (relatedEventSlug) {
+      const { data: relatedEvent, error: relatedEventError } = await supabase
+        .from("events")
+        .select("id")
+        .eq("slug", relatedEventSlug)
+        .single();
+
+      if (relatedEventError || !relatedEvent) {
+        throw new Error(
+          `related event 조회 실패: ${relatedEventError?.message || relatedEventSlug}`
+        );
+      }
+
+      if (existingEventRelation?.id) {
+        const { error } = await supabase
+          .from("item_relations")
+          .update({
+            parent_id: relatedEvent.id,
+            relation_type: "related_event",
+          })
+          .eq("id", existingEventRelation.id);
+
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await supabase
+          .from("item_relations")
+          .insert({
+            parent_type: "event",
+            parent_id: relatedEvent.id,
+            child_type: "event",
+            child_id: eventId,
+            relation_type: "related_event",
+            sort_order: 0,
+          });
+
+        if (error) throw new Error(error.message);
+      }
+    } else if (existingEventRelation?.id) {
+      const { error } = await supabase
+        .from("item_relations")
+        .delete()
+        .eq("id", existingEventRelation.id);
+
+      if (error) throw new Error(error.message);
+    }
+  }
+
+  revalidatePath("/admin/events");
+  revalidatePath("/events");
+  redirect("/admin/events");
+}
+
+export async function deleteEventBundle(formData: FormData) {
+  const eventId = String(formData.get("eventId") ?? "").trim();
+
+  if (!eventId) {
+    throw new Error("eventId가 없습니다.");
+  }
+
+  const { error: relationError } = await supabase
+    .from("item_relations")
+    .delete()
+    .or(`parent_id.eq.${eventId},child_id.eq.${eventId}`);
+
+  if (relationError) {
+    throw new Error(`item_relations 삭제 실패: ${relationError.message}`);
+  }
+
+  const { error: translationError } = await supabase
+    .from("translations")
+    .delete()
+    .eq("parent_type", "event")
+    .eq("parent_id", eventId);
+
+  if (translationError) {
+    throw new Error(`translations 삭제 실패: ${translationError.message}`);
+  }
+
+  const { error: mediaError } = await supabase
+    .from("media_assets")
+    .delete()
+    .eq("parent_type", "event")
+    .eq("parent_id", eventId);
+
+  if (mediaError) {
+    throw new Error(`media_assets 삭제 실패: ${mediaError.message}`);
+  }
+
+  const { error: eventError } = await supabase
+    .from("events")
+    .delete()
+    .eq("id", eventId);
+
+  if (eventError) {
+    throw new Error(`events 삭제 실패: ${eventError.message}`);
+  }
+
+  revalidatePath("/admin/events");
+  revalidatePath("/events");
+  redirect("/admin/events");
 }
