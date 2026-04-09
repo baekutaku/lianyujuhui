@@ -1267,3 +1267,73 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 768px) {
+  .content-area {
+    padding: 12px;
+  }
+
+  .content-inner {
+    padding: 16px;
+    border-radius: 24px;
+  }
+
+  .detail-panel {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .story-topbar {
+    padding: 14px !important;
+    gap: 14px;
+  }
+
+  .story-page-title {
+    font-size: 28px;
+    line-height: 1.2;
+  }
+
+  .story-main-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* 여기 핵심: 모바일에선 안쪽 패널 느낌을 줄임 */
+  .story-media-panel,
+  .story-translation-panel {
+    padding: 0;
+    min-height: auto;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .story-media-box,
+  .translation-scroll-panel {
+    width: 100%;
+  }
+
+  .translation-scroll-panel {
+    max-height: none;
+    padding-right: 0;
+  }
+
+  .story-detail-image,
+  .media-embed-wrap {
+    max-width: 100%;
+  }
+
+  .detail-section-title {
+    font-size: 20px;
+  }
+
+  .translation-body {
+    font-size: 16px;
+    line-height: 1.85;
+  }
+
+  .story-side-links .detail-text {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+}
