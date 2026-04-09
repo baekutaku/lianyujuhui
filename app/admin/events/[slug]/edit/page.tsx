@@ -1,9 +1,18 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import SmartEditor from "@/components/editor/SmartEditor";
 import { supabase } from "@/lib/supabase/client";
-import { updateEventBundle } from "@/app/admin/actions";
+import { updateEventBundle, deleteEventBundle } from "@/app/admin/actions";
 
 function safeDecode(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function safeDecodeSlug(value: string) {
   try {
     return decodeURIComponent(value);
   } catch {
@@ -22,7 +31,8 @@ export default async function EditEventPage({
   params,
   searchParams,
 }: EditEventPageProps) {
-  const { slug } = await params;
+  const rawSlug = (await params).slug;
+  const slug = safeDecodeSlug(rawSlug);
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const error = resolvedSearchParams?.error ?? "";
 
@@ -233,6 +243,38 @@ export default async function EditEventPage({
           이벤트 수정 저장
         </button>
       </form>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          flexWrap: "wrap",
+          marginTop: "18px",
+        }}
+      >
+        <Link href={`/events/${event.slug}`} className="nav-link">
+          공개 보기
+        </Link>
+
+        <Link href="/admin/events" className="nav-link">
+          목록으로
+        </Link>
+
+        <form action={deleteEventBundle}>
+          <input type="hidden" name="eventId" value={event.id} />
+          <button
+            type="submit"
+            className="nav-link"
+            style={{
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+            }}
+          >
+            삭제
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

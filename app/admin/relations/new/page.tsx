@@ -1,106 +1,107 @@
-import { supabase } from "@/lib/supabase/client";
-import { createCardStoryRelation } from "@/app/admin/actions";
+import { createBulkRelation } from "@/app/admin/actions";
 
-export default async function NewRelationPage() {
-  const { data: cards, error: cardsError } = await supabase
-    .from("cards")
-    .select(`
-      id,
-      title,
-      slug,
-      rarity,
-      release_year,
-      characters (
-        name_ko
-      )
-    `)
-    .eq("is_published", true)
-    .order("created_at", { ascending: false });
+function safeDecode(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
 
-  const { data: stories, error: storiesError } = await supabase
-    .from("stories")
-    .select(`
-      id,
-      title,
-      slug,
-      subtype,
-      release_year,
-      characters (
-        name_ko
-      )
-    `)
-    .eq("is_published", true)
-    .order("created_at", { ascending: false });
+export default async function NewRelationPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
+  const params = searchParams ? await searchParams : undefined;
+  const error = params?.error ?? "";
 
   return (
     <main>
       <header className="page-header">
         <div className="page-eyebrow">Admin / Relations</div>
-        <h1 className="page-title">카드-스토리 연결</h1>
+        <h1 className="page-title">새 연결 등록</h1>
         <p className="page-desc">
-          카드와 스토리를 선택해서 연결합니다.
+          부모 콘텐츠 1개와 자식 콘텐츠 여러 개를 slug 기준으로 한 번에 연결합니다.
         </p>
       </header>
 
-      <form action={createCardStoryRelation} className="form-panel">
+      {error ? (
+        <p
+          style={{
+            marginBottom: "16px",
+            padding: "12px 14px",
+            borderRadius: "10px",
+            background: "#3a1f1f",
+            color: "#ffb4b4",
+            border: "1px solid #6b2d2d",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {safeDecode(error)}
+        </p>
+      ) : null}
+
+      <form action={createBulkRelation} className="form-panel">
         <div className="form-grid">
           <label className="form-field">
-            <span>card</span>
-            <select name="cardSlug" required defaultValue="">
-              <option value="" disabled>
-                카드를 선택하세요
-              </option>
-              {cards?.map((card) => {
-                const characterName = Array.isArray(card.characters)
-                  ? card.characters[0]?.name_ko
-                  : (card.characters as { name_ko?: string } | null)?.name_ko;
-
-                return (
-                  <option key={card.id} value={card.slug}>
-                    [{characterName || "공용"}] [{card.rarity}] [{card.release_year}] {card.title}
-                  </option>
-                );
-              })}
+            <span>parent type</span>
+            <select name="parentType" defaultValue="card" required>
+              <option value="card">card</option>
+              <option value="story">story</option>
+              <option value="event">event</option>
+              <option value="phone_item">phone_item</option>
             </select>
           </label>
 
           <label className="form-field">
-            <span>story</span>
-            <select name="storySlug" required defaultValue="">
-              <option value="" disabled>
-                스토리를 선택하세요
-              </option>
-              {stories?.map((story) => {
-                const characterName = Array.isArray(story.characters)
-                  ? story.characters[0]?.name_ko
-                  : (story.characters as { name_ko?: string } | null)?.name_ko;
-
-                return (
-                  <option key={story.id} value={story.slug}>
-                    [{characterName || "공용"}] [{story.subtype}] [{story.release_year}] {story.title}
-                  </option>
-                );
-              })}
+            <span>child type</span>
+            <select name="childType" defaultValue="story" required>
+              <option value="story">story</option>
+              <option value="event">event</option>
+              <option value="phone_item">phone_item</option>
+              <option value="card">card</option>
             </select>
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>parent slug</span>
+            <input
+              name="parentSlug"
+              required
+              placeholder="예: kr-2026-ssr-baiqi-some-card"
+            />
+          </label>
+
+          <label className="form-field">
+            <span>relation type</span>
+            <select name="relationType" defaultValue="card_story" required>
+              <option value="card_story">card_story</option>
+              <option value="card_phone">card_phone</option>
+              <option value="related_event">related_event</option>
+              <option value="related_story">related_story</option>
+              <option value="related_card">related_card</option>
+            </select>
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>child slugs (줄바꿈으로 여러 개 입력)</span>
+            <textarea
+              name="childSlugs"
+              rows={10}
+              required
+              placeholder={`예:
+kr-2026-card-story-baiqi-something
+kr-2026-message-baiqi-something
+kr-2026-event-baiqi-something`}
+            />
           </label>
         </div>
 
         <button type="submit" className="primary-button">
-          카드-스토리 연결
+          연결 저장
         </button>
       </form>
-
-      {cardsError && (
-        <pre className="error-box" style={{ marginTop: "20px" }}>
-          {JSON.stringify(cardsError, null, 2)}
-        </pre>
-      )}
-
-      {storiesError && (
-        <pre className="error-box" style={{ marginTop: "20px" }}>
-          {JSON.stringify(storiesError, null, 2)}
-        </pre>
-      )}
     </main>
   );
 }

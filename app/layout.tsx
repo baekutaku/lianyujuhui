@@ -23,9 +23,7 @@ export default async function RootLayout({
             <div className="sidebar-inner">
               <Link href="/" className="brand">
                 <span className="brand-sub">LOVE AND PRODUCER ARCHIVE</span>
-                <strong className="brand-title">
-                  연모고 동창회
-                </strong>
+                <strong className="brand-title">연모고 동창회</strong>
                 <span className="brand-desc">Baiqi Archive / KR · CN</span>
               </Link>
 
@@ -33,27 +31,35 @@ export default async function RootLayout({
                 <Link href="/" className="nav-link">
                   홈
                 </Link>
-                <Link href="/stories" className="nav-link">
-                  스토리
-                </Link>
                 <Link href="/cards" className="nav-link">
                   카드
+                </Link>
+                <Link href="/stories" className="nav-link">
+                  데이트·스토리
+                </Link>
+                <Link href="/phone-items" className="nav-link">
+                  휴대폰
                 </Link>
                 <Link href="/events" className="nav-link">
                   이벤트
                 </Link>
 
                 {admin && (
-                  <Link href="/admin" className="nav-link">
-                    관리자
-                  </Link>
+                  <>
+                    <Link href="/admin" className="nav-link">
+                      관리자
+                    </Link>
+                    <Link href="/admin/phone-items" className="nav-link">
+                      휴대폰 관리
+                    </Link>
+                  </>
                 )}
               </nav>
 
               <div className="sidebar-box">
-                <p className="sidebar-box-title">CP 백업</p>
+                <p className="sidebar-box-title">인게임 축</p>
                 <p className="sidebar-box-text">
-                  백기유연
+                  카드 · 데이트 · 휴대폰 · 이벤트
                 </p>
               </div>
             </div>

@@ -1,24 +1,48 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { updateStoryBundle } from "@/app/admin/actions";
+import { updateStoryBundle, deleteStoryBundle } from "@/app/admin/actions";
 import SmartEditor from "@/components/editor/SmartEditor";
 
 type EditStoryPageProps = {
   params: Promise<{
     slug: string;
   }>;
+  searchParams?: Promise<{ error?: string }>;
 };
 
-export default async function EditStoryPage({ params }: EditStoryPageProps) {
-  const { slug } = await params;
+function safeDecode(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
 
-  const { data: story, error } = await supabase
+function safeDecodeSlug(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+export default async function EditStoryPage({
+  params,
+  searchParams,
+}: EditStoryPageProps) {
+  const rawSlug = (await params).slug;
+  const slug = safeDecodeSlug(rawSlug);
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const error = resolvedSearchParams?.error ?? "";
+
+  const { data: story, error: storyError } = await supabase
     .from("stories")
     .select("id, title, slug, subtype, release_year, release_date, summary")
     .eq("slug", slug)
     .maybeSingle();
 
-  if (error || !story) {
+  if (storyError || !story) {
     notFound();
   }
 
@@ -55,12 +79,6 @@ export default async function EditStoryPage({ params }: EditStoryPageProps) {
     .eq("relation_type", "card_story")
     .maybeSingle();
 
-  const { data: cards } = await supabase
-    .from("cards")
-    .select("id, title, slug, rarity, release_year")
-    .eq("is_published", true)
-    .order("release_year", { ascending: false });
-
   let linkedCardSlug = "";
 
   if (relation?.parent_id) {
@@ -82,6 +100,22 @@ export default async function EditStoryPage({ params }: EditStoryPageProps) {
           스토리, 번역, 영상, 카드 연결을 한 화면에서 수정합니다.
         </p>
       </header>
+
+      {error ? (
+        <p
+          style={{
+            marginBottom: "16px",
+            padding: "12px 14px",
+            borderRadius: "10px",
+            background: "#3a1f1f",
+            color: "#ffb4b4",
+            border: "1px solid #6b2d2d",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {safeDecode(error)}
+        </p>
+      ) : null}
 
       <form action={updateStoryBundle} className="form-panel">
         <input type="hidden" name="storyId" value={story.id} />
@@ -174,14 +208,11 @@ export default async function EditStoryPage({ params }: EditStoryPageProps) {
 
           <label className="form-field form-field-full">
             <span>linked card</span>
-            <select name="cardSlug" defaultValue={linkedCardSlug}>
-              <option value="">선택 안 함</option>
-              {cards?.map((card) => (
-                <option key={card.id} value={card.slug}>
-                  [{card.rarity}] [{card.release_year}] {card.title}
-                </option>
-              ))}
-            </select>
+            <input
+              name="cardSlug"
+              defaultValue={linkedCardSlug}
+              placeholder="예: baiqi-ssr-some-card"
+            />
           </label>
         </div>
 
@@ -189,6 +220,38 @@ export default async function EditStoryPage({ params }: EditStoryPageProps) {
           스토리 통합 저장
         </button>
       </form>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          flexWrap: "wrap",
+          marginTop: "18px",
+        }}
+      >
+        <Link href={`/stories/${story.slug}`} className="nav-link">
+          공개 보기
+        </Link>
+
+        <Link href="/admin/stories" className="nav-link">
+          목록으로
+        </Link>
+
+        <form action={deleteStoryBundle}>
+          <input type="hidden" name="storyId" value={story.id} />
+          <button
+            type="submit"
+            className="nav-link"
+            style={{
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+            }}
+          >
+            삭제
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import CardImageSwitcher from "@/components/cards/CardImageSwitcher";
+import { deleteCard } from "@/app/admin/actions";
 
 type CardDetailPageProps = {
   params: Promise<{
@@ -148,12 +149,25 @@ if (!card.is_published && !admin) {
             </Link>
 
             {admin && (
-              <Link
-                href={`/admin/cards/${card.slug}/edit`}
-                className="story-action-button"
-              >
-                관리자 수정
-              </Link>
+              <>
+                <Link
+                  href={`/admin/cards/${card.slug}/edit`}
+                  className="story-action-button"
+                >
+                  관리자 수정
+                </Link>
+
+                <form action={deleteCard}>
+                  <input type="hidden" name="cardId" value={card.id} />
+                  <button
+                    type="submit"
+                    className="story-action-button story-action-muted"
+                    style={{ border: "none", cursor: "pointer" }}
+                  >
+                    삭제
+                  </button>
+                </form>
+              </>
             )}
           </div>
         </div>

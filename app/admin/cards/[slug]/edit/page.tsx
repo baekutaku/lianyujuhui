@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import { updateCard } from "@/app/admin/actions";
+import { updateCard, deleteCard } from "@/app/admin/actions";
 
 type EditCardPageProps = {
   params: Promise<{
@@ -70,6 +71,71 @@ export default async function EditCardPage({
     .eq("title", "evolution_after")
     .maybeSingle();
 
+  const { data: storyRelations } = await supabase
+    .from("item_relations")
+    .select("child_id, sort_order")
+    .eq("parent_type", "card")
+    .eq("parent_id", card.id)
+    .eq("child_type", "story")
+    .eq("relation_type", "card_story")
+    .order("sort_order", { ascending: true });
+
+  const { data: phoneRelations } = await supabase
+    .from("item_relations")
+    .select("child_id, sort_order")
+    .eq("parent_type", "card")
+    .eq("parent_id", card.id)
+    .eq("child_type", "phone_item")
+    .eq("relation_type", "card_phone")
+    .order("sort_order", { ascending: true });
+
+  const { data: eventRelations } = await supabase
+    .from("item_relations")
+    .select("child_id, sort_order")
+    .eq("parent_type", "card")
+    .eq("parent_id", card.id)
+    .eq("child_type", "event")
+    .eq("relation_type", "card_event")
+    .order("sort_order", { ascending: true });
+
+  const storyIds = (storyRelations ?? []).map((item) => item.child_id);
+  const phoneIds = (phoneRelations ?? []).map((item) => item.child_id);
+  const eventIds = (eventRelations ?? []).map((item) => item.child_id);
+
+  const { data: stories } =
+    storyIds.length > 0
+      ? await supabase.from("stories").select("id, slug").in("id", storyIds)
+      : { data: [] as { id: string; slug: string }[] };
+
+  const { data: phoneItems } =
+    phoneIds.length > 0
+      ? await supabase.from("phone_items").select("id, slug").in("id", phoneIds)
+      : { data: [] as { id: string; slug: string }[] };
+
+  const { data: events } =
+    eventIds.length > 0
+      ? await supabase.from("events").select("id, slug").in("id", eventIds)
+      : { data: [] as { id: string; slug: string }[] };
+
+  const storySlugMap = new Map((stories ?? []).map((item) => [item.id, item.slug]));
+  const phoneSlugMap = new Map((phoneItems ?? []).map((item) => [item.id, item.slug]));
+  const eventSlugMap = new Map((events ?? []).map((item) => [item.id, item.slug]));
+
+  const linkedStorySlugs = (storyRelations ?? [])
+    .map((item) => storySlugMap.get(item.child_id))
+    .filter(Boolean)
+    .join("\n");
+
+  const linkedPhoneItemSlugs = (phoneRelations ?? [])
+    .map((item) => phoneSlugMap.get(item.child_id))
+    .filter(Boolean)
+    .join("\n");
+
+  const linkedEventSlugs = (eventRelations ?? [])
+    .map((item) => eventSlugMap.get(item.child_id))
+    .filter(Boolean)
+    .join("\n");
+
   const thumbnailAfterUrl = thumbAfterMedia?.url ?? "";
   const coverAfterUrl = coverAfterMedia?.url ?? "";
 
@@ -79,7 +145,7 @@ export default async function EditCardPage({
         <div className="page-eyebrow">Admin / Cards / Edit</div>
         <h1 className="page-title">카드 수정</h1>
         <p className="page-desc">
-          카드 기본 정보와 썸네일/대표 이미지를 수정합니다.
+          카드 기본 정보, 썸네일/대표 이미지, 연결 콘텐츠를 수정합니다.
         </p>
       </header>
 
@@ -197,12 +263,66 @@ export default async function EditCardPage({
               defaultValue={card.summary ?? ""}
             />
           </label>
+
+          <label className="form-field form-field-full">
+            <span>linked story slugs</span>
+            <textarea
+              name="linkedStorySlugs"
+              rows={5}
+              defaultValue={linkedStorySlugs}
+              placeholder="한 줄에 slug 하나씩 입력"
+            />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>linked phone item slugs</span>
+            <textarea
+              name="linkedPhoneItemSlugs"
+              rows={5}
+              defaultValue={linkedPhoneItemSlugs}
+              placeholder="한 줄에 slug 하나씩 입력"
+            />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>linked event slugs</span>
+            <textarea
+              name="linkedEventSlugs"
+              rows={5}
+              defaultValue={linkedEventSlugs}
+              placeholder="한 줄에 slug 하나씩 입력"
+            />
+          </label>
         </div>
 
         <button type="submit" className="primary-button">
           카드 수정 저장
         </button>
       </form>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          flexWrap: "wrap",
+          marginTop: "18px",
+        }}
+      >
+        <form action={deleteCard}>
+          <input type="hidden" name="cardId" value={card.id} />
+          <button
+            type="submit"
+            className="nav-link"
+            style={{
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+            }}
+          >
+            삭제
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

@@ -156,7 +156,7 @@ export async function createCard(formData: FormData) {
     redirect(`/admin/cards/new?error=${encodeURIComponent(message)}`);
   }
 
-  redirect(`/cards/${targetSlug}`);
+  redirect(`/admin/cards/${encodeURIComponent(targetSlug)}/edit`);
 }
 
 export async function createStory(formData: FormData) {
@@ -314,6 +314,98 @@ export async function updateStory(formData: FormData) {
   redirect("/admin/stories");
 }
 
+function parseSlugLines(value: FormDataEntryValue | null) {
+  return String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function getTableNameByItemType(type: string) {
+  if (type === "card") return "cards";
+  if (type === "story") return "stories";
+  if (type === "event") return "events";
+  if (type === "phone_item") return "phone_items";
+  throw new Error(`지원하지 않는 item type: ${type}`);
+}
+
+async function syncRelationsBySlugs(params: {
+  parentType: "card" | "story" | "event" | "phone_item";
+  parentId: string;
+  childType: "card" | "story" | "event" | "phone_item";
+  relationType: string;
+  slugs: string[];
+}) {
+  const childTable = getTableNameByItemType(params.childType);
+
+  const uniqueSlugs = Array.from(new Set(params.slugs));
+
+  const { data: existingRelations, error: existingRelationsError } = await supabase
+    .from("item_relations")
+    .select("id")
+    .eq("parent_type", params.parentType)
+    .eq("parent_id", params.parentId)
+    .eq("child_type", params.childType)
+    .eq("relation_type", params.relationType);
+
+  if (existingRelationsError) {
+    throw new Error(existingRelationsError.message);
+  }
+
+  if (existingRelations && existingRelations.length > 0) {
+    const relationIds = existingRelations.map((item) => item.id);
+
+    const { error: deleteError } = await supabase
+      .from("item_relations")
+      .delete()
+      .in("id", relationIds);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+  }
+
+  if (uniqueSlugs.length === 0) {
+    return;
+  }
+
+  const { data: children, error: childLookupError } = await supabase
+    .from(childTable)
+    .select("id, slug")
+    .in("slug", uniqueSlugs);
+
+  if (childLookupError) {
+    throw new Error(childLookupError.message);
+  }
+
+  const foundChildren = children ?? [];
+  const foundSlugSet = new Set(foundChildren.map((item) => item.slug));
+  const missingSlugs = uniqueSlugs.filter((slug) => !foundSlugSet.has(slug));
+
+  if (missingSlugs.length > 0) {
+    throw new Error(
+      `${params.childType} slug를 찾을 수 없습니다:\n${missingSlugs.join("\n")}`
+    );
+  }
+
+  const rows = foundChildren.map((child, index) => ({
+    parent_type: params.parentType,
+    parent_id: params.parentId,
+    child_type: params.childType,
+    child_id: child.id,
+    relation_type: params.relationType,
+    sort_order: index,
+  }));
+
+  const { error: insertError } = await supabase
+    .from("item_relations")
+    .insert(rows);
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+}
+
 export async function updateCard(formData: FormData) {
   const rawSlug = String(formData.get("slug") || "").trim();
   const safeSlug = encodeURIComponent(rawSlug);
@@ -330,6 +422,10 @@ export async function updateCard(formData: FormData) {
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
     const coverAfterUrl = String(formData.get("coverAfterUrl") || "").trim();
     const summary = String(formData.get("summary") || "").trim();
+
+    const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
+    const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
 
     if (!cardId) {
       throw new Error("cardId가 없습니다.");
@@ -385,6 +481,13 @@ export async function updateCard(formData: FormData) {
         });
 
       if (thumbInsertError) throw new Error(thumbInsertError.message);
+    } else if (existingThumbAfter?.id && !thumbnailAfterUrl) {
+      const { error: thumbDeleteError } = await supabase
+        .from("media_assets")
+        .delete()
+        .eq("id", existingThumbAfter.id);
+
+      if (thumbDeleteError) throw new Error(thumbDeleteError.message);
     }
 
     const { data: existingCoverAfter } = await supabase
@@ -419,10 +522,42 @@ export async function updateCard(formData: FormData) {
         });
 
       if (coverInsertError) throw new Error(coverInsertError.message);
+    } else if (existingCoverAfter?.id && !coverAfterUrl) {
+      const { error: coverDeleteError } = await supabase
+        .from("media_assets")
+        .delete()
+        .eq("id", existingCoverAfter.id);
+
+      if (coverDeleteError) throw new Error(coverDeleteError.message);
     }
+
+    await syncRelationsBySlugs({
+      parentType: "card",
+      parentId: cardId,
+      childType: "story",
+      relationType: "card_story",
+      slugs: linkedStorySlugs,
+    });
+
+    await syncRelationsBySlugs({
+      parentType: "card",
+      parentId: cardId,
+      childType: "phone_item",
+      relationType: "card_phone",
+      slugs: linkedPhoneItemSlugs,
+    });
+
+    await syncRelationsBySlugs({
+      parentType: "card",
+      parentId: cardId,
+      childType: "event",
+      relationType: "card_event",
+      slugs: linkedEventSlugs,
+    });
 
     revalidatePath("/admin/cards");
     revalidatePath("/cards");
+    revalidatePath(`/cards/${rawSlug}`);
   } catch (error) {
     console.error("[updateCard] fatal error:", error);
 
@@ -434,7 +569,6 @@ export async function updateCard(formData: FormData) {
 
   redirect("/admin/cards");
 }
-
 export async function updateTranslation(formData: FormData) {
   const translationId = String(formData.get("translationId") || "");
   const title = String(formData.get("title") || "");
@@ -658,7 +792,7 @@ export async function createStoryBundle(formData: FormData) {
     redirect(`/admin/stories/new?error=${encodeURIComponent(message)}`);
   }
 
-  redirect("/admin/stories");
+  redirect(`/admin/stories/${encodeURIComponent(targetSlug)}/edit`);
 }
 
 export async function updateStoryBundle(formData: FormData) {
@@ -1114,7 +1248,7 @@ export async function createEventBundle(formData: FormData) {
     redirect(`/admin/events/new?error=${encodeURIComponent(message)}`);
   }
 
-  redirect("/admin/events");
+ redirect(`/admin/events/${encodeURIComponent(targetSlug)}/edit`);
 }
 
 export async function updateEventBundle(formData: FormData) {
@@ -1517,4 +1651,297 @@ export async function deleteCard(formData: FormData) {
   revalidatePath("/admin/cards");
   revalidatePath("/cards");
   redirect("/admin/cards");
+}
+
+export async function createBulkRelation(formData: FormData) {
+  try {
+    const parentType = String(formData.get("parentType") || "").trim();
+    const parentSlug = String(formData.get("parentSlug") || "").trim();
+    const childType = String(formData.get("childType") || "").trim();
+    const childSlugsRaw = String(formData.get("childSlugs") || "").trim();
+    const relationType = String(formData.get("relationType") || "").trim();
+
+    if (!parentType || !parentSlug || !childType || !relationType) {
+      throw new Error("parentType, parentSlug, childType, relationType는 필수입니다.");
+    }
+
+    const allowedTypes = ["card", "story", "event", "phone_item"];
+    if (!allowedTypes.includes(parentType) || !allowedTypes.includes(childType)) {
+      throw new Error("허용되지 않은 parentType 또는 childType 입니다.");
+    }
+
+    const childSlugs = childSlugsRaw
+      .split("\n")
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+    if (childSlugs.length === 0) {
+      throw new Error("연결할 child slug가 없습니다.");
+    }
+
+    const parentTable =
+      parentType === "card"
+        ? "cards"
+        : parentType === "story"
+        ? "stories"
+        : parentType === "event"
+        ? "events"
+        : "phone_items";
+
+    const childTable =
+      childType === "card"
+        ? "cards"
+        : childType === "story"
+        ? "stories"
+        : childType === "event"
+        ? "events"
+        : "phone_items";
+
+    const { data: parent, error: parentError } = await supabase
+      .from(parentTable)
+      .select("id, slug")
+      .eq("slug", parentSlug)
+      .single();
+
+    if (parentError || !parent) {
+      throw new Error(`parent 조회 실패: ${parentError?.message || parentSlug}`);
+    }
+
+    const { data: children, error: childrenError } = await supabase
+      .from(childTable)
+      .select("id, slug")
+      .in("slug", childSlugs);
+
+    if (childrenError) {
+      throw new Error(`child 조회 실패: ${childrenError.message}`);
+    }
+
+    const foundChildren = children ?? [];
+    const foundSlugSet = new Set(foundChildren.map((item) => item.slug));
+    const missingSlugs = childSlugs.filter((slug) => !foundSlugSet.has(slug));
+
+    if (missingSlugs.length > 0) {
+      throw new Error(`찾을 수 없는 child slug:\n${missingSlugs.join("\n")}`);
+    }
+
+    const rows = foundChildren.map((child, index) => ({
+      parent_type: parentType,
+      parent_id: parent.id,
+      child_type: childType,
+      child_id: child.id,
+      relation_type: relationType,
+      sort_order: index,
+    }));
+
+    const { error: insertError } = await supabase
+      .from("item_relations")
+      .insert(rows);
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    revalidatePath("/admin/relations");
+    revalidatePath("/admin/cards");
+    revalidatePath("/admin/stories");
+    revalidatePath("/admin/events");
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+
+    redirect(`/admin/relations/new?error=${encodeURIComponent(message)}`);
+  }
+
+  redirect("/admin/relations");
+}
+
+export async function createPhoneItem(formData: FormData) {
+  let targetSlug = "";
+  try {
+    const title = String(formData.get("title") || "").trim();
+    const subtype = String(formData.get("subtype") || "message").trim();
+    const releaseYear = Number(formData.get("releaseYear") || 2025);
+    const releaseDate = String(formData.get("releaseDate") || "").trim();
+    const summary = String(formData.get("summary") || "").trim();
+    const serverKey = String(formData.get("serverKey") || "kr").trim();
+    const characterKey = String(formData.get("characterKey") || "baiqi").trim();
+
+    if (!title) {
+      throw new Error("title이 비어 있습니다.");
+    }
+
+    const base = slugify(title);
+    const slug = `${serverKey}-${releaseYear}-${subtype}-${characterKey}-${base}`;
+    const originKey = `phone:${serverKey}:${releaseYear}:${subtype}:${characterKey}:${base}`;
+    const contentId = `phone_${serverKey}_${releaseYear}_${subtype}_${characterKey}_${base}`;
+
+    const { data: server, error: serverError } = await supabase
+      .from("servers")
+      .select("id")
+      .eq("key", serverKey)
+      .single();
+
+    if (serverError || !server) {
+      throw new Error(`server 조회 실패: ${serverError?.message || serverKey}`);
+    }
+
+    const { data: character, error: characterError } = await supabase
+      .from("characters")
+      .select("id")
+      .eq("key", characterKey)
+      .single();
+
+    if (characterError || !character) {
+      throw new Error(`character 조회 실패: ${characterError?.message || characterKey}`);
+    }
+
+    const { error } = await supabase.from("phone_items").insert({
+      content_id: contentId,
+      origin_key: originKey,
+      server_id: server.id,
+      primary_character_id: character.id,
+      title,
+      slug,
+      subtype,
+      release_year: releaseYear,
+      release_date: releaseDate || null,
+      summary,
+      is_published: true,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    revalidatePath("/admin/phone-items");
+    revalidatePath("/phone-items");
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+    redirect(`/admin/phone-items/new?error=${encodeURIComponent(message)}`);
+  }
+
+  redirect(`/admin/phone-items/${encodeURIComponent(slug)}/edit`);
+}
+
+export async function updatePhoneItem(formData: FormData) {
+  const rawSlug = String(formData.get("slug") || "").trim();
+  const safeSlug = encodeURIComponent(rawSlug);
+
+  try {
+    const phoneItemId = String(formData.get("phoneItemId") || "").trim();
+    const title = String(formData.get("title") || "").trim();
+    const subtype = String(formData.get("subtype") || "message").trim();
+    const releaseYear = Number(formData.get("releaseYear") || 2025);
+    const releaseDate = String(formData.get("releaseDate") || "").trim();
+    const summary = String(formData.get("summary") || "").trim();
+
+    const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
+    const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
+    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
+
+    if (!phoneItemId) {
+      throw new Error("phoneItemId가 없습니다.");
+    }
+
+    const { error } = await supabase
+      .from("phone_items")
+      .update({
+        title,
+        subtype,
+        release_year: releaseYear,
+        release_date: releaseDate || null,
+        summary,
+      })
+      .eq("id", phoneItemId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    await syncRelationsBySlugs({
+      parentType: "phone_item",
+      parentId: phoneItemId,
+      childType: "card",
+      relationType: "related_card",
+      slugs: linkedCardSlugs,
+    });
+
+    await syncRelationsBySlugs({
+      parentType: "phone_item",
+      parentId: phoneItemId,
+      childType: "story",
+      relationType: "related_story",
+      slugs: linkedStorySlugs,
+    });
+
+    await syncRelationsBySlugs({
+      parentType: "phone_item",
+      parentId: phoneItemId,
+      childType: "event",
+      relationType: "phone_event",
+      slugs: linkedEventSlugs,
+    });
+
+    revalidatePath("/admin/phone-items");
+    revalidatePath("/phone-items");
+    revalidatePath(`/phone-items/${rawSlug}`);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+
+    redirect(`/admin/phone-items/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
+  }
+
+  redirect("/admin/phone-items");
+}
+
+export async function deletePhoneItem(formData: FormData) {
+  const phoneItemId = String(formData.get("phoneItemId") ?? "").trim();
+
+  if (!phoneItemId) {
+    throw new Error("phoneItemId가 없습니다.");
+  }
+
+  const { error: relationError } = await supabase
+    .from("item_relations")
+    .delete()
+    .or(`parent_id.eq.${phoneItemId},child_id.eq.${phoneItemId}`);
+
+  if (relationError) {
+    throw new Error(`item_relations 삭제 실패: ${relationError.message}`);
+  }
+
+  const { error: translationError } = await supabase
+    .from("translations")
+    .delete()
+    .eq("parent_type", "phone_item")
+    .eq("parent_id", phoneItemId);
+
+  if (translationError) {
+    throw new Error(`translations 삭제 실패: ${translationError.message}`);
+  }
+
+  const { error: mediaError } = await supabase
+    .from("media_assets")
+    .delete()
+    .eq("parent_type", "phone_item")
+    .eq("parent_id", phoneItemId);
+
+  if (mediaError) {
+    throw new Error(`media_assets 삭제 실패: ${mediaError.message}`);
+  }
+
+  const { error: phoneItemError } = await supabase
+    .from("phone_items")
+    .delete()
+    .eq("id", phoneItemId);
+
+  if (phoneItemError) {
+    throw new Error(`phone_items 삭제 실패: ${phoneItemError.message}`);
+  }
+
+  revalidatePath("/admin/phone-items");
+  revalidatePath("/phone-items");
+  redirect("/admin/phone-items");
 }
