@@ -1,103 +1,66 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
-import { isAdmin } from "@/lib/utils/admin-auth";
+import PhoneShell from "@/components/phone/PhoneShell";
+import PhoneTopBar from "@/components/phone/PhoneTopBar";
+import MomentPostDetail from "@/components/phone/moment/MomentPostDetail";
+import ArticleDetail from "@/components/phone/article/ArticleDetail";
+import CallDetail from "@/components/phone/call/CallDetail";
+import { PHONE_DETAIL_MAP } from "@/lib/phone-items";
 
-type PhoneItemDetailPageProps = {
-  params: Promise<{
-    slug: string;
-  }>;
+type PageProps = {
+  params: Promise<{ slug: string }>;
 };
 
-function safeDecodeSlug(value: string) {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
+export default async function PhoneItemDetailPage({ params }: PageProps) {
+  const { slug } = await params;
+  const detail = PHONE_DETAIL_MAP[slug as keyof typeof PHONE_DETAIL_MAP];
 
-export default async function PhoneItemDetailPage({
-  params,
-}: PhoneItemDetailPageProps) {
-  const rawSlug = (await params).slug;
-  const slug = safeDecodeSlug(rawSlug);
-  const admin = await isAdmin();
-
-  const { data: item, error } = await supabase
-    .from("phone_items")
-    .select(
-      "id, title, slug, subtype, release_year, release_date, summary, is_published"
-    )
-    .eq("slug", slug)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[phone-items/[slug]] fetch error:", error);
-  }
-
-  if (!item) {
-    notFound();
-  }
-
-  if (!item.is_published && !admin) {
-    notFound();
-  }
+  if (!detail) notFound();
 
   return (
-    <main>
-      <section className="detail-panel story-topbar">
-        <div className="story-topbar-main">
-          <p className="page-eyebrow">Archive / Phone Items</p>
-          <h1 className="story-page-title">{item.title}</h1>
+    <main className="phone-detail-page">
+      <PhoneShell>
+        <div className="phone-shell-inner">
+          {"type" in detail && (detail.type === "call" || detail.type === "video_call") ? (
+            <>
+              <PhoneTopBar title="통화중…" subtitle={detail.characterName} />
+              <CallDetail
+                characterName={detail.characterName}
+                title={detail.title}
+                coverImage={detail.coverImage}
+                youtubeEmbedUrl={detail.youtubeEmbedUrl}
+                body={detail.body}
+              />
+            </>
+          ) : null}
 
-          <div className="meta-row story-top-meta">
-            <span className="meta-pill">type: {item.subtype}</span>
-            <span className="meta-pill">year: {item.release_year}</span>
-            {item.release_date ? (
-              <span className="meta-pill">date: {item.release_date}</span>
-            ) : null}
-            {!item.is_published && admin ? (
-              <span className="meta-pill">draft</span>
-            ) : null}
-          </div>
+          {"type" in detail && detail.type === "article" ? (
+            <>
+              <PhoneTopBar title={detail.sourceName ?? "핫이슈"} />
+              <ArticleDetail
+                title={detail.title}
+                author={detail.author}
+                sourceName={detail.sourceName}
+                imageUrl={detail.imageUrl}
+                body={detail.body}
+              />
+            </>
+          ) : null}
 
-          <div className="story-top-actions">
-            <Link
-              href="/phone-items"
-              className="story-action-button story-action-muted"
-            >
-              목록으로
-            </Link>
-
-            {admin && (
-              <Link
-                href={`/admin/phone-items/${item.slug}/edit`}
-                className="story-action-button"
-              >
-                관리자 수정
-              </Link>
-            )}
-          </div>
+          {"type" in detail && detail.type === "moment" ? (
+            <>
+              <PhoneTopBar title={detail.authorName} subtitle="모멘트" />
+              <MomentPostDetail
+                authorName={detail.authorName}
+                authorAvatar={detail.authorAvatar}
+                authorLevel={detail.authorLevel}
+                body={detail.body}
+                imageUrl={detail.imageUrl}
+                quoteText={detail.quoteText}
+              />
+            </>
+          ) : null}
         </div>
-
-        <aside className="story-topbar-side">
-          <div className="story-side-block">
-            <h3 className="story-side-title">요약</h3>
-            <div className="story-side-links">
-              <span className="detail-text">{item.summary || "없음"}</span>
-            </div>
-          </div>
-        </aside>
-      </section>
-
-      <section className="detail-panel">
-        <h2 className="detail-section-title">휴대폰 콘텐츠</h2>
-        <p className="detail-text">
-          일단 메타 상세 페이지만 열어둔 상태다. 다음 단계에서
-          message / moment / call / video_call / article subtype별 UI를 붙이면 된다.
-        </p>
-      </section>
+      </PhoneShell>
     </main>
   );
 }
