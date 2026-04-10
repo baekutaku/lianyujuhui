@@ -2,43 +2,102 @@ import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import MomentFeed from "@/components/phone/moment/MomentFeed";
+import { supabase } from "@/lib/supabase/server";
 
-const MOCK_FEED = [
-  {
-    id: "1",
-    characterKey: "baiqi",
-    authorName: "백기",
-    authorAvatar:
-      "https://lianyujuhui.ivyro.net/data/file/pic/2009648324_0qlIJGgx_72d730ad05cc87c44f0829a386a0c0cfc426b609.jpg",
-    authorLevel: 45,
-    body: "헬러윈 가면 무도회엔 이상한 옷차림이 많다… 변장이 이 정도로 자유로워진 건가?",
-    quoteText:
-      "유연 : 요즘은 엄청 자유로워졌어요.\n백기답장유연 : 네가 곁에 있다면, 난 아무거나 괜찮아.",
-  },
-  {
-    id: "2",
-    characterKey: "yanxihao",
-    authorName: "시호",
-    authorAvatar:
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=400&auto=format&fit=crop",
-    authorLevel: 16,
-    body: "단번에 클리어할 수 있는 게임이 뭐가 재미 있다는 거지?",
-    quoteText:
-      "유연 : 몰입형 게임은 클리어만이 목표가 아니에요.\n시호답장유연 : 어떤 고건이 있는지 말해봐요.",
-  },
-  {
-    id: "3",
-    characterKey: "mc",
-    authorName: "유연",
-    authorAvatar:
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop",
-    body: "무조건 믿을 수 있는 사람을 만났다는 건 정말 행운인 것 같다.",
-    quoteText:
-      "기락 : 내 얘기네!!\n백기 : 누구?\n택언 : 바보.",
-  },
-];
+const DEFAULT_AVATAR_MAP: Record<string, string> = {
+  baiqi: "/profile/baiqi.png",
+  lizeyan: "/profile/lizeyan.png",
+  zhouqiluo: "/profile/zhouqiluo.png",
+  xumo: "/profile/xumo.png",
+  lingxiao: "/profile/lingxiao.png",
+};
 
-export default function MomentsPage() {
+const DEFAULT_CHARACTER_NAME_MAP: Record<string, string> = {
+  baiqi: "백기",
+  lizeyan: "이택언",
+  zhouqiluo: "주기락",
+  xumo: "허묵",
+  lingxiao: "연시호",
+  mc: "유연",
+};
+
+export default async function MomentsPage() {
+  const { data: items, error } = await supabase
+    .from("phone_items")
+    .select("id, title, slug, subtype, content_json, is_published")
+    .eq("subtype", "moment")
+    .eq("is_published", true)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return (
+      <main className="phone-page">
+        <PhoneShell>
+          <PhoneTopBar title="모멘트" />
+          <div className="phone-content">
+            <div className="phone-empty">모멘트를 불러오지 못했습니다.</div>
+          </div>
+          <PhoneTabNav currentPath="/phone-items/moments" />
+        </PhoneShell>
+      </main>
+    );
+  }
+
+  const feedItems =
+    items?.flatMap((item) => {
+      const json = item.content_json ?? {};
+
+      // update 로직에서 posts 배열로 저장된 경우도 처리
+      if (Array.isArray(json.posts) && json.posts.length > 0) {
+        return json.posts.map((post: any, index: number) => {
+          const key = post.characterKey ?? json.characterKey ?? "baiqi";
+          const images = Array.isArray(post.images) ? post.images : [];
+
+          return {
+            id: `${item.id}-${index}`,
+            characterKey: key,
+            authorName:
+              post.authorName ??
+              json.authorName ??
+              DEFAULT_CHARACTER_NAME_MAP[key] ??
+              "이름 없음",
+            authorAvatar:
+              post.authorAvatar?.trim() ||
+              json.authorAvatar?.trim() ||
+              DEFAULT_AVATAR_MAP[key] ||
+              "/profile/baiqi.png",
+            authorLevel: post.authorLevel ?? json.authorLevel ?? undefined,
+            body: post.body ?? "",
+            imageUrl: images[0] ?? undefined,
+            quoteText: post.quoteText ?? undefined,
+          };
+        });
+      }
+
+      // create 로직에서 개별 row로 저장된 경우 처리
+      const key = json.characterKey ?? "baiqi";
+      const images = Array.isArray(json.images) ? json.images : [];
+
+      return [
+        {
+          id: item.id,
+          characterKey: key,
+          authorName:
+            json.authorName ??
+            DEFAULT_CHARACTER_NAME_MAP[key] ??
+            "이름 없음",
+          authorAvatar:
+            json.authorAvatar?.trim() ||
+            DEFAULT_AVATAR_MAP[key] ||
+            "/profile/baiqi.png",
+          authorLevel: json.authorLevel ?? undefined,
+          body: json.body ?? item.title ?? "",
+          imageUrl: images[0] ?? undefined,
+          quoteText: json.quoteText ?? undefined,
+        },
+      ];
+    }) ?? [];
+
   return (
     <main className="phone-page">
       <PhoneShell>
@@ -47,7 +106,11 @@ export default function MomentsPage() {
           rightSlot={<a className="phone-topbar-button">모멘트 작성</a>}
         />
         <div className="phone-content">
-          <MomentFeed items={MOCK_FEED} />
+          {feedItems.length > 0 ? (
+            <MomentFeed items={feedItems} />
+          ) : (
+            <div className="phone-empty">등록된 모멘트가 없습니다.</div>
+          )}
         </div>
         <PhoneTabNav currentPath="/phone-items/moments" />
       </PhoneShell>
