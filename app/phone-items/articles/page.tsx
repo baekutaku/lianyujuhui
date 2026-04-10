@@ -9,8 +9,13 @@ type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-type ArticleDetailEntry =
-  (typeof ARTICLE_DETAIL_MAP)[keyof typeof ARTICLE_DETAIL_MAP];
+type ArticleDetailEntry = {
+  title: string;
+  author?: string;
+  sourceName?: string;
+  imageUrl?: string;
+  body?: string;
+};
 
 export default async function ArticleDetailPage({ params }: PageProps) {
   const { slug } = await params;
