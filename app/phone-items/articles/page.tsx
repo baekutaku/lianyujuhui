@@ -20,9 +20,10 @@ type ArticleDetailEntry = {
 export default async function ArticleDetailPage({ params }: PageProps) {
   const { slug } = await params;
 
-  const detail = ARTICLE_DETAIL_MAP[
-    slug as keyof typeof ARTICLE_DETAIL_MAP
-  ] as ArticleDetailEntry | undefined;
+  const articleMap =
+    ARTICLE_DETAIL_MAP as unknown as Record<string, ArticleDetailEntry>;
+
+  const detail = articleMap[slug];
 
   if (!detail) notFound();
 
