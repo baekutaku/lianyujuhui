@@ -15,12 +15,42 @@ const CHARACTER_LABEL_MAP: Record<string, string> = {
   lingxiao: "연시호",
 };
 
+const RESERVED_PHONE_SLUGS = new Set([
+  "edit",
+  "new",
+  "calls",
+  "messages",
+  "moments",
+  "articles",
+  "me",
+]);
+
 function slugify(input: string) {
   return input
     .trim()
     .toLowerCase()
     .replace(/[^\w가-힣\s-]/g, "")
-    .replace(/\s+/g, "-");
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function makeSafePhoneSlug(
+  rawSlug: string,
+  fallbackTitle: string,
+  characterKey?: string
+) {
+  let base = slugify(rawSlug || fallbackTitle || "item");
+
+  if (characterKey && !base.startsWith(`${characterKey}-`)) {
+    base = `${characterKey}-${base}`;
+  }
+
+  if (RESERVED_PHONE_SLUGS.has(base)) {
+    base = `${base}-item`;
+  }
+
+  return base;
 }
 
 function toEmbedUrl(raw: string) {
@@ -46,7 +76,10 @@ function makeContentId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-async function resolveServerAndCharacterIds(serverKey: string, characterKey?: string) {
+async function resolveServerAndCharacterIds(
+  serverKey: string,
+  characterKey?: string
+) {
   const { data: server } = await supabase
     .from("servers")
     .select("id")
@@ -156,12 +189,15 @@ export async function createPhoneItemAction(formData: FormData) {
   }
 
   if (subtype === "call" || subtype === "video_call") {
-    const characterKey = String(formData.get("character_key") || "");
+    const characterKey = String(formData.get("character_key") || "").trim();
     const fallbackName = CHARACTER_LABEL_MAP[characterKey] || characterKey;
     const characterName =
       String(formData.get("character_name") || "").trim() || fallbackName;
     const title = String(formData.get("title") || "").trim();
-    const slug = slugify(String(formData.get("slug") || title));
+
+    const rawSlug = String(formData.get("slug") || "").trim();
+    const slug = makeSafePhoneSlug(rawSlug, title, characterKey);
+
     const avatarUrl = String(formData.get("avatar_url") || "").trim();
     const coverImage = String(formData.get("cover_image") || "").trim();
     const youtubeUrl = String(formData.get("youtube_url") || "").trim();
@@ -202,7 +238,9 @@ export async function createPhoneItemAction(formData: FormData) {
 
   if (subtype === "article") {
     const title = String(formData.get("title") || "").trim();
-    const slug = slugify(String(formData.get("slug") || title));
+    const rawSlug = String(formData.get("slug") || "").trim();
+    const slug = makeSafePhoneSlug(rawSlug, title);
+
     const preview = String(formData.get("preview") || "").trim();
     const iconUrl = String(formData.get("icon_url") || "").trim();
     const imageUrl = String(formData.get("image_url") || "").trim();
@@ -225,6 +263,7 @@ export async function createPhoneItemAction(formData: FormData) {
       summary: preview,
       is_published: isPublished,
       content_json: {
+        preview,
         iconUrl,
         imageUrl,
         sourceName,

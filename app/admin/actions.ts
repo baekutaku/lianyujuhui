@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
-import { buildCardKeys, buildStoryKeys } from "@/lib/utils/admin-keys";
+import { supabase } from "@/lib/supabase/server";
+import {
+  parseMessageBulk,
+  parseMomentBulk,
+} from "@/lib/admin/phoneBulkParsers";
 
 function slugify(input: string) {
   return input
@@ -14,6 +17,30 @@ function slugify(input: string) {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "") || "event";
+}
+
+function toEmbedUrl(raw: string) {
+  const value = raw.trim();
+  if (!value) return "";
+
+  if (value.includes("/embed/")) return value;
+
+  const watchMatch = value.match(/[?&]v=([^&]+)/);
+  if (watchMatch?.[1]) {
+    return `https://www.youtube.com/embed/${watchMatch[1]}`;
+  }
+
+  const shortMatch = value.match(/youtu\.be\/([^?&/]+)/);
+  if (shortMatch?.[1]) {
+    return `https://www.youtube.com/embed/${shortMatch[1]}`;
+  }
+
+  const shortsMatch = value.match(/youtube\.com\/shorts\/([^?&/]+)/);
+  if (shortsMatch?.[1]) {
+    return `https://www.youtube.com/embed/${shortsMatch[1]}`;
+  }
+
+  return value;
 }
 
 function buildEventKeys(params: {
@@ -1755,142 +1782,151 @@ export async function createBulkRelation(formData: FormData) {
   redirect("/admin/relations");
 }
 
-export async function createPhoneItem(formData: FormData) {
-  let targetSlug = "";
-  try {
-    const title = String(formData.get("title") || "").trim();
-    const subtype = String(formData.get("subtype") || "message").trim();
-    const releaseYear = Number(formData.get("releaseYear") || 2025);
-    const releaseDate = String(formData.get("releaseDate") || "").trim();
-    const summary = String(formData.get("summary") || "").trim();
-    const serverKey = String(formData.get("serverKey") || "kr").trim();
-    const characterKey = String(formData.get("characterKey") || "baiqi").trim();
 
-    if (!title) {
-      throw new Error("title이 비어 있습니다.");
-    }
-
-    const base = slugify(title);
-    const slug = `${serverKey}-${releaseYear}-${subtype}-${characterKey}-${base}`;
-    const originKey = `phone:${serverKey}:${releaseYear}:${subtype}:${characterKey}:${base}`;
-    const contentId = `phone_${serverKey}_${releaseYear}_${subtype}_${characterKey}_${base}`;
-
-    const { data: server, error: serverError } = await supabase
-      .from("servers")
-      .select("id")
-      .eq("key", serverKey)
-      .single();
-
-    if (serverError || !server) {
-      throw new Error(`server 조회 실패: ${serverError?.message || serverKey}`);
-    }
-
-    const { data: character, error: characterError } = await supabase
-      .from("characters")
-      .select("id")
-      .eq("key", characterKey)
-      .single();
-
-    if (characterError || !character) {
-      throw new Error(`character 조회 실패: ${characterError?.message || characterKey}`);
-    }
-
-    const { error } = await supabase.from("phone_items").insert({
-      content_id: contentId,
-      origin_key: originKey,
-      server_id: server.id,
-      primary_character_id: character.id,
-      title,
-      slug,
-      subtype,
-      release_year: releaseYear,
-      release_date: releaseDate || null,
-      summary,
-      is_published: true,
-    });
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    revalidatePath("/admin/phone-items");
-    revalidatePath("/phone-items");
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
-    redirect(`/admin/phone-items/new?error=${encodeURIComponent(message)}`);
-  }
-
-  redirect(`/admin/phone-items/${encodeURIComponent(slug)}/edit`);
-}
 
 export async function updatePhoneItem(formData: FormData) {
   const rawSlug = String(formData.get("slug") || "").trim();
-  const safeSlug = encodeURIComponent(rawSlug);
+  const safeSlug = encodeURIComponent(rawSlug || "item");
 
   try {
     const phoneItemId = String(formData.get("phoneItemId") || "").trim();
     const title = String(formData.get("title") || "").trim();
-    const subtype = String(formData.get("subtype") || "message").trim();
-    const releaseYear = Number(formData.get("releaseYear") || 2025);
-    const releaseDate = String(formData.get("releaseDate") || "").trim();
-    const summary = String(formData.get("summary") || "").trim();
-
-    const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
-    const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
-    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
+    const subtype = String(formData.get("subtype") || "").trim();
+    const isPublished = formData.get("is_published") === "on";
 
     if (!phoneItemId) {
       throw new Error("phoneItemId가 없습니다.");
     }
 
-    const { error } = await supabase
-      .from("phone_items")
-      .update({
-        title,
-        subtype,
-        release_year: releaseYear,
-        release_date: releaseDate || null,
-        summary,
-      })
-      .eq("id", phoneItemId);
+    const summary = String(formData.get("summary") || "").trim();
 
-    if (error) {
-      throw new Error(error.message);
+    if (subtype === "call" || subtype === "video_call") {
+      const characterKey = String(formData.get("character_key") || "").trim();
+      const characterName = String(formData.get("character_name") || "").trim();
+      const avatarUrl = String(formData.get("avatar_url") || "").trim();
+      const coverImage = String(formData.get("cover_image") || "").trim();
+      const youtubeUrl = String(formData.get("youtube_url") || "").trim();
+      const body = String(formData.get("body") || "").trim();
+      const levelRaw = String(formData.get("level") || "").trim();
+      const level = levelRaw ? Number(levelRaw) : null;
+
+      const { error } = await supabase
+        .from("phone_items")
+        .update({
+          title,
+          slug: rawSlug || null,
+          subtype,
+          summary: summary || body.slice(0, 60),
+          is_published: isPublished,
+          embed_url: toEmbedUrl(youtubeUrl) || null,
+          content_json: {
+            characterKey,
+            characterName,
+            avatarUrl,
+            level,
+            coverImage,
+            body,
+          },
+        })
+        .eq("id", phoneItemId);
+
+      if (error) throw new Error(error.message);
+    } else if (subtype === "article") {
+      const preview = String(formData.get("preview") || "").trim();
+      const iconUrl = String(formData.get("icon_url") || "").trim();
+      const imageUrl = String(formData.get("image_url") || "").trim();
+      const sourceName = String(formData.get("source_name") || "").trim();
+      const author = String(formData.get("author") || "").trim();
+      const body = String(formData.get("body") || "").trim();
+
+      const { error } = await supabase
+        .from("phone_items")
+        .update({
+          title,
+          slug: rawSlug || null,
+          subtype,
+          preview_text: preview,
+          summary: summary || preview,
+          is_published: isPublished,
+          content_json: {
+            preview,
+            iconUrl,
+            imageUrl,
+            sourceName,
+            author,
+            body,
+          },
+        })
+        .eq("id", phoneItemId);
+
+      if (error) throw new Error(error.message);
+    } else if (subtype === "message") {
+      const raw = String(formData.get("message_bulk_raw") || "").trim();
+      const parsed = parseMessageBulk(raw);
+
+      const { error } = await supabase
+        .from("phone_items")
+        .update({
+          title: parsed.title,
+          slug: parsed.threadKey,
+          subtype: "message",
+          preview_text: parsed.preview,
+          summary: parsed.preview,
+          is_published: isPublished,
+          content_json: {
+            threadKey: parsed.threadKey,
+            characterKey: parsed.characterKey,
+            avatarUrl: parsed.avatarUrl,
+            entries: parsed.entries,
+          },
+        })
+        .eq("id", phoneItemId);
+
+      if (error) throw new Error(error.message);
+    } else if (subtype === "moment") {
+      const raw = String(formData.get("moment_bulk_raw") || "").trim();
+      const posts = parseMomentBulk(raw);
+
+      if (posts.length === 0) {
+        throw new Error("모멘트 내용이 없습니다.");
+      }
+
+      const first = posts[0];
+
+      const { error } = await supabase
+        .from("phone_items")
+        .update({
+          title: `${first.authorName} 모멘트`,
+          slug: rawSlug || null,
+          subtype: "moment",
+          preview_text: first.body.slice(0, 60),
+          summary: first.body.slice(0, 60),
+          is_published: isPublished,
+          content_json: {
+            characterKey: first.characterKey,
+            authorName: first.authorName,
+            authorAvatar: first.authorAvatar,
+            authorLevel: first.authorLevel,
+            posts,
+          },
+        })
+        .eq("id", phoneItemId);
+
+      if (error) throw new Error(error.message);
+    } else {
+      throw new Error("지원하지 않는 subtype입니다.");
     }
-
-    await syncRelationsBySlugs({
-      parentType: "phone_item",
-      parentId: phoneItemId,
-      childType: "card",
-      relationType: "related_card",
-      slugs: linkedCardSlugs,
-    });
-
-    await syncRelationsBySlugs({
-      parentType: "phone_item",
-      parentId: phoneItemId,
-      childType: "story",
-      relationType: "related_story",
-      slugs: linkedStorySlugs,
-    });
-
-    await syncRelationsBySlugs({
-      parentType: "phone_item",
-      parentId: phoneItemId,
-      childType: "event",
-      relationType: "phone_event",
-      slugs: linkedEventSlugs,
-    });
 
     revalidatePath("/admin/phone-items");
     revalidatePath("/phone-items");
-    revalidatePath(`/phone-items/${rawSlug}`);
+    revalidatePath(`/admin/phone-items/${safeSlug}/edit`);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
 
-    redirect(`/admin/phone-items/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
+    redirect(
+      `/admin/phone-items/${safeSlug}/edit?error=${encodeURIComponent(message)}`
+    );
   }
 
   redirect("/admin/phone-items");

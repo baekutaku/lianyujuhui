@@ -1,4 +1,5 @@
-import PhoneItemCreateForm from "@/components/admin/phone-items/PhoneItemCreateForm";
+import PhoneItemForm from "@/components/admin/phone-items/PhoneItemForm";
+import { createPhoneItemAction } from "./actions";
 
 export default function NewPhoneItemPage() {
   return (
@@ -11,7 +12,15 @@ export default function NewPhoneItemPage() {
         </p>
       </header>
 
-      <PhoneItemCreateForm />
+      <PhoneItemForm
+        action={createPhoneItemAction}
+        submitLabel="저장"
+        initialValues={{
+          subtype: "call",
+          server_key: "kr",
+          is_published: true,
+        }}
+      />
     </main>
   );
 }

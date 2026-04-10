@@ -2,7 +2,7 @@ import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import CallHistoryList from "@/components/phone/call/CallHistoryList";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/server";
 
 function safeDecode(value: string) {
   try {
@@ -11,6 +11,14 @@ function safeDecode(value: string) {
     return value;
   }
 }
+
+const DEFAULT_CHARACTER_NAME_MAP: Record<string, string> = {
+  baiqi: "백기",
+  lizeyan: "이택언",
+  zhouqiluo: "주기락",
+  xumo: "허묵",
+  lingxiao: "연시호",
+};
 
 export default async function CallsPage() {
   const { data: items, error } = await supabase
@@ -35,15 +43,22 @@ export default async function CallsPage() {
   }
 
   const mapped =
-    items?.map((item) => ({
-      slug: safeDecode(item.slug),
-      characterKey: item.content_json?.characterKey ?? "",
-      characterName: item.content_json?.characterName ?? "이름 없음",
-      avatarUrl: item.content_json?.avatarUrl ?? "",
-      level: item.content_json?.level ?? undefined,
-      title: item.title,
-      isVideo: item.subtype === "video_call",
-    })) ?? [];
+    items?.map((item) => {
+      const characterKey = item.content_json?.characterKey ?? "baiqi";
+
+      return {
+        slug: safeDecode(item.slug),
+        characterKey,
+        characterName:
+          item.content_json?.characterName ??
+          DEFAULT_CHARACTER_NAME_MAP[characterKey] ??
+          "이름 없음",
+        avatarUrl: item.content_json?.avatarUrl ?? "",
+        level: item.content_json?.level ?? undefined,
+        title: item.title,
+        isVideo: item.subtype === "video_call",
+      };
+    }) ?? [];
 
   return (
     <main className="phone-page">

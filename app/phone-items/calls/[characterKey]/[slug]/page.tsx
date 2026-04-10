@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import PhoneShell from "@/components/phone/PhoneShell";
+import { supabase } from "@/lib/supabase/server";
 import CallDetail from "@/components/phone/call/CallDetail";
-import { supabase } from "@/lib/supabase/client";
 
 type PageProps = {
   params: Promise<{
@@ -18,12 +18,27 @@ function safeDecode(value: string) {
   }
 }
 
-export default async function CallDetailPage({ params }: PageProps) {
-  const raw = await params;
-  const characterKey = safeDecode(raw.characterKey);
-  const slug = safeDecode(raw.slug);
+const DEFAULT_AVATAR_MAP: Record<string, string> = {
+  baiqi: "/profile/baiqi.png",
+  lizeyan: "/profile/lizeyan.png",
+  zhouqiluo: "/profile/zhouqiluo.png",
+  xumo: "/profile/xumo.png",
+  lingxiao: "/profile/lingxiao.png",
+};
 
-  const { data: item } = await supabase
+const DEFAULT_CHARACTER_NAME_MAP: Record<string, string> = {
+  baiqi: "백기",
+  lizeyan: "이택언",
+  zhouqiluo: "주기락",
+  xumo: "허묵",
+  lingxiao: "연시호",
+};
+
+export default async function CallDetailPage({ params }: PageProps) {
+  const { characterKey, slug: rawSlug } = await params;
+  const slug = safeDecode(rawSlug);
+
+  const { data: item, error } = await supabase
     .from("phone_items")
     .select("id, title, slug, subtype, embed_url, content_json, is_published")
     .eq("slug", slug)
@@ -31,17 +46,36 @@ export default async function CallDetailPage({ params }: PageProps) {
     .eq("is_published", true)
     .maybeSingle();
 
-  if (!item) notFound();
-  if (item.content_json?.characterKey !== characterKey) notFound();
+  if (error || !item) {
+    notFound();
+  }
+
+  const savedCharacterKey = item.content_json?.characterKey ?? "";
+
+  if (savedCharacterKey && savedCharacterKey !== characterKey) {
+    notFound();
+  }
+
+  const resolvedCharacterKey = savedCharacterKey || characterKey;
+  const resolvedCharacterName =
+    item.content_json?.characterName ||
+    DEFAULT_CHARACTER_NAME_MAP[resolvedCharacterKey] ||
+    "이름 없음";
+
+  const resolvedCover =
+    item.content_json?.coverImage?.trim() ||
+    DEFAULT_AVATAR_MAP[resolvedCharacterKey] ||
+    "/profile/baiqi.png";
 
   return (
     <main className="phone-page">
-      <PhoneShell fullBleed>
+      <PhoneShell>
         <CallDetail
-          characterKey={characterKey}
-          characterName={item.content_json?.characterName ?? item.title}
+          characterName={resolvedCharacterName}
           title={item.title}
+          coverImage={resolvedCover}
           youtubeEmbedUrl={item.embed_url ?? ""}
+          body={item.content_json?.body ?? ""}
         />
       </PhoneShell>
     </main>
