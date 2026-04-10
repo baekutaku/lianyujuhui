@@ -9,9 +9,15 @@ type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
+type ArticleDetailEntry =
+  (typeof ARTICLE_DETAIL_MAP)[keyof typeof ARTICLE_DETAIL_MAP];
+
 export default async function ArticleDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const detail = ARTICLE_DETAIL_MAP[slug as keyof typeof ARTICLE_DETAIL_MAP];
+
+  const detail = ARTICLE_DETAIL_MAP[
+    slug as keyof typeof ARTICLE_DETAIL_MAP
+  ] as ArticleDetailEntry | undefined;
 
   if (!detail) notFound();
 
