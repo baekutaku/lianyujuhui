@@ -3,7 +3,7 @@ type MomentPostDetailProps = {
   authorAvatar: string;
   authorLevel?: number;
   body: string;
-  imageUrl?: string;
+  images?: string[];
   quoteText?: string;
 };
 
@@ -12,7 +12,7 @@ export default function MomentPostDetail({
   authorAvatar,
   authorLevel,
   body,
-  imageUrl,
+  images,
   quoteText,
 }: MomentPostDetailProps) {
   return (
@@ -27,9 +27,13 @@ export default function MomentPostDetail({
           <div className="moment-author">{authorName}</div>
           <div className="moment-body">{body}</div>
 
-          {imageUrl ? (
-            <div className="moment-image-wrap">
-              <img src={imageUrl} alt={body} className="moment-image" />
+          {images && images.length > 0 ? (
+            <div className="moment-gallery">
+              {images.map((image, index) => (
+                <div key={index} className="moment-image-wrap">
+                  <img src={image} alt={`${authorName} moment ${index + 1}`} className="moment-image" />
+                </div>
+              ))}
             </div>
           ) : null}
 

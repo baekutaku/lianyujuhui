@@ -26,6 +26,35 @@ function safeDecode(value: string) {
   }
 }
 
+function getPublicPhoneItemHref(item: {
+  slug: string;
+  subtype: string;
+  content_json?: any;
+}) {
+  if (item.subtype === "message") {
+    const threadKey = item.content_json?.threadKey || item.slug;
+    return `/phone-items/messages/${threadKey}`;
+  }
+
+  if (item.subtype === "moment") {
+    const characterKey = item.content_json?.characterKey || item.slug;
+    return `/phone-items/moments/${characterKey}`;
+  }
+
+  if (item.subtype === "call" || item.subtype === "video_call") {
+    const characterKey = item.content_json?.characterKey;
+    return characterKey
+      ? `/phone-items/calls/${characterKey}/${item.slug}`
+      : `/phone-items/calls`;
+  }
+
+  if (item.subtype === "article") {
+    return `/phone-items/articles/${item.slug}`;
+  }
+
+  return `/phone-items`;
+}
+
 export default async function EditPhoneItemPage({
   params,
   searchParams,
@@ -37,7 +66,7 @@ export default async function EditPhoneItemPage({
 
   const { data: item, error } = await supabase
     .from("phone_items")
-    .select("id, title, slug, subtype, release_year, release_date, summary")
+    .select("id, title, slug, subtype, release_year, release_date, summary, content_json")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -233,7 +262,7 @@ export default async function EditPhoneItemPage({
           marginTop: "18px",
         }}
       >
-        <Link href={`/phone-items/${item.slug}`} className="nav-link">
+        <Link href={getPublicPhoneItemHref(item)} className="nav-link">
           공개 보기
         </Link>
 

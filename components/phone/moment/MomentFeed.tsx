@@ -7,7 +7,7 @@ type FeedItem = {
   authorAvatar: string;
   authorLevel?: number;
   body: string;
-  imageUrl?: string;
+  images?: string[];
   quoteText?: string;
 };
 

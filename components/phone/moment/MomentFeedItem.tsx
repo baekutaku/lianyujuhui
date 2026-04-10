@@ -6,7 +6,7 @@ type MomentFeedItemProps = {
   authorAvatar: string;
   authorLevel?: number;
   body: string;
-  imageUrl?: string;
+  images?: string[];
   quoteText?: string;
 };
 
@@ -16,7 +16,7 @@ export default function MomentFeedItem({
   authorAvatar,
   authorLevel,
   body,
-  imageUrl,
+  images,
   quoteText,
 }: MomentFeedItemProps) {
   return (
@@ -31,9 +31,13 @@ export default function MomentFeedItem({
           <div className="moment-author">{authorName}</div>
           <div className="moment-body">{body}</div>
 
-          {imageUrl ? (
-            <div className="moment-image-wrap">
-              <img src={imageUrl} alt={body} className="moment-image" />
+          {images && images.length > 0 ? (
+            <div className="moment-gallery">
+              {images.map((image, index) => (
+                <div key={index} className="moment-image-wrap">
+                  <img src={image} alt={`${authorName} moment ${index + 1}`} className="moment-image" />
+                </div>
+              ))}
             </div>
           ) : null}
 

@@ -1,0 +1,241 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { supabase } from "@/lib/supabase/server";
+import {
+  parseMessageBulk,
+  parseMomentBulk,
+} from "@/lib/admin/phoneBulkParsers";
+
+const CHARACTER_LABEL_MAP: Record<string, string> = {
+  baiqi: "백기",
+  lizeyan: "이택언",
+  zhouqiluo: "주기락",
+  xumo: "허묵",
+  lingxiao: "연시호",
+};
+
+function slugify(input: string) {
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w가-힣\s-]/g, "")
+    .replace(/\s+/g, "-");
+}
+
+function toEmbedUrl(raw: string) {
+  const value = raw.trim();
+  if (!value) return "";
+
+  if (value.includes("/embed/")) return value;
+
+  const match = value.match(/[?&]v=([^&]+)/);
+  if (match?.[1]) {
+    return `https://www.youtube.com/embed/${match[1]}`;
+  }
+
+  const shortMatch = value.match(/youtu\.be\/([^?&/]+)/);
+  if (shortMatch?.[1]) {
+    return `https://www.youtube.com/embed/${shortMatch[1]}`;
+  }
+
+  return value;
+}
+
+function makeContentId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function resolveServerAndCharacterIds(serverKey: string, characterKey?: string) {
+  const { data: server } = await supabase
+    .from("servers")
+    .select("id")
+    .eq("key", serverKey)
+    .maybeSingle();
+
+  let characterId: string | null = null;
+
+  if (characterKey) {
+    const { data: character } = await supabase
+      .from("characters")
+      .select("id")
+      .eq("key", characterKey)
+      .maybeSingle();
+
+    characterId = character?.id ?? null;
+  }
+
+  return {
+    serverId: server?.id ?? null,
+    characterId,
+  };
+}
+
+export async function createPhoneItemAction(formData: FormData) {
+  const subtype = String(formData.get("subtype") || "");
+  const serverKey = String(formData.get("server_key") || "kr");
+  const isPublished = formData.get("is_published") === "on";
+  const releaseYear = new Date().getFullYear();
+
+  if (subtype === "message") {
+    const raw = String(formData.get("message_bulk_raw") || "");
+    const parsed = parseMessageBulk(raw);
+
+    const { serverId, characterId } = await resolveServerAndCharacterIds(
+      serverKey,
+      parsed.characterKey
+    );
+
+    const { error } = await supabase.from("phone_items").insert({
+      content_id: makeContentId("phone-message"),
+      origin_key: parsed.threadKey,
+      server_id: serverId,
+      primary_character_id: characterId,
+      title: parsed.title,
+      slug: parsed.threadKey,
+      subtype: "message",
+      release_year: releaseYear,
+      preview_text: parsed.preview,
+      summary: parsed.preview,
+      is_published: isPublished,
+      content_json: {
+        threadKey: parsed.threadKey,
+        characterKey: parsed.characterKey,
+        avatarUrl: parsed.avatarUrl,
+        entries: parsed.entries,
+      },
+    });
+
+    if (error) throw new Error(error.message);
+    redirect("/admin/phone-items");
+  }
+
+  if (subtype === "moment") {
+    const raw = String(formData.get("moment_bulk_raw") || "");
+    const posts = parseMomentBulk(raw);
+
+    if (posts.length === 0) {
+      throw new Error("모멘트 내용이 없습니다.");
+    }
+
+    const rows = await Promise.all(
+      posts.map(async (post, index) => {
+        const { serverId, characterId } = await resolveServerAndCharacterIds(
+          serverKey,
+          post.characterKey
+        );
+
+        return {
+          content_id: makeContentId("phone-moment"),
+          origin_key: `${post.characterKey}-${index + 1}`,
+          server_id: serverId,
+          primary_character_id: characterId,
+          title: `${post.authorName} 모멘트 ${index + 1}`,
+          slug: `${post.characterKey}-${Date.now()}-${index + 1}`,
+          subtype: "moment",
+          release_year: releaseYear,
+          preview_text: post.body.slice(0, 60),
+          summary: post.body.slice(0, 60),
+          is_published: isPublished,
+          content_json: {
+            characterKey: post.characterKey,
+            authorName: post.authorName,
+            authorAvatar: post.authorAvatar,
+            authorLevel: post.authorLevel,
+            body: post.body,
+            quoteText: post.quoteText,
+            images: post.images || [],
+          },
+        };
+      })
+    );
+
+    const { error } = await supabase.from("phone_items").insert(rows);
+    if (error) throw new Error(error.message);
+    redirect("/admin/phone-items");
+  }
+
+  if (subtype === "call" || subtype === "video_call") {
+    const characterKey = String(formData.get("character_key") || "");
+    const fallbackName = CHARACTER_LABEL_MAP[characterKey] || characterKey;
+    const characterName =
+      String(formData.get("character_name") || "").trim() || fallbackName;
+    const title = String(formData.get("title") || "").trim();
+    const slug = slugify(String(formData.get("slug") || title));
+    const avatarUrl = String(formData.get("avatar_url") || "").trim();
+    const coverImage = String(formData.get("cover_image") || "").trim();
+    const youtubeUrl = String(formData.get("youtube_url") || "").trim();
+    const body = String(formData.get("body") || "").trim();
+    const levelRaw = String(formData.get("level") || "").trim();
+    const level = levelRaw ? Number(levelRaw) : null;
+
+    const { serverId, characterId } = await resolveServerAndCharacterIds(
+      serverKey,
+      characterKey
+    );
+
+    const { error } = await supabase.from("phone_items").insert({
+      content_id: makeContentId(`phone-${subtype}`),
+      origin_key: `${characterKey}-${slug}`,
+      server_id: serverId,
+      primary_character_id: characterId,
+      title,
+      slug,
+      subtype,
+      release_year: releaseYear,
+      embed_url: toEmbedUrl(youtubeUrl),
+      summary: body.slice(0, 60),
+      is_published: isPublished,
+      content_json: {
+        characterKey,
+        characterName,
+        avatarUrl,
+        level,
+        coverImage,
+        body,
+      },
+    });
+
+    if (error) throw new Error(error.message);
+    redirect("/admin/phone-items");
+  }
+
+  if (subtype === "article") {
+    const title = String(formData.get("title") || "").trim();
+    const slug = slugify(String(formData.get("slug") || title));
+    const preview = String(formData.get("preview") || "").trim();
+    const iconUrl = String(formData.get("icon_url") || "").trim();
+    const imageUrl = String(formData.get("image_url") || "").trim();
+    const sourceName = String(formData.get("source_name") || "").trim();
+    const author = String(formData.get("author") || "").trim();
+    const body = String(formData.get("body") || "").trim();
+
+    const { serverId } = await resolveServerAndCharacterIds(serverKey);
+
+    const { error } = await supabase.from("phone_items").insert({
+      content_id: makeContentId("phone-article"),
+      origin_key: slug,
+      server_id: serverId,
+      primary_character_id: null,
+      title,
+      slug,
+      subtype: "article",
+      release_year: releaseYear,
+      preview_text: preview,
+      summary: preview,
+      is_published: isPublished,
+      content_json: {
+        iconUrl,
+        imageUrl,
+        sourceName,
+        author,
+        body,
+      },
+    });
+
+    if (error) throw new Error(error.message);
+    redirect("/admin/phone-items");
+  }
+
+  throw new Error("지원하지 않는 subtype입니다.");
+}

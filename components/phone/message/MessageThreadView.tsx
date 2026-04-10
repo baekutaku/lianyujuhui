@@ -1,31 +1,72 @@
-type ThreadMessage = {
-  side: "left" | "right";
-  text: string;
-};
+type MessageEntry =
+  | {
+      type: "text";
+      side: "left" | "right";
+      text: string;
+    }
+  | {
+      type: "image";
+      side: "left" | "right";
+      url: string;
+      caption?: string;
+    }
+  | {
+      type: "system";
+      text: string;
+    };
 
 type MessageThreadViewProps = {
   avatarUrl: string;
-  messages: ThreadMessage[];
+  entries: MessageEntry[];
 };
 
 export default function MessageThreadView({
   avatarUrl,
-  messages,
+  entries,
 }: MessageThreadViewProps) {
   return (
     <>
       <div className="thread-wrap">
-        <div className="thread-date">오늘</div>
+        {entries.map((entry, index) => {
+          if (entry.type === "system") {
+            return (
+              <div key={index} className="thread-date">
+                {entry.text}
+              </div>
+            );
+          }
 
-        {messages.map((message, index) => (
-          <div key={index} className={`thread-row ${message.side}`}>
-            {message.side === "left" ? (
-              <img src={avatarUrl} alt="" className="thread-mini-avatar" />
-            ) : null}
+          if (entry.type === "image") {
+            return (
+              <div key={index} className={`thread-row ${entry.side}`}>
+                {entry.side === "left" ? (
+                  <img src={avatarUrl} alt="" className="thread-mini-avatar" />
+                ) : null}
 
-            <div className="thread-bubble">{message.text}</div>
-          </div>
-        ))}
+                <div className="thread-bubble thread-image-bubble">
+                  <img
+                    src={entry.url}
+                    alt={entry.caption ?? "message image"}
+                    className="thread-image"
+                  />
+                  {entry.caption ? (
+                    <div className="thread-image-caption">{entry.caption}</div>
+                  ) : null}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div key={index} className={`thread-row ${entry.side}`}>
+              {entry.side === "left" ? (
+                <img src={avatarUrl} alt="" className="thread-mini-avatar" />
+              ) : null}
+
+              <div className="thread-bubble">{entry.text}</div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="thread-toolbar">

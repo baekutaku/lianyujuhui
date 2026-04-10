@@ -1,11 +1,42 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/server";
 import { deletePhoneItem } from "@/app/admin/actions";
+
+function getPublicPhoneItemHref(item: {
+  slug: string;
+  subtype: string;
+  content_json?: any;
+}) {
+  if (item.subtype === "message") {
+    const threadKey = item.content_json?.threadKey || item.slug;
+    return `/phone-items/messages/${threadKey}`;
+  }
+
+  if (item.subtype === "moment") {
+    const characterKey = item.content_json?.characterKey || item.slug;
+    return `/phone-items/moments/${characterKey}`;
+  }
+
+  if (item.subtype === "call" || item.subtype === "video_call") {
+    const characterKey = item.content_json?.characterKey;
+    return characterKey
+      ? `/phone-items/calls/${characterKey}/${item.slug}`
+      : `/phone-items/calls`;
+  }
+
+  if (item.subtype === "article") {
+    return `/phone-items/articles/${item.slug}`;
+  }
+
+  return `/phone-items`;
+}
 
 export default async function AdminPhoneItemsPage() {
   const { data: phoneItems, error } = await supabase
     .from("phone_items")
-    .select("id, title, slug, subtype, release_year, release_date, is_published")
+    .select(
+      "id, title, slug, subtype, release_year, release_date, is_published, content_json"
+    )
     .order("created_at", { ascending: false });
 
   return (
@@ -40,9 +71,7 @@ export default async function AdminPhoneItemsPage() {
       </div>
 
       {error && (
-        <pre className="error-box">
-          {JSON.stringify(error, null, 2)}
-        </pre>
+        <pre className="error-box">{JSON.stringify(error, null, 2)}</pre>
       )}
 
       {!phoneItems || phoneItems.length === 0 ? (
@@ -75,7 +104,7 @@ export default async function AdminPhoneItemsPage() {
                     수정하기
                   </Link>
 
-                  <Link href={`/phone-items/${item.slug}`} className="nav-link">
+                  <Link href={getPublicPhoneItemHref(item)} className="nav-link">
                     공개 페이지 보기
                   </Link>
 
