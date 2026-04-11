@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { isAdmin } from "@/lib/utils/admin-auth";
+import FloatingMobileMenu from "@/components/FloatingMobileMenu";
+import ScrollToTopButton from "@/components/ScrollToTopButton";
 
 export const metadata: Metadata = {
   title: "연모고 동창회 아카이브",
@@ -76,6 +78,10 @@ export default async function RootLayout({
             <div className="content-inner">{children}</div>
           </main>
         </div>
+
+
+        <FloatingMobileMenu />
+<ScrollToTopButton />
       </body>
     </html>
   );
