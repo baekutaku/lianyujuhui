@@ -5,6 +5,12 @@ import {
   parseMessageBulk,
   parseMomentBulk,
 } from "@/lib/admin/phoneBulkParsers";
+import MessageBlockEditor from "@/components/admin/phone-items/MessageBlockEditor";
+import {
+  type MessageNode,
+  buildEditorNodesFromStoredEntries,
+  flattenMessageNodes,
+} from "@/lib/admin/messageEditorTypes";
 
 type Subtype = "message" | "moment" | "call" | "video_call" | "article";
 
@@ -20,6 +26,9 @@ type PhoneItemFormProps = {
     title?: string;
     slug?: string;
     character_key?: string;
+    character_name?: string;
+    thread_key?: string;
+    history_category?: string;
     level?: string | number;
 
     avatar_url?: string;
@@ -33,8 +42,15 @@ type PhoneItemFormProps = {
     author?: string;
     body?: string;
 
+    history_summary?: string;
+history_source?: string;
+
     message_bulk_raw?: string;
     moment_bulk_raw?: string;
+        editor_entries_json?: string;
+
+
+    input_mode?: "simple" | "bulk";
   };
 };
 
@@ -62,17 +78,14 @@ const DEFAULT_CHARACTER_NAME_MAP: Record<string, string> = {
   lingxiao: "연시호",
 };
 
-const messagePlaceholder = `title: 백기
-preview: 이 계절에 갑자기 색다른 즐거움이 더해진 것…
-threadKey: baiqi
-characterKey: baiqi
-avatarUrl: /profile/baiqi.png
-
-SYS: 오늘
-L: 꽃 키우기가 쉬운 일이 아니네.
-R: 과정을 즐긴다면 낭비가 아니에요~.
-LIMG: /images/messages/baiqi-flower.jpg | 화분 사진
-L: 네가 즐기는 모습을 보니 나도 기분이 좋아.`;
+const messagePlaceholder = `L: 글쎄, 내 관심사는 아닙니다.
+L: 확실한 건 위 실장이라면 빨대를 챙겼을 겁니다.
+R: 가져오는 길에 떨어뜨렸나... 아쉬운 대로 마셔 보시면 안... 될까요?
+L: ...당신을 만나고 나서 '아쉬운 대로' 하는 일들이 느네요.
+CHOICE: 하루라도 안 마시면 힘들어요. | 푸딩을 더 좋아해요! | 달달한 건 다 좋아요!
+LIMG: /images/messages/lizeyan-milktea.jpg | 책상 위 밀크티
+LAUD: /audio/messages/lizeyan-milktea.mp3 | 00:07 | 지금 들어봐.
+SYS: 확인완료`;
 
 const momentPlaceholder = `=== post ===
 characterKey: baiqi
@@ -106,7 +119,11 @@ export default function PhoneItemForm({
     title: initialValues?.title ?? "",
     slug: initialValues?.slug ?? "",
     character_key: initialValues?.character_key ?? "baiqi",
+    character_name: initialValues?.character_name ?? "",
+    thread_key: initialValues?.thread_key ?? "",
+    history_category: initialValues?.history_category ?? "daily",
     level: initialValues?.level?.toString?.() ?? "",
+    
 
     avatar_url: initialValues?.avatar_url ?? "",
     cover_image: initialValues?.cover_image ?? "",
@@ -119,8 +136,15 @@ export default function PhoneItemForm({
     author: initialValues?.author ?? "",
     body: initialValues?.body ?? "",
 
+    history_summary: initialValues?.history_summary ?? "",
+history_source: initialValues?.history_source ?? "",
+
     message_bulk_raw: initialValues?.message_bulk_raw ?? "",
     moment_bulk_raw: initialValues?.moment_bulk_raw ?? "",
+    editor_entries_json: initialValues?.editor_entries_json ?? "",
+    input_mode: initialValues?.input_mode ?? "simple",
+
+    
   };
 
   const [subtype, setSubtype] = useState<Subtype>(values.subtype);
@@ -133,14 +157,57 @@ export default function PhoneItemForm({
   const [iconUrl, setIconUrl] = useState(values.icon_url);
   const [imageUrl, setImageUrl] = useState(values.image_url);
 
-  const messagePreview = useMemo(() => {
+  const [messageCharacterKey, setMessageCharacterKey] = useState(
+    values.character_key
+  );
+  const [messageCharacterName, setMessageCharacterName] = useState(
+    values.character_name || DEFAULT_CHARACTER_NAME_MAP[values.character_key] || ""
+  );
+  const [messageAvatarUrl, setMessageAvatarUrl] = useState(values.avatar_url);
+
+    const [messageInputMode, setMessageInputMode] = useState<"simple" | "bulk">(
+    values.input_mode
+  );
+
+  const initialMessageEditorEntries = useMemo(() => {
     try {
-      return messageRaw ? parseMessageBulk(messageRaw) : null;
+      if (values.editor_entries_json.trim()) {
+        return buildEditorNodesFromStoredEntries(
+          JSON.parse(values.editor_entries_json)
+        );
+      }
+
+      return buildEditorNodesFromStoredEntries(
+        values.message_bulk_raw ? parseMessageBulk(values.message_bulk_raw) : []
+      );
     } catch {
-      return null;
+      return [];
+    }
+  }, [values.editor_entries_json, values.message_bulk_raw]);
+
+  const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
+    initialMessageEditorEntries
+  );
+
+  const bulkEntries = useMemo(() => {
+    try {
+      return messageRaw ? parseMessageBulk(messageRaw) : [];
+    } catch {
+      return [];
     }
   }, [messageRaw]);
 
+  const currentFlatEntries = useMemo(() => {
+    return messageInputMode === "simple"
+      ? flattenMessageNodes(messageEditorEntries)
+      : bulkEntries;
+  }, [messageInputMode, messageEditorEntries, bulkEntries]);
+
+  const currentEditorEntries = useMemo(() => {
+    return messageInputMode === "simple"
+      ? messageEditorEntries
+      : buildEditorNodesFromStoredEntries(bulkEntries);
+  }, [messageInputMode, messageEditorEntries, bulkEntries]);
   const momentPreview = useMemo(() => {
     try {
       return momentRaw ? parseMomentBulk(momentRaw) : [];
@@ -156,6 +223,14 @@ export default function PhoneItemForm({
   const resolvedAvatarPreview = useMemo(() => {
     return avatarUrl.trim() || DEFAULT_AVATAR_MAP[characterKey] || "";
   }, [avatarUrl, characterKey]);
+
+  const resolvedMessageAvatarPreview = useMemo(() => {
+    return (
+      messageAvatarUrl.trim() ||
+      DEFAULT_AVATAR_MAP[messageCharacterKey] ||
+      ""
+    );
+  }, [messageAvatarUrl, messageCharacterKey]);
 
   return (
     <form
@@ -201,28 +276,225 @@ export default function PhoneItemForm({
 
       {subtype === "message" ? (
         <>
-          <label className="form-field form-field-full">
-            <span>메시지 일괄 입력</span>
-            <textarea
-              name="message_bulk_raw"
-              rows={18}
-              value={messageRaw}
-              onChange={(e) => setMessageRaw(e.target.value)}
-              placeholder={messagePlaceholder}
-              style={{ fontFamily: "monospace" }}
-            />
-          </label>
+          <div className="form-grid">
+            <label className="form-field">
+              <span>상대 캐릭터</span>
+              <select
+                name="character_key"
+                value={messageCharacterKey}
+                onChange={(e) => {
+                  const nextKey = e.target.value;
+                  setMessageCharacterKey(nextKey);
+                  if (CHARACTER_OPTIONS.some((item) => item.key === nextKey)) {
+                    setMessageCharacterName(
+                      DEFAULT_CHARACTER_NAME_MAP[nextKey] ?? ""
+                    );
+                  }
+                }}
+              >
+                {CHARACTER_OPTIONS.map((character) => (
+                  <option key={character.key} value={character.key}>
+                    {character.label}
+                  </option>
+                ))}
+                <option value="npc">NPC</option>
+              </select>
+            </label>
 
-          {messagePreview ? (
-            <div className="archive-card">
-              <strong>{messagePreview.title}</strong>
-              <div className="meta-row" style={{ marginTop: 12 }}>
-                <span className="meta-pill">preview: {messagePreview.preview}</span>
-                <span className="meta-pill">threadKey: {messagePreview.threadKey}</span>
-                <span className="meta-pill">entries: {messagePreview.entries.length}</span>
+            <label className="form-field">
+              <span>표시 이름</span>
+              <input
+                name="character_name"
+                value={messageCharacterName}
+                onChange={(e) => setMessageCharacterName(e.target.value)}
+                placeholder="예: 택언 / 알 수 없음"
+              />
+            </label>
+
+            <label className="form-field">
+              <span>threadKey</span>
+              <input
+                name="thread_key"
+                defaultValue={values.thread_key}
+                placeholder="예: lizeyan-milktea"
+              />
+            </label>
+
+            <label className="form-field form-field-full">
+              <span>대화기록 제목</span>
+              <input
+                name="title"
+                defaultValue={values.title}
+                placeholder="기록 목록에만 보이는 제목"
+              />
+            </label>
+
+            <label className="form-field form-field-full">
+              <span>메인 목록 프리뷰</span>
+              <input
+                name="preview"
+                defaultValue={values.preview}
+                placeholder="메시지 목록에 보일 한 줄"
+              />
+            </label>
+
+            <label className="form-field form-field-full">
+              <span>상대 프사</span>
+              <input
+                name="avatar_url"
+                value={messageAvatarUrl}
+                onChange={(e) => setMessageAvatarUrl(e.target.value)}
+                placeholder="비워두면 기본 프사"
+              />
+              {resolvedMessageAvatarPreview ? (
+                <div style={{ marginTop: "10px" }}>
+                  <img
+                    src={resolvedMessageAvatarPreview}
+                    alt="message avatar preview"
+                    style={{
+                      width: "88px",
+                      height: "88px",
+                      borderRadius: "999px",
+                      objectFit: "cover",
+                      border: "1px solid #d7e0ec",
+                      background: "#fff",
+                    }}
+                  />
+                </div>
+              ) : null}
+            </label>
+
+            <label className="form-field">
+              <span>레벨</span>
+              <input
+                name="level"
+                type="number"
+                defaultValue={values.level}
+                placeholder="예: 45"
+              />
+            </label>
+
+            <label className="form-field">
+  <span>기록 카테고리</span>
+  <select
+    name="history_category"
+    defaultValue={values.history_category}
+  >
+    <option value="daily">일상</option>
+    <option value="companion">동반</option>
+    <option value="card_story">카드</option>
+    <option value="main_story">메인스토리</option>
+  </select>
+</label>
+
+<label className="form-field form-field-full">
+  <span>기록 요약</span>
+  <input
+    name="history_summary"
+    defaultValue={values.history_summary}
+    placeholder="타이틀 아래 아주 작게 보일 설명"
+  />
+</label>
+
+<label className="form-field form-field-full">
+  <span>출처 / 메모</span>
+  <input
+    name="history_source"
+    defaultValue={values.history_source}
+    placeholder="예: KR 서버 / 카드 스토리 / 메인 1부"
+  />
+</label>
+
+<label className="form-field">
+  <span>slug</span>
+  <input
+    name="slug"
+    defaultValue={values.slug}
+    placeholder="비워두면 threadKey 사용"
+  />
+</label>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+              marginBottom: "8px",
+            }}
+          >
+            <button
+              type="button"
+              className={messageInputMode === "simple" ? "primary-button" : "nav-link"}
+              style={messageInputMode === "simple" ? { marginTop: 0 } : undefined}
+              onClick={() => setMessageInputMode("simple")}
+            >
+              간편 입력
+            </button>
+            <button
+              type="button"
+              className={messageInputMode === "bulk" ? "primary-button" : "nav-link"}
+              style={messageInputMode === "bulk" ? { marginTop: 0 } : undefined}
+              onClick={() => setMessageInputMode("bulk")}
+            >
+              문법 입력
+            </button>
+          </div>
+
+          <input
+            type="hidden"
+            name="entries_json"
+            value={JSON.stringify(currentFlatEntries)}
+          />
+          <input
+            type="hidden"
+            name="editor_entries_json"
+            value={JSON.stringify(currentEditorEntries)}
+          />
+
+          {messageInputMode === "simple" ? (
+            <div style={{ display: "grid", gap: "16px" }}>
+              <div className="archive-card">
+                <strong>간편 입력</strong>
+                <div style={{ marginTop: "8px", color: "#5b6573" }}>
+                  상대 대사 / 내 대사 / 시스템 문구 / 이미지 / 음성 / 선택지를
+                  블록 단위로 추가합니다.
+                </div>
               </div>
+
+              <MessageBlockEditor
+                value={messageEditorEntries}
+                onChange={setMessageEditorEntries}
+              />
             </div>
-          ) : null}
+          ) : (
+            <label className="form-field form-field-full">
+              <span>메시지 본문 일괄 입력</span>
+              <textarea
+                name="message_bulk_raw"
+                rows={18}
+                value={messageRaw}
+                onChange={(e) => setMessageRaw(e.target.value)}
+                placeholder={messagePlaceholder}
+                style={{ fontFamily: "monospace" }}
+              />
+            </label>
+          )}
+
+          <div className="archive-card">
+            <strong>entries: {currentFlatEntries.length}</strong>
+            <div className="meta-row" style={{ marginTop: 12 }}>
+              <span className="meta-pill">
+                character: {messageCharacterKey}
+              </span>
+              <span className="meta-pill">
+                name: {messageCharacterName || "이름 없음"}
+              </span>
+              <span className="meta-pill">
+                mode: {messageInputMode === "simple" ? "simple" : "bulk"}
+              </span>
+            </div>
+          </div>
         </>
       ) : null}
 
@@ -246,7 +518,7 @@ export default function PhoneItemForm({
         </>
       ) : null}
 
-      {(subtype === "call" || subtype === "video_call") ? (
+      {subtype === "call" || subtype === "video_call" ? (
         <div className="form-grid">
           <label className="form-field">
             <span>캐릭터</span>
@@ -266,7 +538,11 @@ export default function PhoneItemForm({
           <label className="form-field">
             <span>표시 이름</span>
             <input value={resolvedCharacterName} readOnly />
-            <input type="hidden" name="character_name" value={resolvedCharacterName} />
+            <input
+              type="hidden"
+              name="character_name"
+              value={resolvedCharacterName}
+            />
           </label>
 
           <label className="form-field form-field-full">
@@ -281,11 +557,11 @@ export default function PhoneItemForm({
 
           <label className="form-field">
             <span>slug</span>
-<input
-  name="slug"
-  defaultValue={values.slug}
-  placeholder="비워두면 제목으로 자동 생성"
-/>
+            <input
+              name="slug"
+              defaultValue={values.slug}
+              placeholder="비워두면 제목으로 자동 생성"
+            />
           </label>
 
           <label className="form-field">

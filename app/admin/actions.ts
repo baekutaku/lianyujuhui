@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
+import { buildCardKeys, buildStoryKeys } from "@/lib/utils/admin-keys";
+import {
+  updatePhoneItemAction,
+  deletePhoneItemAction,
+} from "@/lib/admin/phone-items/actions";
+
 import {
   parseMessageBulk,
   parseMomentBulk,
@@ -1785,199 +1791,9 @@ export async function createBulkRelation(formData: FormData) {
 
 
 export async function updatePhoneItem(formData: FormData) {
-  const rawSlug = String(formData.get("slug") || "").trim();
-  const safeSlug = encodeURIComponent(rawSlug || "item");
-
-  try {
-    const phoneItemId = String(formData.get("phoneItemId") || "").trim();
-    const title = String(formData.get("title") || "").trim();
-    const subtype = String(formData.get("subtype") || "").trim();
-    const isPublished = formData.get("is_published") === "on";
-
-    if (!phoneItemId) {
-      throw new Error("phoneItemId가 없습니다.");
-    }
-
-    const summary = String(formData.get("summary") || "").trim();
-
-    if (subtype === "call" || subtype === "video_call") {
-      const characterKey = String(formData.get("character_key") || "").trim();
-      const characterName = String(formData.get("character_name") || "").trim();
-      const avatarUrl = String(formData.get("avatar_url") || "").trim();
-      const coverImage = String(formData.get("cover_image") || "").trim();
-      const youtubeUrl = String(formData.get("youtube_url") || "").trim();
-      const body = String(formData.get("body") || "").trim();
-      const levelRaw = String(formData.get("level") || "").trim();
-      const level = levelRaw ? Number(levelRaw) : null;
-
-      const { error } = await supabase
-        .from("phone_items")
-        .update({
-          title,
-          slug: rawSlug || null,
-          subtype,
-          summary: summary || body.slice(0, 60),
-          is_published: isPublished,
-          embed_url: toEmbedUrl(youtubeUrl) || null,
-          content_json: {
-            characterKey,
-            characterName,
-            avatarUrl,
-            level,
-            coverImage,
-            body,
-          },
-        })
-        .eq("id", phoneItemId);
-
-      if (error) throw new Error(error.message);
-    } else if (subtype === "article") {
-      const preview = String(formData.get("preview") || "").trim();
-      const iconUrl = String(formData.get("icon_url") || "").trim();
-      const imageUrl = String(formData.get("image_url") || "").trim();
-      const sourceName = String(formData.get("source_name") || "").trim();
-      const author = String(formData.get("author") || "").trim();
-      const body = String(formData.get("body") || "").trim();
-
-      const { error } = await supabase
-        .from("phone_items")
-        .update({
-          title,
-          slug: rawSlug || null,
-          subtype,
-          preview_text: preview,
-          summary: summary || preview,
-          is_published: isPublished,
-          content_json: {
-            preview,
-            iconUrl,
-            imageUrl,
-            sourceName,
-            author,
-            body,
-          },
-        })
-        .eq("id", phoneItemId);
-
-      if (error) throw new Error(error.message);
-    } else if (subtype === "message") {
-      const raw = String(formData.get("message_bulk_raw") || "").trim();
-      const parsed = parseMessageBulk(raw);
-
-      const { error } = await supabase
-        .from("phone_items")
-        .update({
-          title: parsed.title,
-          slug: parsed.threadKey,
-          subtype: "message",
-          preview_text: parsed.preview,
-          summary: parsed.preview,
-          is_published: isPublished,
-          content_json: {
-            threadKey: parsed.threadKey,
-            characterKey: parsed.characterKey,
-            avatarUrl: parsed.avatarUrl,
-            entries: parsed.entries,
-          },
-        })
-        .eq("id", phoneItemId);
-
-      if (error) throw new Error(error.message);
-    } else if (subtype === "moment") {
-      const raw = String(formData.get("moment_bulk_raw") || "").trim();
-      const posts = parseMomentBulk(raw);
-
-      if (posts.length === 0) {
-        throw new Error("모멘트 내용이 없습니다.");
-      }
-
-      const first = posts[0];
-
-      const { error } = await supabase
-        .from("phone_items")
-        .update({
-          title: `${first.authorName} 모멘트`,
-          slug: rawSlug || null,
-          subtype: "moment",
-          preview_text: first.body.slice(0, 60),
-          summary: first.body.slice(0, 60),
-          is_published: isPublished,
-          content_json: {
-            characterKey: first.characterKey,
-            authorName: first.authorName,
-            authorAvatar: first.authorAvatar,
-            authorLevel: first.authorLevel,
-            posts,
-          },
-        })
-        .eq("id", phoneItemId);
-
-      if (error) throw new Error(error.message);
-    } else {
-      throw new Error("지원하지 않는 subtype입니다.");
-    }
-
-    revalidatePath("/admin/phone-items");
-    revalidatePath("/phone-items");
-    revalidatePath(`/admin/phone-items/${safeSlug}/edit`);
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
-
-    redirect(
-      `/admin/phone-items/${safeSlug}/edit?error=${encodeURIComponent(message)}`
-    );
-  }
-
-  redirect("/admin/phone-items");
+  return updatePhoneItemAction(formData);
 }
 
 export async function deletePhoneItem(formData: FormData) {
-  const phoneItemId = String(formData.get("phoneItemId") ?? "").trim();
-
-  if (!phoneItemId) {
-    throw new Error("phoneItemId가 없습니다.");
-  }
-
-  const { error: relationError } = await supabase
-    .from("item_relations")
-    .delete()
-    .or(`parent_id.eq.${phoneItemId},child_id.eq.${phoneItemId}`);
-
-  if (relationError) {
-    throw new Error(`item_relations 삭제 실패: ${relationError.message}`);
-  }
-
-  const { error: translationError } = await supabase
-    .from("translations")
-    .delete()
-    .eq("parent_type", "phone_item")
-    .eq("parent_id", phoneItemId);
-
-  if (translationError) {
-    throw new Error(`translations 삭제 실패: ${translationError.message}`);
-  }
-
-  const { error: mediaError } = await supabase
-    .from("media_assets")
-    .delete()
-    .eq("parent_type", "phone_item")
-    .eq("parent_id", phoneItemId);
-
-  if (mediaError) {
-    throw new Error(`media_assets 삭제 실패: ${mediaError.message}`);
-  }
-
-  const { error: phoneItemError } = await supabase
-    .from("phone_items")
-    .delete()
-    .eq("id", phoneItemId);
-
-  if (phoneItemError) {
-    throw new Error(`phone_items 삭제 실패: ${phoneItemError.message}`);
-  }
-
-  revalidatePath("/admin/phone-items");
-  revalidatePath("/phone-items");
-  redirect("/admin/phone-items");
+  return deletePhoneItemAction(formData);
 }

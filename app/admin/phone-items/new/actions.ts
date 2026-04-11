@@ -110,38 +110,80 @@ export async function createPhoneItemAction(formData: FormData) {
   const isPublished = formData.get("is_published") === "on";
   const releaseYear = new Date().getFullYear();
 
-  if (subtype === "message") {
-    const raw = String(formData.get("message_bulk_raw") || "");
-    const parsed = parseMessageBulk(raw);
+if (subtype === "message") {
+  const title = String(formData.get("title") || "").trim();
+  const preview = String(formData.get("preview") || "").trim();
+  const threadKey = String(formData.get("thread_key") || "").trim();
+  const characterKey = String(formData.get("character_key") || "").trim();
+  const characterName = String(formData.get("character_name") || "").trim();
+  const avatarUrl = String(formData.get("avatar_url") || "").trim();
+  const levelRaw = String(formData.get("level") || "").trim();
+  const level = levelRaw ? Number(levelRaw) : null;
 
-    const { serverId, characterId } = await resolveServerAndCharacterIds(
-      serverKey,
-      parsed.characterKey
-    );
+  const historySummary = String(formData.get("history_summary") || "").trim();
+  const historySource = String(formData.get("history_source") || "").trim();
+  const historyCategory =
+    String(formData.get("history_category") || "").trim() || "daily";
 
-    const { error } = await supabase.from("phone_items").insert({
-      content_id: makeContentId("phone-message"),
-      origin_key: parsed.threadKey,
-      server_id: serverId,
-      primary_character_id: characterId,
-      title: parsed.title,
-      slug: parsed.threadKey,
-      subtype: "message",
-      release_year: releaseYear,
-      preview_text: parsed.preview,
-      summary: parsed.preview,
-      is_published: isPublished,
-      content_json: {
-        threadKey: parsed.threadKey,
-        characterKey: parsed.characterKey,
-        avatarUrl: parsed.avatarUrl,
-        entries: parsed.entries,
-      },
-    });
+  const categoryLabelMap: Record<string, string> = {
+    daily: "일상",
+    companion: "동반",
+    card_story: "카드",
+    main_story: "메인스토리",
+  };
 
-    if (error) throw new Error(error.message);
-    redirect("/admin/phone-items");
-  }
+  const raw = String(formData.get("message_bulk_raw") || "");
+  const entriesJson = String(formData.get("entries_json") || "").trim();
+  const editorEntriesJson = String(formData.get("editor_entries_json") || "").trim();
+
+  const entries = entriesJson ? JSON.parse(entriesJson) : parseMessageBulk(raw);
+  const editorEntries = editorEntriesJson ? JSON.parse(editorEntriesJson) : entries;
+
+  const finalThreadKey =
+    threadKey ||
+    `${characterKey}-${(title || preview || "thread")
+      .toLowerCase()
+      .replace(/[^\w가-힣\s-]/g, "")
+      .replace(/\s+/g, "-")}`;
+
+  const finalSlug = String(formData.get("slug") || "").trim() || finalThreadKey;
+
+  const { serverId, characterId } = await resolveServerAndCharacterIds(
+    serverKey,
+    characterKey
+  );
+
+  const { error } = await supabase.from("phone_items").insert({
+    content_id: makeContentId("phone-message"),
+    origin_key: finalThreadKey,
+    server_id: serverId,
+    primary_character_id: characterId,
+    title: title || preview,
+    slug: finalSlug,
+    subtype: "message",
+    release_year: releaseYear,
+    preview_text: preview,
+    summary: historySummary || preview,
+    is_published: isPublished,
+    content_json: {
+      threadKey: finalThreadKey,
+      characterKey,
+      characterName,
+      avatarUrl,
+      level,
+      historyCategory,
+      historyCategoryLabel: categoryLabelMap[historyCategory] || "일상",
+      historySummary,
+      historySource,
+      preview,
+      entries,
+      editorEntries,
+    },
+  });
+
+  if (error) throw new Error(error.message);
+  redirect("/admin/phone-items");
+}
 
   if (subtype === "moment") {
     const raw = String(formData.get("moment_bulk_raw") || "");

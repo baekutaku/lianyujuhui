@@ -7,10 +7,11 @@ function getPublicPhoneItemHref(item: {
   subtype: string;
   content_json?: any;
 }) {
-  if (item.subtype === "message") {
-    const threadKey = item.content_json?.threadKey || item.slug;
-    return `/phone-items/messages/${threadKey}`;
-  }
+if (item.subtype === "message") {
+  const threadKey = item.content_json?.threadKey || item.slug;
+  const characterKey = item.content_json?.characterKey || "baiqi";
+  return `/phone-items/messages/${characterKey}/${threadKey}`;
+}
 
   if (item.subtype === "moment") {
     const characterKey = item.content_json?.characterKey || item.slug;

@@ -49,136 +49,148 @@ function parseMetaLine(line: string) {
   };
 }
 
-export function parseMessageBulk(raw: string): ParsedMessageThread {
-  const input = normalizeLines(raw);
-  const lines = input.split("\n");
-
-  let title = "";
-  let preview = "";
-  let threadKey = "";
-  let characterKey = "";
-  let avatarUrl = "";
-
-  const entries: MessageEntry[] = [];
-
-  let inContent = false;
-
-  for (const originalLine of lines) {
-    const line = originalLine.trimEnd();
-
-    if (!inContent) {
-      if (!line.trim()) {
-        inContent = true;
-        continue;
-      }
-
-      if (
-        line.startsWith("L:") ||
-        line.startsWith("R:") ||
-        line.startsWith("SYS:") ||
-        line.startsWith("LIMG:") ||
-        line.startsWith("RIMG:")
-      ) {
-        inContent = true;
-      } else {
-        const meta = parseMetaLine(line);
-        if (meta) {
-          switch (meta.key) {
-            case "title":
-              title = meta.value;
-              continue;
-            case "preview":
-              preview = meta.value;
-              continue;
-            case "threadKey":
-              threadKey = meta.value;
-              continue;
-            case "characterKey":
-              characterKey = meta.value;
-              continue;
-            case "avatarUrl":
-              avatarUrl = meta.value;
-              continue;
-          }
-        }
-      }
+export type ParsedMessageEntry =
+  | {
+      type: "text";
+      side: "left" | "right";
+      text: string;
     }
+  | {
+      type: "image";
+      side: "left" | "right";
+      url: string;
+      caption?: string;
+    }
+  | {
+      type: "audio";
+      side: "left" | "right";
+      url: string;
+      duration?: string;
+      transcript?: string;
+    }
+  | {
+      type: "system";
+      text: string;
+    }
+  | {
+      type: "choice";
+      options: string[];
+      selectedIndex?: number;
+    };
 
-    if (!line.trim()) continue;
+function splitPipe(value: string) {
+  return value
+    .split("|")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+export function parseMessageBulk(raw: string): ParsedMessageEntry[] {
+  const lines = raw
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.trim());
+
+  const entries: ParsedMessageEntry[] = [];
+
+  for (const line of lines) {
+    if (!line) continue;
 
     if (line.startsWith("SYS:")) {
       entries.push({
         type: "system",
-        text: line.replace(/^SYS:\s*/, ""),
+        text: line.slice(4).trim(),
       });
       continue;
     }
 
-    if (line.startsWith("LIMG:") || line.startsWith("RIMG:")) {
-      const side = line.startsWith("LIMG:") ? "left" : "right";
-      const payload = line.replace(/^LIMG:\s*|^RIMG:\s*/, "");
-      const [urlPart, captionPart] = payload.split("|").map((v) => v?.trim());
+    if (line.startsWith("L:")) {
+      entries.push({
+        type: "text",
+        side: "left",
+        text: line.slice(2).trim(),
+      });
+      continue;
+    }
 
-      if (!urlPart) continue;
+    if (line.startsWith("R:")) {
+      entries.push({
+        type: "text",
+        side: "right",
+        text: line.slice(2).trim(),
+      });
+      continue;
+    }
+
+    if (line.startsWith("LIMG:")) {
+      const [url, caption] = splitPipe(line.slice(5).trim());
+      if (!url) continue;
 
       entries.push({
         type: "image",
-        side,
-        url: urlPart,
-        caption: captionPart || undefined,
+        side: "left",
+        url,
+        caption,
       });
       continue;
     }
 
-    if (line.startsWith("L:") || line.startsWith("R:")) {
-      const side = line.startsWith("L:") ? "left" : "right";
-      const text = line.replace(/^L:\s*|^R:\s*/, "");
+    if (line.startsWith("RIMG:")) {
+      const [url, caption] = splitPipe(line.slice(5).trim());
+      if (!url) continue;
 
       entries.push({
-        type: "text",
-        side,
-        text,
+        type: "image",
+        side: "right",
+        url,
+        caption,
       });
       continue;
     }
 
-    const last = entries[entries.length - 1];
+    if (line.startsWith("LAUD:")) {
+      const [url, duration, transcript] = splitPipe(line.slice(5).trim());
+      if (!url) continue;
 
-    if (!last) continue;
-
-    if (last.type === "text") {
-      last.text += `\n${line}`;
-    } else if (last.type === "system") {
-      last.text += `\n${line}`;
+      entries.push({
+        type: "audio",
+        side: "left",
+        url,
+        duration,
+        transcript,
+      });
+      continue;
     }
+
+    if (line.startsWith("RAUD:")) {
+      const [url, duration, transcript] = splitPipe(line.slice(5).trim());
+      if (!url) continue;
+
+      entries.push({
+        type: "audio",
+        side: "right",
+        url,
+        duration,
+        transcript,
+      });
+      continue;
+    }
+
+    if (line.startsWith("CHOICE:")) {
+      const options = splitPipe(line.slice(7).trim());
+      if (options.length === 0) continue;
+
+      entries.push({
+        type: "choice",
+        options,
+      });
+      continue;
+    }
+
+    throw new Error(`알 수 없는 메시지 문법: ${line}`);
   }
 
-  if (!threadKey) {
-    threadKey =
-      characterKey ||
-      title
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, "-");
-  }
-
-  if (!title) {
-    title = threadKey;
-  }
-
-  if (!preview) {
-    const firstText = entries.find((entry) => entry.type === "text");
-    preview = firstText?.type === "text" ? firstText.text.slice(0, 40) : "";
-  }
-
-  return {
-    title,
-    preview,
-    threadKey,
-    characterKey: characterKey || undefined,
-    avatarUrl: avatarUrl || undefined,
-    entries,
-  };
+  return entries;
 }
 
 export function parseMomentBulk(raw: string): ParsedMomentPost[] {

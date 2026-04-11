@@ -53,9 +53,17 @@ export default async function EditPhoneItemPage({ params }: PageProps) {
     title: item.title ?? "",
     slug: item.slug ?? "",
     character_key: item.content_json?.characterKey ?? "baiqi",
+    character_name: item.content_json?.characterName ?? "",
+    thread_key: item.content_json?.threadKey ?? item.slug ?? "",
+    history_category: item.content_json?.historyCategory ?? "daily",
+    history_summary: item.content_json?.historySummary ?? "",
+history_source: item.content_json?.historySource ?? "",
     level: item.content_json?.level ?? "",
 
     avatar_url: item.content_json?.avatarUrl ?? "",
+    editor_entries_json: JSON.stringify(
+      item.content_json?.editorEntries ?? item.content_json?.entries ?? []
+    ),
     cover_image: item.content_json?.coverImage ?? "",
     youtube_url: item.embed_url ?? "",
 
@@ -65,6 +73,7 @@ export default async function EditPhoneItemPage({ params }: PageProps) {
     source_name: item.content_json?.sourceName ?? "",
     author: item.content_json?.author ?? "",
     body: item.content_json?.body ?? "",
+
   }}
 />
 
