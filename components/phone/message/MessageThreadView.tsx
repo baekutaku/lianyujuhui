@@ -50,7 +50,7 @@ type MessageEntry =
   | ChoiceEntry;
 
 type MessageThreadViewProps = {
-  avatarUrl: string; // 상대방(백기) 아바타
+  avatarUrl: string; // 상대방 아바타
   entries: MessageEntry[];
 };
 
@@ -160,10 +160,7 @@ function ThreadEntries({
                   <div className="thread-image-caption">{entry.caption}</div>
                 ) : null}
               </div>
-              <SafeAvatar
-                src={myAvatarUrl}
-                fallbackSrc={DEFAULT_MY_AVATAR}
-              />
+              <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
             </div>
           );
         }
@@ -204,10 +201,7 @@ function ThreadEntries({
                   </div>
                 ) : null}
               </div>
-              <SafeAvatar
-                src={myAvatarUrl}
-                fallbackSrc={DEFAULT_MY_AVATAR}
-              />
+              <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
             </div>
           );
         }
@@ -227,10 +221,7 @@ function ThreadEntries({
         return (
           <div key={index} className="thread-row right">
             <div className="thread-bubble">{entry.text}</div>
-            <SafeAvatar
-              src={myAvatarUrl}
-              fallbackSrc={DEFAULT_MY_AVATAR}
-            />
+            <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
           </div>
         );
       })}
@@ -271,10 +262,7 @@ function ChoiceBlock({
           <div className="thread-bubble thread-choice-selected">
             {selected.label}
           </div>
-          <SafeAvatar
-            src={myAvatarUrl}
-            fallbackSrc={DEFAULT_MY_AVATAR}
-          />
+          <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
         </div>
       ) : null}
 

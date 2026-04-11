@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
-import MessageThreadWithMyProfile from "@/components/phone/message/MessageThreadWithMyProfile";
+import MessageThreadView from "@/components/phone/message/MessageThreadView";
 import { supabase } from "@/lib/supabase/server";
 
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
@@ -37,9 +37,11 @@ function safeDecode(value: string) {
   }
 }
 
-export default async function MessageDetailPage({ params }: PageProps) {
+export default async function CharacterMessageThreadPage({
+  params,
+}: PageProps) {
   const { characterKey, threadKey: rawThreadKey } = await params;
-  const threadKey = safeDecode(rawThreadKey);
+  const threadKey = safeDecode(rawThreadKey).trim();
 
   const { data, error } = await supabase
     .from("phone_items")
@@ -48,31 +50,37 @@ export default async function MessageDetailPage({ params }: PageProps) {
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    notFound();
-  }
+  if (error) notFound();
 
-  const item = (data ?? []).find((row) => {
-    const savedCharacterKey = row.content_json?.characterKey ?? "baiqi";
-    const savedThreadKey =
-      row.content_json?.threadKey?.trim() || row.slug?.trim() || "";
+  const rows = data ?? [];
 
-    return savedCharacterKey === characterKey && savedThreadKey === threadKey;
-  });
+  const item =
+    rows.find((row) => {
+      const rowCharacterKey = row.content_json?.characterKey ?? "baiqi";
+      const rowThreadKey = (row.content_json?.threadKey ?? "").trim();
+      const rowSlug = (row.slug ?? "").trim();
 
-  if (!item) {
-    notFound();
-  }
+      return (
+        rowCharacterKey === characterKey &&
+        (rowThreadKey === threadKey || rowSlug === threadKey)
+      );
+    }) ||
+    rows.find((row) => {
+      const rowSlug = (row.slug ?? "").trim();
+      return rowSlug === threadKey;
+    });
+
+  if (!item) notFound();
 
   const characterName =
-    item.content_json?.characterName ||
     DEFAULT_NAME_MAP[characterKey] ||
+    item.content_json?.characterName ||
     "이름 없음";
 
   const avatarUrl =
-    item.content_json?.avatarUrl?.trim() ||
     DEFAULT_AVATAR_MAP[characterKey] ||
-    "";
+    item.content_json?.avatarUrl?.trim() ||
+    "/profile/baiqi.png";
 
   const entries = Array.isArray(item.content_json?.editorEntries)
     ? item.content_json.editorEntries
@@ -86,7 +94,7 @@ export default async function MessageDetailPage({ params }: PageProps) {
         <PhoneTopBar
           title={item.title?.trim() || characterName}
           subtitle={characterName}
-          backHref={`/phone-items/messages/${characterKey}`}
+          backHref="/phone-items/messages"
           rightSlot={
             <Link
               href={`/phone-items/messages/${characterKey}/history`}
@@ -100,11 +108,7 @@ export default async function MessageDetailPage({ params }: PageProps) {
         />
 
         <div className="phone-content">
-          <MessageThreadWithMyProfile
-  otherAvatarUrl={avatarUrl}
-  defaultMyAvatarUrl="/profile/mc.png"
-  entries={entries}
-/>
+          <MessageThreadView avatarUrl={avatarUrl} entries={entries} />
         </div>
 
         <PhoneTabNav currentPath="/phone-items/messages" />

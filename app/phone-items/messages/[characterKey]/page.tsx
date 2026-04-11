@@ -55,10 +55,10 @@ export default async function CharacterMessagePage({ params }: PageProps) {
     DEFAULT_NAME_MAP[characterKey] ||
     "이름 없음";
 
-  const avatarUrl =
-    item.content_json?.avatarUrl?.trim() ||
-    DEFAULT_AVATAR_MAP[characterKey] ||
-    "";
+const avatarUrl =
+  DEFAULT_AVATAR_MAP[characterKey] ||
+  item.content_json?.avatarUrl?.trim() ||
+  "/profile/baiqi.png";
 
   const entries = Array.isArray(item.content_json?.editorEntries)
     ? item.content_json.editorEntries

@@ -1,6 +1,9 @@
+import { cookies } from "next/headers";
 import { supabase } from "@/lib/supabase/server";
 import PhoneMeScreen from "@/components/phone/PhoneMeScreen";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
+import { getPhoneProfileActor } from "@/lib/phone/get-phone-profile-actor";
+import { redirect } from "next/navigation";
 
 type PhoneItemRow = {
   id: string;
@@ -8,6 +11,19 @@ type PhoneItemRow = {
   content_json?: {
     characterKey?: string;
   } | null;
+};
+
+type BaseProfileRow = {
+  id: string;
+  title: string | null;
+  image_url: string;
+  sort_order: number;
+};
+
+type CustomProfileRow = {
+  id: string;
+  title: string | null;
+  image_url: string;
 };
 
 const CHARACTERS = [
@@ -27,9 +43,21 @@ function getMomentCount(items: PhoneItemRow[], characterKey: string) {
 }
 
 export default async function PhoneMePage() {
+  const actor = await getPhoneProfileActor();
+  if (actor.needsGuestCookie) {
+  redirect("/phone-items/me/init?redirectTo=/phone-items/me");
+}
+  const cookieStore = await cookies();
+  const guestId = cookieStore.get("phone_guest_id")?.value?.trim();
+
+  const ownerType = actor.ownerType;
+  const ownerId = actor.ownerId || guestId || "";
+
   const [
     { data: phoneItems, error: phoneError },
-    { data: profiles, error: profileError },
+    { data: baseProfiles, error: baseError },
+    { data: customProfiles, error: customError },
+    { data: selectedRow, error: selectedError },
   ] = await Promise.all([
     supabase
       .from("phone_items")
@@ -39,14 +67,35 @@ export default async function PhoneMePage() {
 
     supabase
       .from("phone_profile_options")
-      .select("id, title, image_url, sort_order, is_active")
+      .select("id, title, image_url, sort_order")
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false }),
+
+    ownerId
+      ? supabase
+          .from("phone_profile_custom")
+          .select("id, title, image_url")
+          .eq("owner_type", ownerType)
+          .eq("owner_id", ownerId)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null } as any),
+
+    ownerId
+      ? supabase
+          .from("phone_profile_selected")
+          .select("source_type, source_id")
+          .eq("owner_type", ownerType)
+          .eq("owner_id", ownerId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null } as any),
   ]);
 
   if (phoneError) throw new Error(phoneError.message);
-  if (profileError) throw new Error(profileError.message);
+  if (baseError) throw new Error(baseError.message);
+  if (customError) throw new Error(customError.message);
+  if (selectedError) throw new Error(selectedError.message);
 
   const items = (phoneItems as PhoneItemRow[] | null) ?? [];
 
@@ -55,9 +104,25 @@ export default async function PhoneMePage() {
     moments: getMomentCount(items, character.key),
   }));
 
+  const baseProfileOptions =
+    ((baseProfiles as BaseProfileRow[] | null) ?? []).map((item) => ({
+      id: item.id,
+      title: item.title ?? "",
+      imageUrl: item.image_url,
+      sourceType: "option" as const,
+      sortOrder: item.sort_order,
+    })) ?? [];
+
+  const customProfileOptions =
+    ((customProfiles as CustomProfileRow[] | null) ?? []).map((item) => ({
+      id: item.id,
+      title: item.title ?? "",
+      imageUrl: item.image_url,
+      sourceType: "custom" as const,
+    })) ?? [];
+
   return (
     <main
-      className="phone-page-root"
       style={{
         minHeight: "100vh",
         display: "grid",
@@ -66,7 +131,6 @@ export default async function PhoneMePage() {
       }}
     >
       <div
-        className="phone-page-frame"
         style={{
           width: "100%",
           maxWidth: 520,
@@ -80,29 +144,20 @@ export default async function PhoneMePage() {
           boxShadow: "0 10px 30px rgba(196, 177, 199, 0.12)",
         }}
       >
-        <div
-          className="phone-page-content"
-          style={{
-            flex: 1,
-            minHeight: 0,
-          }}
-        >
+        <div style={{ flex: 1 }}>
           <PhoneMeScreen
             viewerName="유연"
             defaultAvatarUrl="/profile/mc.png"
             characters={characters}
-            profileOptions={
-              profiles?.map((item) => ({
-                id: item.id,
-                title: item.title ?? "",
-                imageUrl: item.image_url,
-              })) ?? []
-            }
+            baseProfileOptions={baseProfileOptions}
+            customProfileOptions={customProfileOptions}
+            initialSelectedSourceType={selectedRow?.source_type ?? null}
+            initialSelectedSourceId={selectedRow?.source_id ?? null}
+            isAdmin={actor.isAdmin}
           />
         </div>
 
         <div
-          className="phone-page-tabbar"
           style={{
             marginTop: "auto",
             borderTop: "1px solid rgba(220, 210, 220, 0.7)",
