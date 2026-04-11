@@ -33,10 +33,9 @@ export default async function ArticleDetailPage({ params }: PageProps) {
         <PhoneTopBar title={detail.sourceName ?? "핫이슈"} />
         <div className="phone-content">
 <ArticleDetail
-  title={detail.title}
-  subtitle={detail.subtitle}
-  sourceName={detail.sourceName}
-  imageUrl={detail.imageUrl}
+  title={detail.title ?? ""}
+  sourceName={detail.sourceName ?? ""}
+  imageUrl={detail.imageUrl ?? ""}
   body={detail.body ?? ""}
 />
         </div>
