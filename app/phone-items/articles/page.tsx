@@ -32,13 +32,13 @@ export default async function ArticleDetailPage({ params }: PageProps) {
       <PhoneShell>
         <PhoneTopBar title={detail.sourceName ?? "핫이슈"} />
         <div className="phone-content">
-          <ArticleDetail
-            title={detail.title}
-            author={detail.author}
-            sourceName={detail.sourceName}
-            imageUrl={detail.imageUrl}
-            body={detail.body}
-          />
+<ArticleDetail
+  title={detail.title}
+  subtitle={detail.subtitle}
+  sourceName={detail.sourceName}
+  imageUrl={detail.imageUrl}
+  body={detail.body ?? ""}
+/>
         </div>
         <PhoneTabNav currentPath="/phone-items/articles" />
       </PhoneShell>
