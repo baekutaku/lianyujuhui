@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
-import MessageThreadView from "@/components/phone/message/MessageThreadView";
+import MessageThreadWithMyProfile from "@/components/phone/message/MessageThreadWithMyProfile";
 import { supabase } from "@/lib/supabase/server";
 
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
@@ -100,7 +100,11 @@ export default async function MessageDetailPage({ params }: PageProps) {
         />
 
         <div className="phone-content">
-          <MessageThreadView avatarUrl={avatarUrl} entries={entries} />
+          <MessageThreadWithMyProfile
+  otherAvatarUrl={avatarUrl}
+  defaultMyAvatarUrl="/profile/mc.png"
+  entries={entries}
+/>
         </div>
 
         <PhoneTabNav currentPath="/phone-items/messages" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type TextEntry = {
   type: "text";
@@ -50,9 +50,13 @@ type MessageEntry =
   | ChoiceEntry;
 
 type MessageThreadViewProps = {
-  avatarUrl: string;
+  avatarUrl: string; // 상대방(백기) 아바타
   entries: MessageEntry[];
 };
+
+const MY_AVATAR_STORAGE_KEY = "mlqc_phone_me_avatar_url";
+const DEFAULT_MY_AVATAR = "/profile/mc.png";
+const DEFAULT_OTHER_AVATAR = "/profile/baiqi.png";
 
 function normalizeChoiceOption(option: ChoiceOption) {
   if (typeof option === "string") {
@@ -68,11 +72,36 @@ function normalizeChoiceOption(option: ChoiceOption) {
   };
 }
 
+function SafeAvatar({
+  src,
+  fallbackSrc,
+}: {
+  src?: string;
+  fallbackSrc: string;
+}) {
+  const [currentSrc, setCurrentSrc] = useState(src?.trim() || fallbackSrc);
+
+  useEffect(() => {
+    setCurrentSrc(src?.trim() || fallbackSrc);
+  }, [src, fallbackSrc]);
+
+  return (
+    <img
+      src={currentSrc}
+      alt=""
+      className="thread-mini-avatar"
+      onError={() => setCurrentSrc(fallbackSrc)}
+    />
+  );
+}
+
 function ThreadEntries({
-  avatarUrl,
+  otherAvatarUrl,
+  myAvatarUrl,
   entries,
 }: {
-  avatarUrl: string;
+  otherAvatarUrl: string;
+  myAvatarUrl: string;
   entries: MessageEntry[];
 }) {
   return (
@@ -87,16 +116,40 @@ function ThreadEntries({
         }
 
         if (entry.type === "choice") {
-          return <ChoiceBlock key={index} avatarUrl={avatarUrl} entry={entry} />;
+          return (
+            <ChoiceBlock
+              key={index}
+              otherAvatarUrl={otherAvatarUrl}
+              myAvatarUrl={myAvatarUrl}
+              entry={entry}
+            />
+          );
         }
 
         if (entry.type === "image") {
-          return (
-            <div key={index} className={`thread-row ${entry.side}`}>
-              {entry.side === "left" ? (
-                <img src={avatarUrl} alt="" className="thread-mini-avatar" />
-              ) : null}
+          if (entry.side === "left") {
+            return (
+              <div key={index} className="thread-row left">
+                <SafeAvatar
+                  src={otherAvatarUrl}
+                  fallbackSrc={DEFAULT_OTHER_AVATAR}
+                />
+                <div className="thread-bubble thread-image-bubble">
+                  <img
+                    src={entry.url}
+                    alt={entry.caption ?? "message image"}
+                    className="thread-image"
+                  />
+                  {entry.caption ? (
+                    <div className="thread-image-caption">{entry.caption}</div>
+                  ) : null}
+                </div>
+              </div>
+            );
+          }
 
+          return (
+            <div key={index} className="thread-row right">
               <div className="thread-bubble thread-image-bubble">
                 <img
                   src={entry.url}
@@ -107,17 +160,39 @@ function ThreadEntries({
                   <div className="thread-image-caption">{entry.caption}</div>
                 ) : null}
               </div>
+              <SafeAvatar
+                src={myAvatarUrl}
+                fallbackSrc={DEFAULT_MY_AVATAR}
+              />
             </div>
           );
         }
 
         if (entry.type === "audio") {
-          return (
-            <div key={index} className={`thread-row ${entry.side}`}>
-              {entry.side === "left" ? (
-                <img src={avatarUrl} alt="" className="thread-mini-avatar" />
-              ) : null}
+          if (entry.side === "left") {
+            return (
+              <div key={index} className="thread-row left">
+                <SafeAvatar
+                  src={otherAvatarUrl}
+                  fallbackSrc={DEFAULT_OTHER_AVATAR}
+                />
+                <div className="thread-bubble thread-audio-bubble">
+                  <audio controls src={entry.url} className="thread-audio" />
+                  {entry.duration ? (
+                    <div className="thread-audio-duration">{entry.duration}</div>
+                  ) : null}
+                  {entry.transcript ? (
+                    <div className="thread-audio-transcript">
+                      {entry.transcript}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            );
+          }
 
+          return (
+            <div key={index} className="thread-row right">
               <div className="thread-bubble thread-audio-bubble">
                 <audio controls src={entry.url} className="thread-audio" />
                 {entry.duration ? (
@@ -129,17 +204,33 @@ function ThreadEntries({
                   </div>
                 ) : null}
               </div>
+              <SafeAvatar
+                src={myAvatarUrl}
+                fallbackSrc={DEFAULT_MY_AVATAR}
+              />
+            </div>
+          );
+        }
+
+        if (entry.side === "left") {
+          return (
+            <div key={index} className="thread-row left">
+              <SafeAvatar
+                src={otherAvatarUrl}
+                fallbackSrc={DEFAULT_OTHER_AVATAR}
+              />
+              <div className="thread-bubble">{entry.text}</div>
             </div>
           );
         }
 
         return (
-          <div key={index} className={`thread-row ${entry.side}`}>
-            {entry.side === "left" ? (
-              <img src={avatarUrl} alt="" className="thread-mini-avatar" />
-            ) : null}
-
+          <div key={index} className="thread-row right">
             <div className="thread-bubble">{entry.text}</div>
+            <SafeAvatar
+              src={myAvatarUrl}
+              fallbackSrc={DEFAULT_MY_AVATAR}
+            />
           </div>
         );
       })}
@@ -148,10 +239,12 @@ function ThreadEntries({
 }
 
 function ChoiceBlock({
-  avatarUrl,
+  otherAvatarUrl,
+  myAvatarUrl,
   entry,
 }: {
-  avatarUrl: string;
+  otherAvatarUrl: string;
+  myAvatarUrl: string;
   entry: ChoiceEntry;
 }) {
   const options = (entry.options || []).map(normalizeChoiceOption);
@@ -178,12 +271,20 @@ function ChoiceBlock({
           <div className="thread-bubble thread-choice-selected">
             {selected.label}
           </div>
+          <SafeAvatar
+            src={myAvatarUrl}
+            fallbackSrc={DEFAULT_MY_AVATAR}
+          />
         </div>
       ) : null}
 
       {selected?.result?.length ? (
         <div className="thread-choice-result">
-          <ThreadEntries avatarUrl={avatarUrl} entries={selected.result} />
+          <ThreadEntries
+            otherAvatarUrl={otherAvatarUrl}
+            myAvatarUrl={myAvatarUrl}
+            entries={selected.result}
+          />
         </div>
       ) : null}
 
@@ -238,27 +339,40 @@ export default function MessageThreadView({
   avatarUrl,
   entries,
 }: MessageThreadViewProps) {
+  const [myAvatarUrl, setMyAvatarUrl] = useState(DEFAULT_MY_AVATAR);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(MY_AVATAR_STORAGE_KEY);
+    if (saved?.trim()) {
+      setMyAvatarUrl(saved);
+    }
+  }, []);
+
   return (
     <>
       <div className="thread-wrap">
-        <ThreadEntries avatarUrl={avatarUrl} entries={entries} />
+        <ThreadEntries
+          otherAvatarUrl={avatarUrl}
+          myAvatarUrl={myAvatarUrl}
+          entries={entries}
+        />
       </div>
 
       <div className="thread-toolbar">
-  <button type="button" className="thread-toolbar-btn" aria-label="음성">
-    <span className="material-symbols-rounded">volume_up</span>
-  </button>
+        <button type="button" className="thread-toolbar-btn" aria-label="음성">
+          <span className="material-symbols-rounded">volume_up</span>
+        </button>
 
-  <div className="thread-toolbar-input" />
+        <div className="thread-toolbar-input" />
 
-  <button type="button" className="thread-toolbar-btn" aria-label="이모지">
-    <span className="material-symbols-rounded">mood</span>
-  </button>
+        <button type="button" className="thread-toolbar-btn" aria-label="이모지">
+          <span className="material-symbols-rounded">mood</span>
+        </button>
 
-  <button type="button" className="thread-toolbar-btn" aria-label="추가">
-    <span className="material-symbols-rounded">add</span>
-  </button>
-</div>
+        <button type="button" className="thread-toolbar-btn" aria-label="추가">
+          <span className="material-symbols-rounded">add</span>
+        </button>
+      </div>
     </>
   );
 }

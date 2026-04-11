@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/server";
 import { updateCard, deleteCard } from "@/app/admin/actions";
+import RelationPicker, {
+  type RelationCandidate,
+} from "@/components/admin/relations/RelationPicker";
 
 type EditCardPageProps = {
   params: Promise<{
@@ -71,7 +74,7 @@ export default async function EditCardPage({
     .eq("title", "evolution_after")
     .maybeSingle();
 
-  const { data: storyRelations } = await supabase
+    const { data: storyRelations } = await supabase
     .from("item_relations")
     .select("child_id, sort_order")
     .eq("parent_type", "card")
@@ -102,42 +105,151 @@ export default async function EditCardPage({
   const phoneIds = (phoneRelations ?? []).map((item) => item.child_id);
   const eventIds = (eventRelations ?? []).map((item) => item.child_id);
 
-  const { data: stories } =
+    const [
+    { data: characters },
+    { data: linkedStories },
+    { data: linkedPhoneItems },
+    { data: linkedEvents },
+    { data: allStories },
+    { data: allPhoneItems },
+    { data: allEvents },
+  ] = await Promise.all([
+    supabase.from("characters").select("id, key"),
+
     storyIds.length > 0
-      ? await supabase.from("stories").select("id, slug").in("id", storyIds)
-      : { data: [] as { id: string; slug: string }[] };
+      ? supabase
+          .from("stories")
+          .select("id, slug, title, subtype, primary_character_id")
+          .in("id", storyIds)
+      : Promise.resolve({ data: [] as any[] }),
 
-  const { data: phoneItems } =
     phoneIds.length > 0
-      ? await supabase.from("phone_items").select("id, slug").in("id", phoneIds)
-      : { data: [] as { id: string; slug: string }[] };
+      ? supabase
+          .from("phone_items")
+          .select("id, slug, title, subtype, content_json")
+          .in("id", phoneIds)
+      : Promise.resolve({ data: [] as any[] }),
 
-  const { data: events } =
     eventIds.length > 0
-      ? await supabase.from("events").select("id, slug").in("id", eventIds)
-      : { data: [] as { id: string; slug: string }[] };
+      ? supabase
+          .from("events")
+          .select("id, slug, title, subtype, primary_character_id")
+          .in("id", eventIds)
+      : Promise.resolve({ data: [] as any[] }),
 
-  const storySlugMap = new Map((stories ?? []).map((item) => [item.id, item.slug]));
-  const phoneSlugMap = new Map((phoneItems ?? []).map((item) => [item.id, item.slug]));
-  const eventSlugMap = new Map((events ?? []).map((item) => [item.id, item.slug]));
+    supabase
+      .from("stories")
+      .select("slug, title, subtype, primary_character_id")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false }),
 
-  const linkedStorySlugs = (storyRelations ?? [])
-    .map((item) => storySlugMap.get(item.child_id))
+    supabase
+      .from("phone_items")
+      .select("slug, title, subtype, content_json")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false }),
+
+    supabase
+      .from("events")
+      .select("slug, title, subtype, primary_character_id")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const characterMap = new Map(
+    (characters ?? []).map((item: any) => [item.id, item.key])
+  );
+
+  const linkedStoryMap = new Map(
+    (linkedStories ?? []).map((item) => [item.id, item])
+  );
+  const linkedPhoneMap = new Map(
+    (linkedPhoneItems ?? []).map((item) => [item.id, item])
+  );
+  const linkedEventMap = new Map(
+    (linkedEvents ?? []).map((item) => [item.id, item])
+  );
+
+
+
+  const initialStories: RelationCandidate[] = (storyRelations ?? [])
+    .map((item) => linkedStoryMap.get(item.child_id))
     .filter(Boolean)
-    .join("\n");
+    .map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype,
+      characterKey: characterMap.get(item.primary_character_id) ?? null,
+    }));
 
-  const linkedPhoneItemSlugs = (phoneRelations ?? [])
-    .map((item) => phoneSlugMap.get(item.child_id))
+  const initialPhoneItems: RelationCandidate[] = (phoneRelations ?? [])
+    .map((item) => linkedPhoneMap.get(item.child_id))
     .filter(Boolean)
-    .join("\n");
+    .map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype,
+      characterKey: item.content_json?.characterKey ?? null,
+      category: item.content_json?.historyCategory ?? null,
+    }));
 
-  const linkedEventSlugs = (eventRelations ?? [])
-    .map((item) => eventSlugMap.get(item.child_id))
+  const initialEvents: RelationCandidate[] = (eventRelations ?? [])
+    .map((item) => linkedEventMap.get(item.child_id))
     .filter(Boolean)
-    .join("\n");
+    .map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype,
+      characterKey: characterMap.get(item.primary_character_id) ?? null,
+    }));
+
+  const storyCandidates: RelationCandidate[] =
+    (allStories ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype,
+      characterKey: characterMap.get(item.primary_character_id) ?? null,
+    })) ?? [];
+
+  const phoneCandidates: RelationCandidate[] =
+    (allPhoneItems ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype,
+      characterKey: item.content_json?.characterKey ?? null,
+      category: item.content_json?.historyCategory ?? null,
+    })) ?? [];
+
+  const eventCandidates: RelationCandidate[] =
+    (allEvents ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype,
+      characterKey: characterMap.get(item.primary_character_id) ?? null,
+    })) ?? [];
 
   const thumbnailAfterUrl = thumbAfterMedia?.url ?? "";
   const coverAfterUrl = coverAfterMedia?.url ?? "";
+
+
+const CHARACTER_OPTIONS = [
+  { value: "baiqi", label: "백기" },
+  { value: "lizeyan", label: "이택언" },
+  { value: "zhouqiluo", label: "주기락" },
+  { value: "xumo", label: "허묵" },
+  { value: "lingxiao", label: "연시호" },
+];
+
+const PHONE_CATEGORY_OPTIONS = [
+  { value: "daily", label: "일상" },
+  { value: "companion", label: "동반" },
+  { value: "card_story", label: "카드" },
+  { value: "main_story", label: "메인스토리" },
+  { value: "tangle", label: "얽힘" },
+];
+
+
+
 
   return (
     <main>
@@ -255,7 +367,7 @@ export default async function EditCardPage({
             />
           </label>
 
-          <label className="form-field form-field-full">
+                    <label className="form-field form-field-full">
             <span>summary</span>
             <textarea
               name="summary"
@@ -263,37 +375,49 @@ export default async function EditCardPage({
               defaultValue={card.summary ?? ""}
             />
           </label>
-
-          <label className="form-field form-field-full">
-            <span>linked story slugs</span>
-            <textarea
-              name="linkedStorySlugs"
-              rows={5}
-              defaultValue={linkedStorySlugs}
-              placeholder="한 줄에 slug 하나씩 입력"
-            />
-          </label>
-
-          <label className="form-field form-field-full">
-            <span>linked phone item slugs</span>
-            <textarea
-              name="linkedPhoneItemSlugs"
-              rows={5}
-              defaultValue={linkedPhoneItemSlugs}
-              placeholder="한 줄에 slug 하나씩 입력"
-            />
-          </label>
-
-          <label className="form-field form-field-full">
-            <span>linked event slugs</span>
-            <textarea
-              name="linkedEventSlugs"
-              rows={5}
-              defaultValue={linkedEventSlugs}
-              placeholder="한 줄에 slug 하나씩 입력"
-            />
-          </label>
         </div>
+
+        <RelationPicker
+          label="연결 스토리"
+          name="linkedStorySlugs"
+          candidates={storyCandidates}
+          initialSelected={initialStories}
+          characterOptions={CHARACTER_OPTIONS}
+          subtypeOptions={[
+            { value: "card_story", label: "데이트" },
+            { value: "asmr", label: "너의 곁에" },
+            { value: "side_story", label: "외전" },
+            { value: "main_story", label: "메인스토리" },
+            { value: "behind_story", label: "막후의 장" },
+            { value: "xiyue_story", label: "서월국" },
+            { value: "myhome_story", label: "마이홈 스토리" },
+            { value: "company_project", label: "회사 프로젝트" },
+          ]}
+        />
+
+        <RelationPicker
+          label="연결 휴대폰"
+          name="linkedPhoneItemSlugs"
+          candidates={phoneCandidates}
+          initialSelected={initialPhoneItems}
+          characterOptions={CHARACTER_OPTIONS}
+          categoryOptions={PHONE_CATEGORY_OPTIONS}
+          subtypeOptions={[
+            { value: "message", label: "메시지" },
+            { value: "moment", label: "모멘트" },
+            { value: "call", label: "전화" },
+            { value: "video_call", label: "영상통화" },
+            { value: "article", label: "기사" },
+          ]}
+        />
+
+        <RelationPicker
+          label="연결 이벤트"
+          name="linkedEventSlugs"
+          candidates={eventCandidates}
+          initialSelected={initialEvents}
+          characterOptions={CHARACTER_OPTIONS}
+        />
 
         <button type="submit" className="primary-button">
           카드 수정 저장

@@ -12,6 +12,14 @@ export default function AdminPage() {
       </header>
 
       <section className="quick-grid">
+        <Link href="/admin/contents" className="quick-card">
+          <span className="quick-card-label">Contents</span>
+          <h2 className="quick-card-title">통합 콘텐츠 관리</h2>
+          <p className="quick-card-text">
+            카드, 스토리, 휴대폰, 이벤트를 한 번에 확인하는 통합 진입점입니다.
+          </p>
+        </Link>
+
         <Link href="/admin/cards" className="quick-card">
           <span className="quick-card-label">Cards</span>
           <h2 className="quick-card-title">카드 관리</h2>
@@ -56,7 +64,7 @@ export default function AdminPage() {
           <span className="quick-card-label">Translations</span>
           <h2 className="quick-card-title">번역 관리</h2>
           <p className="quick-card-text">
-            번역문 목록을 확인하고 필요한 번역 데이터를 추가합니다.
+            번역문을 확인하고 연결 상태를 점검합니다.
           </p>
         </Link>
       </section>

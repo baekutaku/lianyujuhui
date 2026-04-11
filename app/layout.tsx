@@ -31,6 +31,9 @@ export default async function RootLayout({
                 <Link href="/" className="nav-link">
                   홈
                 </Link>
+                <Link href="/me" className="nav-link">
+  나
+</Link>
                 <Link href="/cards" className="nav-link">
                   카드
                 </Link>
@@ -43,6 +46,10 @@ export default async function RootLayout({
                 <Link href="/events" className="nav-link">
                   이벤트
                 </Link>
+<Link href="/characters" className="nav-link">
+  캐릭터 허브
+</Link>
+
 
                 {admin && (
                   <>

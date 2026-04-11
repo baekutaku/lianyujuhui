@@ -2422,3 +2422,29 @@ a {
   line-height: 1.35;
   color: #b09ca0;
 }
+
+.phone-page-root {
+  min-height: 100vh;
+  display: grid;
+  place-items: start center;
+  padding: 24px 0 40px;
+}
+
+.phone-page-frame {
+  min-height: 820px;
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-page-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.phone-page-tabbar {
+  margin-top: auto;
+  border-top: 1px solid rgba(220, 210, 220, 0.7);
+  background: rgba(255, 255, 255, 0.94);
+  padding: 8px 10px 10px;
+}
+

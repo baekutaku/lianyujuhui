@@ -54,6 +54,27 @@ function parseJsonField<T>(value: string, fieldName: string, fallback: T): T {
   }
 }
 
+
+const RESERVED_PHONE_SLUGS = new Set([
+  "edit",
+  "new",
+  "calls",
+  "messages",
+  "moments",
+  "articles",
+  "me",
+  "characters",
+]);
+
+function assertPhoneSlugAllowed(rawSlug: string) {
+  const normalized = slugify(rawSlug);
+  if (normalized && RESERVED_PHONE_SLUGS.has(normalized)) {
+    throw new Error(`"${rawSlug}"는 예약된 slug라 사용할 수 없습니다.`);
+  }
+}
+
+
+
 function buildPhoneItemSlug(params: {
   subtype: string;
   characterKey: string;
@@ -62,7 +83,13 @@ function buildPhoneItemSlug(params: {
 }) {
   const base = slugify(params.title || params.fallback || params.subtype);
   const character = slugify(params.characterKey || "common");
-  return `${character}-${base}`;
+  let slug = `${character}-${base}`;
+
+  if (RESERVED_PHONE_SLUGS.has(slug)) {
+    slug = `${slug}-item`;
+  }
+
+  return slug;
 }
 
 function revalidatePhoneItemPaths(rawSlug: string) {
@@ -98,6 +125,9 @@ async function createCallPhoneItem(params: {
       title: params.title,
       fallback: body.slice(0, 30),
     });
+
+
+    
 
   const { error } = await supabase.from("phone_items").insert({
     title: params.title || `${characterName || characterKey} 통화`,
@@ -497,6 +527,8 @@ export async function createPhoneItemAction(formData: FormData) {
 
   try {
     const rawSlug = String(formData.get("slug") || "").trim();
+    assertPhoneSlugAllowed(rawSlug);
+
     const title = String(formData.get("title") || "").trim();
     const subtype = String(formData.get("subtype") || "").trim();
     const isPublished = formData.get("is_published") === "on";
@@ -550,6 +582,8 @@ export async function createPhoneItemAction(formData: FormData) {
 
 export async function updatePhoneItemAction(formData: FormData) {
   const rawSlug = String(formData.get("slug") || "").trim();
+  assertPhoneSlugAllowed(rawSlug);
+
   const safeSlug = encodeURIComponent(rawSlug || "item");
 
   try {
