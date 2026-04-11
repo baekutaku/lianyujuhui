@@ -72,6 +72,14 @@ export default function PhoneMeScreen({
   const [editTitle, setEditTitle] = useState("");
   const [editImageUrl, setEditImageUrl] = useState("");
   const [editSortOrder, setEditSortOrder] = useState("0");
+  const [isMobile, setIsMobile] = useState(false);
+
+useEffect(() => {
+  const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+  checkMobile();
+  window.addEventListener("resize", checkMobile);
+  return () => window.removeEventListener("resize", checkMobile);
+}, []);
 
   const mergedBaseProfileOptions = useMemo(() => {
     const defaultOption: ProfileOption = {
@@ -348,112 +356,114 @@ export default function PhoneMeScreen({
           </section>
         </div>
 
-        <div style={{ padding: "18px 18px 26px" }}>
-<div
-  style={{
-    fontSize: 20,
-    fontWeight: 800,
-    color: "#e1a0c1",
-    marginBottom: 14,
-  }}
->
-  남주 탭
-</div>
+<div style={{ padding: "18px 18px 26px" }}>
+  <div
+    style={{
+      fontSize: 20,
+      fontWeight: 800,
+      color: "#e1a0c1",
+      marginBottom: 14,
+    }}
+  >
+    남주 탭
+  </div>
 
-<div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(5, minmax(74px, 1fr))",
-    gap: 10,
-    marginBottom: 18,
-    alignItems: "stretch",
-  }}
->
-  {safeCharacters.map((character) => (
-    <Link
-      key={character.key}
-      href={`/phone-items/me/${character.key}`}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        textDecoration: "none",
-        color: "inherit",
-        background: "rgba(255,255,255,0.88)",
-        border: "1px solid rgba(234, 218, 228, 0.95)",
-        borderRadius: 24,
-        padding: "12px 6px 10px",
-        textAlign: "center",
-        boxShadow: "0 6px 16px rgba(216, 201, 214, 0.15)",
-        overflow: "hidden",
-        minHeight: 168,
-      }}
-    >
-      <img
-        src={character.avatarUrl}
-        alt={character.label}
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: isMobile
+        ? "repeat(5, minmax(0, 1fr))"
+        : "repeat(5, minmax(0, 1fr))",
+      gap: isMobile ? 8 : 10,
+      marginBottom: 18,
+      alignItems: "stretch",
+    }}
+  >
+    {safeCharacters.map((character) => (
+      <Link
+        key={character.key}
+        href={`/phone-items/me/${character.key}`}
         style={{
-          width: 54,
-          height: 54,
-          borderRadius: 999,
-          objectFit: "cover",
-          display: "block",
-          margin: "0 auto 8px",
-          flexShrink: 0,
-        }}
-      />
-
-      <div
-        style={{
-          fontSize: 15,
-          fontWeight: 700,
-          color: "#625967",
-          marginBottom: 6,
-          lineHeight: 1.2,
-          minHeight: 28,
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "flex-start",
+          textDecoration: "none",
+          color: "inherit",
+          background: "rgba(255,255,255,0.88)",
+          border: "1px solid rgba(234, 218, 228, 0.95)",
+          borderRadius: isMobile ? 20 : 24,
+          padding: isMobile ? "10px 4px 9px" : "14px 8px 12px",
           textAlign: "center",
-          wordBreak: "keep-all",
-        }}
-      >
-        {character.label}
-      </div>
-
-      <div
-        style={{
-          fontSize: 20,
-          fontWeight: 900,
-          color: "#f0a8c7",
-          lineHeight: 1,
-          marginBottom: 6,
-        }}
-      >
-        {character.affinity}
-      </div>
-
-      <div
-        style={{
-          width: "78%",
-          height: 8,
-          borderRadius: 999,
-          background: "rgba(233, 214, 224, 0.7)",
+          boxShadow: "0 6px 16px rgba(216, 201, 214, 0.15)",
           overflow: "hidden",
+          minHeight: isMobile ? 150 : 178,
         }}
       >
-        <div
+        <img
+          src={character.avatarUrl}
+          alt={character.label}
           style={{
-            width: `${Math.min(character.affinity, 100)}%`,
-            height: "100%",
-            background: "linear-gradient(90deg, #f3a5c7, #f8bfd5)",
+            width: isMobile ? 46 : 58,
+            height: isMobile ? 46 : 58,
+            borderRadius: 999,
+            objectFit: "cover",
+            display: "block",
+            margin: isMobile ? "0 auto 6px" : "0 auto 8px",
+            flexShrink: 0,
           }}
         />
-      </div>
-    </Link>
-  ))}
-</div>
+
+        <div
+          style={{
+            fontSize: isMobile ? 11 : 13,
+            fontWeight: 700,
+            color: "#625967",
+            marginBottom: isMobile ? 5 : 6,
+            lineHeight: 1.15,
+            minHeight: isMobile ? 24 : 28,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            wordBreak: "keep-all",
+          }}
+        >
+          {character.label}
+        </div>
+
+        <div
+          style={{
+            fontSize: isMobile ? 16 : 22,
+            fontWeight: 900,
+            color: "#f0a8c7",
+            lineHeight: 1,
+            marginBottom: isMobile ? 5 : 6,
+          }}
+        >
+          {character.affinity}
+        </div>
+
+        <div
+          style={{
+            width: isMobile ? "82%" : "72%",
+            height: isMobile ? 7 : 8,
+            borderRadius: 999,
+            background: "rgba(233, 214, 224, 0.7)",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              width: `${Math.min(character.affinity, 100)}%`,
+              height: "100%",
+              background: "linear-gradient(90deg, #f3a5c7, #f8bfd5)",
+            }}
+          />
+        </div>
+      </Link>
+    ))}
+  </div>
           <div style={{ display: "grid", gap: 12 }}>
   <div
     className="link-card"
