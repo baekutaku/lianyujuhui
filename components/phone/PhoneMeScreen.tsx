@@ -363,7 +363,7 @@ export default function PhoneMeScreen({
 <div
   style={{
     display: "grid",
-    gridTemplateColumns: "repeat(5, minmax(76px, 1fr))",
+    gridTemplateColumns: "repeat(5, minmax(74px, 1fr))",
     gap: 10,
     marginBottom: 18,
     alignItems: "stretch",
