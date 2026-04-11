@@ -1,9 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import MessageThreadView from "./MessageThreadView";
-
-const STORAGE_URL_KEY = "mlqc_phone_me_avatar_url";
 
 type TextEntry = {
   type: "text";
@@ -54,29 +51,12 @@ type MessageEntry =
 
 type Props = {
   otherAvatarUrl: string;
-  defaultMyAvatarUrl?: string;
   entries: MessageEntry[];
 };
 
 export default function MessageThreadWithMyProfile({
   otherAvatarUrl,
-  defaultMyAvatarUrl = "/profile/mc.png",
   entries,
 }: Props) {
-  const [myAvatarUrl, setMyAvatarUrl] = useState(defaultMyAvatarUrl);
-
-  useEffect(() => {
-    const savedUrl = window.localStorage.getItem(STORAGE_URL_KEY);
-    if (savedUrl?.trim()) {
-      setMyAvatarUrl(savedUrl);
-    }
-  }, []);
-
-  return (
-    <MessageThreadView
-      otherAvatarUrl={otherAvatarUrl}
-      myAvatarUrl={myAvatarUrl}
-      entries={entries}
-    />
-  );
+  return <MessageThreadView avatarUrl={otherAvatarUrl} entries={entries} />;
 }

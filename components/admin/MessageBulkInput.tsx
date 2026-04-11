@@ -26,10 +26,7 @@ export default function MessageBulkInput() {
 
       {parsed ? (
         <div className="archive-card" style={{ whiteSpace: "pre-wrap" }}>
-          <strong>{parsed.title}</strong>
-          <div>preview: {parsed.preview}</div>
-          <div>threadKey: {parsed.threadKey}</div>
-          <div>entries: {parsed.entries.length}</div>
+          <div>entries: {parsed.length}</div>
           <pre style={{ marginTop: "12px", overflowX: "auto" }}>
             {JSON.stringify(parsed, null, 2)}
           </pre>
