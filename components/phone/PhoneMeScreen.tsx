@@ -268,7 +268,7 @@ export default function PhoneMeScreen({
         >
           <div
             style={{
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: 800,
               color: "#7d6c88",
               textAlign: "right",
@@ -307,7 +307,7 @@ export default function PhoneMeScreen({
             <div>
               <div
                 style={{
-                  fontSize: 26,
+                  fontSize: 22,
                   fontWeight: 800,
                   color: "#5e5464",
                   marginBottom: 10,
@@ -323,7 +323,7 @@ export default function PhoneMeScreen({
                   style={{
                     marginTop: 0,
                     borderRadius: 999,
-                    paddingInline: 18,
+                    paddingInline: 14,
                   }}
                   onClick={() => setIsPickerOpen(true)}
                 >
@@ -349,97 +349,111 @@ export default function PhoneMeScreen({
         </div>
 
         <div style={{ padding: "18px 18px 26px" }}>
-          <div
-            style={{
-              fontSize: 24,
-              fontWeight: 800,
-              color: "#e1a0c1",
-              marginBottom: 14,
-            }}
-          >
-            남주 탭
-          </div>
+<div
+  style={{
+    fontSize: 20,
+    fontWeight: 800,
+    color: "#e1a0c1",
+    marginBottom: 14,
+  }}
+>
+  남주 탭
+</div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-              gap: 10,
-              marginBottom: 18,
-            }}
-          >
-            {safeCharacters.map((character) => (
-              <Link
-                key={character.key}
-                href={`/phone-items/me/${character.key}`}
-                style={{
-                  display: "block",
-                  textDecoration: "none",
-                  color: "inherit",
-                  background: "rgba(255,255,255,0.88)",
-                  border: "1px solid rgba(234, 218, 228, 0.95)",
-                  borderRadius: 24,
-                  padding: "10px 8px",
-                  textAlign: "center",
-                  boxShadow: "0 6px 16px rgba(216, 201, 214, 0.15)",
-                }}
-              >
-                <img
-                  src={character.avatarUrl}
-                  alt={character.label}
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 999,
-                    objectFit: "cover",
-                    display: "block",
-                    margin: "0 auto 8px",
-                  }}
-                />
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(5, minmax(76px, 1fr))",
+    gap: 10,
+    marginBottom: 18,
+    alignItems: "stretch",
+  }}
+>
+  {safeCharacters.map((character) => (
+    <Link
+      key={character.key}
+      href={`/phone-items/me/${character.key}`}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        textDecoration: "none",
+        color: "inherit",
+        background: "rgba(255,255,255,0.88)",
+        border: "1px solid rgba(234, 218, 228, 0.95)",
+        borderRadius: 24,
+        padding: "12px 6px 10px",
+        textAlign: "center",
+        boxShadow: "0 6px 16px rgba(216, 201, 214, 0.15)",
+        overflow: "hidden",
+        minHeight: 168,
+      }}
+    >
+      <img
+        src={character.avatarUrl}
+        alt={character.label}
+        style={{
+          width: 54,
+          height: 54,
+          borderRadius: 999,
+          objectFit: "cover",
+          display: "block",
+          margin: "0 auto 8px",
+          flexShrink: 0,
+        }}
+      />
 
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: "#625967",
-                    marginBottom: 8,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {character.label}
-                </div>
+      <div
+        style={{
+          fontSize: 15,
+          fontWeight: 700,
+          color: "#625967",
+          marginBottom: 6,
+          lineHeight: 1.2,
+          minHeight: 28,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          wordBreak: "keep-all",
+        }}
+      >
+        {character.label}
+      </div>
 
-                <div
-                  style={{
-                    fontSize: 22,
-                    fontWeight: 900,
-                    color: "#f0a8c7",
-                    lineHeight: 1,
-                    marginBottom: 8,
-                  }}
-                >
-                  {character.affinity}
-                </div>
+      <div
+        style={{
+          fontSize: 20,
+          fontWeight: 900,
+          color: "#f0a8c7",
+          lineHeight: 1,
+          marginBottom: 6,
+        }}
+      >
+        {character.affinity}
+      </div>
 
-                <div
-                  style={{
-                    height: 8,
-                    borderRadius: 999,
-                    background: "rgba(233, 214, 224, 0.7)",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${Math.min(character.affinity, 100)}%`,
-                      height: "100%",
-                      background: "linear-gradient(90deg, #f3a5c7, #f8bfd5)",
-                    }}
-                  />
-                </div>
-              </Link>
-            ))}
-          </div>
+      <div
+        style={{
+          width: "78%",
+          height: 8,
+          borderRadius: 999,
+          background: "rgba(233, 214, 224, 0.7)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${Math.min(character.affinity, 100)}%`,
+            height: "100%",
+            background: "linear-gradient(90deg, #f3a5c7, #f8bfd5)",
+          }}
+        />
+      </div>
+    </Link>
+  ))}
+</div>
           <div style={{ display: "grid", gap: 12 }}>
   <div
     className="link-card"
@@ -447,10 +461,10 @@ export default function PhoneMeScreen({
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      padding: "18px 20px",
-      fontSize: 20,
-      fontWeight: 700,
-      borderRadius: 22,
+padding: "15px 18px",
+fontSize: 17,
+fontWeight: 700,
+borderRadius: 20,
     }}
   >
     <span>내 모멘트</span>
@@ -463,10 +477,10 @@ export default function PhoneMeScreen({
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      padding: "18px 20px",
-      fontSize: 20,
-      fontWeight: 700,
-      borderRadius: 22,
+padding: "15px 18px",
+fontSize: 17,
+fontWeight: 700,
+borderRadius: 20,
       opacity: 0.72,
     }}
   >
@@ -480,10 +494,10 @@ export default function PhoneMeScreen({
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      padding: "18px 20px",
-      fontSize: 20,
-      fontWeight: 700,
-      borderRadius: 22,
+padding: "15px 18px",
+fontSize: 17,
+fontWeight: 700,
+borderRadius: 20,
       opacity: 0.72,
     }}
   >
@@ -497,10 +511,10 @@ export default function PhoneMeScreen({
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      padding: "18px 20px",
-      fontSize: 20,
-      fontWeight: 700,
-      borderRadius: 22,
+padding: "15px 18px",
+fontSize: 17,
+fontWeight: 700,
+borderRadius: 20,
       opacity: 0.72,
     }}
   >

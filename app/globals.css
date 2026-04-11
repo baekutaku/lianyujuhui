@@ -79,14 +79,14 @@ a {
 .site-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: clamp(180px, 18vw, 280px) minmax(0, 1fr);
+  grid-template-columns: clamp(150px, 16vw, 280px) minmax(0, 1fr);
 }
 
 .sidebar {
   position: sticky;
   top: 0;
   height: 100vh;
-  padding: clamp(12px, 1.4vw, 24px) clamp(10px, 1.2vw, 18px);
+  padding: clamp(10px, 1vw, 24px) clamp(8px, 0.9vw, 18px);
 }
 
 .sidebar-inner {
@@ -97,10 +97,30 @@ a {
   -webkit-backdrop-filter: blur(18px);
   box-shadow: var(--shadow-soft);
   border-radius: 30px;
-  padding: clamp(14px, 1.5vw, 24px) clamp(10px, 1.2vw, 18px);
+  padding: clamp(12px, 1vw, 24px) clamp(8px, 0.9vw, 18px);
   display: flex;
   flex-direction: column;
-  gap: clamp(14px, 1.5vw, 24px);
+  gap: clamp(12px, 1vw, 24px);
+}
+
+.brand-title {
+  font-size: clamp(18px, 1.3vw, 24px);
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.brand-desc {
+  font-size: clamp(11px, 0.85vw, 13px);
+  color: var(--text-sub);
+}
+
+.nav-link {
+  padding: clamp(10px, 0.9vw, 14px) clamp(10px, 0.9vw, 16px);
+  border-radius: 16px;
+  color: var(--text-main);
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  font-size: clamp(13px, 0.95vw, 16px);
 }
 
 .brand {
@@ -392,18 +412,8 @@ a {
 }
 
 @media (max-width: 1100px) {
-  .site-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    position: static;
-    height: auto;
-    padding: 18px 18px 0;
-  }
-
   .content-area {
-    padding: 18px;
+    padding: 18px 18px 24px 0;
   }
 
   .quick-grid,
@@ -2613,3 +2623,52 @@ a {
   font-size: clamp(14px, 1vw, 16px);
 }
 
+
+
+@media (max-width: 768px) {
+  .site-shell {
+    display: block;
+  }
+
+  .sidebar {
+    display: none !important;
+  }
+
+  .content-area {
+    padding: 0;
+  }
+
+  .content-inner {
+    min-height: auto;
+    padding: 16px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+.story-main-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 46%) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1100px) {
+  .story-topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .story-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .media-embed-wrap,
+  .story-detail-image {
+    max-width: 100%;
+  }
+}
