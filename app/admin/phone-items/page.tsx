@@ -45,11 +45,10 @@ function getPublicPhoneItemHref(item: {
   subtype: string;
   content_json?: any;
 }) {
-  if (item.subtype === "message") {
-    const threadKey = item.content_json?.threadKey || item.slug;
-    const characterKey = item.content_json?.characterKey || "baiqi";
-    return `/phone-items/messages/${characterKey}/${threadKey}`;
-  }
+if (item.subtype === "message") {
+  const characterKey = item.content_json?.characterKey || "baiqi";
+  return `/phone-items/messages/${characterKey}/${item.slug}`;
+}
 
   if (item.subtype === "moment") {
     const characterKey = item.content_json?.characterKey || "baiqi";
@@ -63,12 +62,12 @@ function getPublicPhoneItemHref(item: {
       : `/phone-items/calls`;
   }
 
-  if (item.subtype === "article") {
-    const characterKey = item.content_json?.characterKey;
-    return characterKey
-      ? `/phone-items/articles/${characterKey}/${item.slug}`
-      : `/phone-items/articles/${item.slug}`;
-  }
+if (item.subtype === "article") {
+  const publisherSlug = item.content_json?.sourceSlug;
+  return publisherSlug
+    ? `/phone-items/articles/${publisherSlug}/${item.slug}`
+    : `/phone-items/articles`;
+}
 
   return `/phone-items`;
 }
@@ -337,7 +336,7 @@ export default async function AdminPhoneItemsPage({
                       }}
                     >
                       <Link
-                        href={`/admin/phone-items/${item.slug}/edit`}
+                       href={`/admin/phone-items/${item.id}/edit`}
                         className="primary-button"
                         style={{ marginTop: 0 }}
                       >

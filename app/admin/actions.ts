@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import { buildCardKeys, buildStoryKeys } from "@/lib/utils/admin-keys";
 import {
+  createPhoneItemAction,
   updatePhoneItemAction,
   deletePhoneItemAction,
 } from "@/lib/admin/phone-items/actions";
@@ -1789,6 +1790,10 @@ export async function createBulkRelation(formData: FormData) {
 }
 
 
+
+export async function createPhoneItem(formData: FormData) {
+  return createPhoneItemAction(formData);
+}
 
 export async function updatePhoneItem(formData: FormData) {
   return updatePhoneItemAction(formData);

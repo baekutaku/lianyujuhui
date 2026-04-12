@@ -1,3 +1,5 @@
+"use server";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
@@ -8,10 +10,9 @@ import {
 
 function slugify(input: string) {
   return (
-    input
-      .normalize("NFKD")
+    String(input || "")
+      .trim()
       .toLowerCase()
-      .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9가-힣\s-]/g, "")
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-")
@@ -54,8 +55,41 @@ function parseJsonField<T>(value: string, fieldName: string, fallback: T): T {
   }
 }
 
+function makeContentId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+async function resolveServerAndCharacterIds(
+  serverKey: string,
+  characterKey?: string
+) {
+  const { data: server } = await supabase
+    .from("servers")
+    .select("id")
+    .eq("key", serverKey || "kr")
+    .maybeSingle();
+
+  let characterId: string | null = null;
+
+  if (characterKey) {
+    const { data: character } = await supabase
+      .from("characters")
+      .select("id")
+      .eq("key", characterKey)
+      .maybeSingle();
+
+    characterId = character?.id ?? null;
+  }
+
+  return {
+    serverId: server?.id ?? null,
+    characterId,
+  };
+}
 
 const RESERVED_PHONE_SLUGS = new Set([
+
+  
   "edit",
   "new",
   "calls",
@@ -64,7 +98,13 @@ const RESERVED_PHONE_SLUGS = new Set([
   "articles",
   "me",
   "characters",
-]);
+])
+
+type CreatedPhoneItem = {
+  id: string;
+  slug: string;
+};
+;
 
 function assertPhoneSlugAllowed(rawSlug: string) {
   const normalized = slugify(rawSlug);
@@ -92,63 +132,24 @@ function buildPhoneItemSlug(params: {
   return slug;
 }
 
-function revalidatePhoneItemPaths(rawSlug: string) {
+function revalidatePhoneItemPaths(rawSlug: string, phoneItemId?: string) {
   const safeSlug = encodeURIComponent(rawSlug || "item");
 
   revalidatePath("/admin/phone-items");
   revalidatePath("/phone-items");
-  revalidatePath(`/admin/phone-items/${safeSlug}/edit`);
+  revalidatePath("/phone-items/articles");
+  revalidatePath("/phone-items/calls");
+  revalidatePath("/phone-items/messages");
+  revalidatePath("/phone-items/moments");
+
+  if (phoneItemId) {
+    revalidatePath(`/admin/phone-items/${phoneItemId}/edit`);
+  }
+
+  revalidatePath(`/phone-items/articles/${safeSlug}`);
 }
 
-async function createCallPhoneItem(params: {
-  rawSlug: string;
-  title: string;
-  subtype: string;
-  summary: string;
-  isPublished: boolean;
-  formData: FormData;
-}) {
-  const characterKey = String(params.formData.get("character_key") || "").trim();
-  const characterName = String(params.formData.get("character_name") || "").trim();
-  const avatarUrl = String(params.formData.get("avatar_url") || "").trim();
-  const coverImage = String(params.formData.get("cover_image") || "").trim();
-  const youtubeUrl = String(params.formData.get("youtube_url") || "").trim();
-  const body = String(params.formData.get("body") || "").trim();
-  const levelRaw = String(params.formData.get("level") || "").trim();
-  const level = levelRaw ? Number(levelRaw) : null;
 
-  const finalSlug =
-    params.rawSlug ||
-    buildPhoneItemSlug({
-      subtype: params.subtype,
-      characterKey,
-      title: params.title,
-      fallback: body.slice(0, 30),
-    });
-
-
-    
-
-  const { error } = await supabase.from("phone_items").insert({
-    title: params.title || `${characterName || characterKey} 통화`,
-    slug: finalSlug,
-    subtype: params.subtype,
-    summary: params.summary || body.slice(0, 60),
-    is_published: params.isPublished,
-    embed_url: toEmbedUrl(youtubeUrl) || null,
-    content_json: {
-      characterKey,
-      characterName,
-      avatarUrl,
-      level,
-      coverImage,
-      body,
-    },
-  });
-
-  if (error) throw new Error(error.message);
-  return finalSlug;
-}
 
 async function createArticlePhoneItem(params: {
   rawSlug: string;
@@ -157,7 +158,10 @@ async function createArticlePhoneItem(params: {
   summary: string;
   isPublished: boolean;
   formData: FormData;
-}) {
+}): Promise<CreatedPhoneItem> {
+  const serverKey = String(params.formData.get("server_key") || "kr").trim();
+  const releaseYear = new Date().getFullYear();
+
   const preview = String(params.formData.get("article_preview") || "").trim();
   const iconUrl = String(params.formData.get("article_icon_url") || "").trim();
   const imageUrl = String(params.formData.get("article_image_url") || "").trim();
@@ -184,6 +188,13 @@ async function createArticlePhoneItem(params: {
   ).trim();
   const relatedStoryLabel = String(
     params.formData.get("article_related_story_label") || ""
+  ).trim();
+
+  const relatedEventSlug = String(
+    params.formData.get("article_related_event_slug") || ""
+  ).trim();
+  const relatedEventLabel = String(
+    params.formData.get("article_related_event_label") || ""
   ).trim();
 
   const comments = [0, 1, 2, 3]
@@ -215,40 +226,52 @@ async function createArticlePhoneItem(params: {
 
   const articleTitle = params.title || preview || "기사";
 
-  const finalSlug =
-    params.rawSlug ||
-    buildPhoneItemSlug({
-      subtype: params.subtype,
-      characterKey: sourceSlug || "article",
-      title: articleTitle,
-      fallback: preview || body.slice(0, 30),
-    });
+const finalSlug =
+  params.rawSlug ||
+  slugify(articleTitle || preview || "article");
 
-  const { error } = await supabase.from("phone_items").insert({
-    title: articleTitle,
-    slug: finalSlug,
-    subtype: params.subtype,
-    preview_text: preview,
-    summary: params.summary || preview || body.slice(0, 60),
-    is_published: params.isPublished,
-    content_json: {
-      preview,
-      iconUrl,
-      imageUrl,
-      sourceName,
-      sourceSlug,
-      author,
-      body,
-      subscriberCount,
-      likeCount,
-      relatedStorySlug,
-      relatedStoryLabel,
-      comments,
-    },
-  });
+  const { serverId } = await resolveServerAndCharacterIds(serverKey);
+
+  const { data, error } = await supabase
+    .from("phone_items")
+    .insert({
+      content_id: makeContentId("phone-article"),
+      origin_key: `${sourceSlug}:${finalSlug}`,
+      server_id: serverId,
+      primary_character_id: null,
+      title: articleTitle,
+      slug: finalSlug,
+      subtype: params.subtype,
+      release_year: releaseYear,
+      preview_text: preview,
+      summary: params.summary || preview || body.slice(0, 60),
+      is_published: params.isPublished,
+      content_json: {
+        preview,
+        iconUrl,
+        imageUrl,
+        sourceName,
+        sourceSlug,
+        author,
+        body,
+        subscriberCount,
+        likeCount,
+        relatedStorySlug,
+        relatedStoryLabel,
+        relatedEventSlug,
+        relatedEventLabel,
+        comments,
+      },
+    })
+    .select("id, slug")
+    .single();
 
   if (error) throw new Error(error.message);
-  return finalSlug;
+
+  return {
+    id: data.id,
+    slug: data.slug,
+  };
 }
 
 async function createMessagePhoneItem(params: {
@@ -256,7 +279,10 @@ async function createMessagePhoneItem(params: {
   title: string;
   isPublished: boolean;
   formData: FormData;
-}) {
+}): Promise<CreatedPhoneItem> {
+  const serverKey = String(params.formData.get("server_key") || "kr").trim();
+  const releaseYear = new Date().getFullYear();
+
   const preview = String(params.formData.get("preview") || "").trim();
   const threadKey = String(params.formData.get("thread_key") || "").trim();
   const characterKey = String(params.formData.get("character_key") || "").trim();
@@ -299,49 +325,72 @@ async function createMessagePhoneItem(params: {
       )
     : entries;
 
-  const finalThreadKey =
-    threadKey ||
-    params.rawSlug ||
-    buildPhoneItemSlug({
-      subtype: "message",
-      characterKey,
-      title: params.title || preview || "message",
-    });
+const finalThreadKey =
+  threadKey ||
+  `${characterKey}-${Date.now().toString(36)}`;
 
-  const finalSlug = params.rawSlug || finalThreadKey;
-
-  const { error } = await supabase.from("phone_items").insert({
-    title: params.title || preview || `${characterName || characterKey} 메시지`,
-    slug: finalSlug,
+const finalSlug =
+  params.rawSlug ||
+  buildPhoneItemSlug({
     subtype: "message",
-    preview_text: preview,
-    summary: historySummary || preview,
-    is_published: params.isPublished,
-    content_json: {
-      threadKey: finalThreadKey,
-      characterKey,
-      characterName,
-      avatarUrl,
-      level,
-      historyCategory,
-      historyCategoryLabel: categoryLabelMap[historyCategory] || "일상",
-      historySummary,
-      historySource,
-      preview,
-      entries,
-      editorEntries,
-    },
+    characterKey,
+    title: params.title || `${characterName || characterKey} 메시지`,
+    fallback: preview,
   });
 
+  const { serverId, characterId } = await resolveServerAndCharacterIds(
+    serverKey,
+    characterKey
+  );
+
+  const { data, error } = await supabase
+    .from("phone_items")
+    .insert({
+      content_id: makeContentId("phone-message"),
+      origin_key: finalThreadKey,
+      server_id: serverId,
+      primary_character_id: characterId,
+  title: params.title || `${characterName || characterKey} 메시지`,
+      slug: finalSlug,
+      subtype: "message",
+      release_year: releaseYear,
+      preview_text: preview,
+      summary: historySummary || preview,
+      is_published: params.isPublished,
+      content_json: {
+        threadKey: finalThreadKey,
+        characterKey,
+        characterName,
+        avatarUrl,
+        level,
+        historyCategory,
+        historyCategoryLabel: categoryLabelMap[historyCategory] || "일상",
+        historySummary,
+        historySource,
+        preview,
+        entries,
+        editorEntries,
+      },
+    })
+    .select("id, slug")
+    .single();
+
   if (error) throw new Error(error.message);
-  return finalSlug;
+
+  return {
+    id: data.id,
+    slug: data.slug,
+  };
 }
 
 async function createMomentPhoneItem(params: {
   rawSlug: string;
   isPublished: boolean;
   formData: FormData;
-}) {
+}): Promise<CreatedPhoneItem> {
+  const serverKey = String(params.formData.get("server_key") || "kr").trim();
+  const releaseYear = new Date().getFullYear();
+
   const raw = String(params.formData.get("moment_bulk_raw") || "").trim();
   const posts = parseMomentBulk(raw);
 
@@ -360,24 +409,42 @@ async function createMomentPhoneItem(params: {
       fallback: first.body.slice(0, 30),
     });
 
-  const { error } = await supabase.from("phone_items").insert({
-    title: `${first.authorName} 모멘트`,
-    slug: finalSlug,
-    subtype: "moment",
-    preview_text: first.body.slice(0, 60),
-    summary: first.body.slice(0, 60),
-    is_published: params.isPublished,
-    content_json: {
-      characterKey: first.characterKey,
-      authorName: first.authorName,
-      authorAvatar: first.authorAvatar,
-      authorLevel: first.authorLevel,
-      posts,
-    },
-  });
+  const { serverId, characterId } = await resolveServerAndCharacterIds(
+    serverKey,
+    first.characterKey
+  );
+
+  const { data, error } = await supabase
+    .from("phone_items")
+    .insert({
+      content_id: makeContentId("phone-moment"),
+      origin_key: `${first.characterKey}-${finalSlug}`,
+      server_id: serverId,
+      primary_character_id: characterId,
+      title: `${first.authorName} 모멘트`,
+      slug: finalSlug,
+      subtype: "moment",
+      release_year: releaseYear,
+      preview_text: first.body.slice(0, 60),
+      summary: first.body.slice(0, 60),
+      is_published: params.isPublished,
+      content_json: {
+        characterKey: first.characterKey,
+        authorName: first.authorName,
+        authorAvatar: first.authorAvatar,
+        authorLevel: first.authorLevel,
+        posts,
+      },
+    })
+    .select("id, slug")
+    .single();
 
   if (error) throw new Error(error.message);
-  return finalSlug;
+
+  return {
+    id: data.id,
+    slug: data.slug,
+  };
 }
 
 async function updateCallPhoneItem(params: {
@@ -441,6 +508,10 @@ async function updateArticlePhoneItem(params: {
   const author = String(params.formData.get("article_author") || "").trim();
   const body = String(params.formData.get("article_body") || "").trim();
 
+  const articleTitle = params.title || preview || "기사";
+  const nextSlug =
+    params.rawSlug || slugify(articleTitle || preview || "article");
+
   const subscriberCountRaw = String(
     params.formData.get("article_subscriber_count") || ""
   ).trim();
@@ -456,6 +527,13 @@ async function updateArticlePhoneItem(params: {
   ).trim();
   const relatedStoryLabel = String(
     params.formData.get("article_related_story_label") || ""
+  ).trim();
+
+  const relatedEventSlug = String(
+    params.formData.get("article_related_event_slug") || ""
+  ).trim();
+  const relatedEventLabel = String(
+    params.formData.get("article_related_event_label") || ""
   ).trim();
 
   const comments = [0, 1, 2, 3]
@@ -485,22 +563,11 @@ async function updateArticlePhoneItem(params: {
     })
     .filter(Boolean);
 
-  const articleTitle = params.title || preview || "기사";
-
-  const finalSlug =
-    params.rawSlug ||
-    buildPhoneItemSlug({
-      subtype: params.subtype,
-      characterKey: sourceSlug || "article",
-      title: articleTitle,
-      fallback: preview || body.slice(0, 30),
-    });
-
   const { error } = await supabase
     .from("phone_items")
     .update({
       title: articleTitle,
-      slug: finalSlug,
+      slug: nextSlug,
       subtype: params.subtype,
       preview_text: preview,
       summary: params.summary || preview || body.slice(0, 60),
@@ -517,6 +584,8 @@ async function updateArticlePhoneItem(params: {
         likeCount,
         relatedStorySlug,
         relatedStoryLabel,
+        relatedEventSlug,
+        relatedEventLabel,
         comments,
       },
     })
@@ -574,13 +643,21 @@ async function updateMessagePhoneItem(params: {
       )
     : entries;
 
-  const finalThreadKey = threadKey || params.rawSlug || "message-thread";
-  const finalSlug = params.rawSlug || finalThreadKey;
+  const finalThreadKey = threadKey || `${characterKey}-thread`;
+
+const finalSlug =
+  params.rawSlug ||
+  buildPhoneItemSlug({
+    subtype: "message",
+    characterKey,
+    title: params.title || `${characterName || characterKey} 메시지`,
+    fallback: preview,
+  });
 
   const { error } = await supabase
     .from("phone_items")
     .update({
-      title: params.title || preview,
+      title: params.title || `${characterName || characterKey} 메시지`,
       slug: finalSlug,
       subtype: "message",
       preview_text: preview,
@@ -643,8 +720,76 @@ async function updateMomentPhoneItem(params: {
   if (error) throw new Error(error.message);
 }
 
+async function createCallPhoneItem(params: {
+  rawSlug: string;
+  title: string;
+  subtype: string;
+  summary: string;
+  isPublished: boolean;
+  formData: FormData;
+}): Promise<CreatedPhoneItem> {
+  const serverKey = String(params.formData.get("server_key") || "kr").trim();
+  const releaseYear = new Date().getFullYear();
+
+  const characterKey = String(params.formData.get("character_key") || "").trim();
+  const characterName = String(params.formData.get("character_name") || "").trim();
+  const avatarUrl = String(params.formData.get("avatar_url") || "").trim();
+  const coverImage = String(params.formData.get("cover_image") || "").trim();
+  const youtubeUrl = String(params.formData.get("youtube_url") || "").trim();
+  const body = String(params.formData.get("body") || "").trim();
+  const levelRaw = String(params.formData.get("level") || "").trim();
+  const level = levelRaw ? Number(levelRaw) : null;
+
+  const finalSlug =
+    params.rawSlug ||
+    buildPhoneItemSlug({
+      subtype: params.subtype,
+      characterKey,
+      title: params.title,
+      fallback: body.slice(0, 30),
+    });
+
+  const { serverId, characterId } = await resolveServerAndCharacterIds(
+    serverKey,
+    characterKey
+  );
+
+  const { data, error } = await supabase
+    .from("phone_items")
+    .insert({
+      content_id: makeContentId(`phone-${params.subtype}`),
+      origin_key: `${characterKey}-${finalSlug}`,
+      server_id: serverId,
+      primary_character_id: characterId,
+      title: params.title || `${characterName || characterKey} 통화`,
+      slug: finalSlug,
+      subtype: params.subtype,
+      release_year: releaseYear,
+      summary: params.summary || body.slice(0, 60),
+      is_published: params.isPublished,
+      embed_url: toEmbedUrl(youtubeUrl) || null,
+      content_json: {
+        characterKey,
+        characterName,
+        avatarUrl,
+        level,
+        coverImage,
+        body,
+      },
+    })
+    .select("id, slug")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  return {
+    id: data.id,
+    slug: data.slug,
+  };
+}
+
 export async function createPhoneItemAction(formData: FormData) {
-  let targetSlug = "";
+  let createdItem: { id: string; slug: string } | null = null;
 
   try {
     const subtype = String(formData.get("subtype") || "").trim();
@@ -667,7 +812,7 @@ export async function createPhoneItemAction(formData: FormData) {
     const summary = String(formData.get("summary") || "").trim();
 
     if (subtype === "call" || subtype === "video_call") {
-      targetSlug = await createCallPhoneItem({
+      createdItem = await createCallPhoneItem({
         rawSlug,
         title,
         subtype,
@@ -676,7 +821,7 @@ export async function createPhoneItemAction(formData: FormData) {
         formData,
       });
     } else if (subtype === "article") {
-      targetSlug = await createArticlePhoneItem({
+      createdItem = await createArticlePhoneItem({
         rawSlug,
         title,
         subtype,
@@ -685,14 +830,14 @@ export async function createPhoneItemAction(formData: FormData) {
         formData,
       });
     } else if (subtype === "message") {
-      targetSlug = await createMessagePhoneItem({
+      createdItem = await createMessagePhoneItem({
         rawSlug,
         title,
         isPublished,
         formData,
       });
     } else if (subtype === "moment") {
-      targetSlug = await createMomentPhoneItem({
+      createdItem = await createMomentPhoneItem({
         rawSlug,
         isPublished,
         formData,
@@ -701,7 +846,7 @@ export async function createPhoneItemAction(formData: FormData) {
       throw new Error("지원하지 않는 subtype입니다.");
     }
 
-    revalidatePhoneItemPaths(targetSlug);
+    revalidatePhoneItemPaths(createdItem.slug, createdItem.id);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
@@ -709,7 +854,7 @@ export async function createPhoneItemAction(formData: FormData) {
     redirect(`/admin/phone-items/new?error=${encodeURIComponent(message)}`);
   }
 
-  redirect(`/admin/phone-items/${encodeURIComponent(targetSlug)}/edit`);
+  redirect(`/admin/phone-items/${createdItem.id}/edit`);
 }
 
 export async function updatePhoneItemAction(formData: FormData) {
@@ -723,10 +868,9 @@ export async function updatePhoneItemAction(formData: FormData) {
 
   assertPhoneSlugAllowed(rawSlug);
 
-  const safeSlug = encodeURIComponent(rawSlug || "item");
+  const phoneItemId = String(formData.get("phoneItemId") || "").trim();
 
   try {
-    const phoneItemId = String(formData.get("phoneItemId") || "").trim();
     const title =
       String(formData.get("title") || "").trim() ||
       (subtype === "article"
@@ -778,13 +922,13 @@ export async function updatePhoneItemAction(formData: FormData) {
       throw new Error("지원하지 않는 subtype입니다.");
     }
 
-    revalidatePhoneItemPaths(rawSlug);
+    revalidatePhoneItemPaths(rawSlug, phoneItemId);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
 
     redirect(
-      `/admin/phone-items/${safeSlug}/edit?error=${encodeURIComponent(message)}`
+      `/admin/phone-items/${phoneItemId}/edit?error=${encodeURIComponent(message)}`
     );
   }
 

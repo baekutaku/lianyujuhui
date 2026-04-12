@@ -25,7 +25,7 @@ const DEFAULT_NAME_MAP: Record<string, string> = {
 type PageProps = {
   params: Promise<{
     characterKey: string;
-    threadKey: string;
+    slug: string;
   }>;
 };
 
@@ -40,46 +40,33 @@ function safeDecode(value: string) {
 export default async function CharacterMessageThreadPage({
   params,
 }: PageProps) {
-  const { characterKey, threadKey: rawThreadKey } = await params;
-  const threadKey = safeDecode(rawThreadKey).trim();
+  const { characterKey, slug: rawSlug } = await params;
+  const slug = safeDecode(rawSlug).trim();
 
   const { data, error } = await supabase
     .from("phone_items")
     .select("id, title, slug, created_at, content_json, is_published")
     .eq("subtype", "message")
     .eq("is_published", true)
+    .eq("slug", slug)
     .order("created_at", { ascending: false });
 
-  if (error) notFound();
-
-  const rows = data ?? [];
+  if (error || !data || data.length === 0) notFound();
 
   const item =
-    rows.find((row) => {
-      const rowCharacterKey = row.content_json?.characterKey ?? "baiqi";
-      const rowThreadKey = (row.content_json?.threadKey ?? "").trim();
-      const rowSlug = (row.slug ?? "").trim();
-
-      return (
-        rowCharacterKey === characterKey &&
-        (rowThreadKey === threadKey || rowSlug === threadKey)
-      );
-    }) ||
-    rows.find((row) => {
-      const rowSlug = (row.slug ?? "").trim();
-      return rowSlug === threadKey;
-    });
+    data.find((row) => (row.content_json?.characterKey ?? "baiqi") === characterKey) ??
+    null;
 
   if (!item) notFound();
 
   const characterName =
-    DEFAULT_NAME_MAP[characterKey] ||
     item.content_json?.characterName ||
+    DEFAULT_NAME_MAP[characterKey] ||
     "이름 없음";
 
   const avatarUrl =
-    DEFAULT_AVATAR_MAP[characterKey] ||
     item.content_json?.avatarUrl?.trim() ||
+    DEFAULT_AVATAR_MAP[characterKey] ||
     "/profile/baiqi.png";
 
   const entries = Array.isArray(item.content_json?.editorEntries)

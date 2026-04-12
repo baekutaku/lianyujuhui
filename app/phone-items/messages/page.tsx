@@ -46,7 +46,7 @@ type InboxItem = {
   avatarUrl: string;
   level?: number;
   preview: string;
-  threadKey: string;
+  slug: string;
   createdAt: string;
 };
 
@@ -99,15 +99,10 @@ export default async function MessagesPage() {
 
   for (const item of rows) {
     const characterKey = item.content_json?.characterKey?.trim() || "baiqi";
+    const slug = item.slug?.trim() || "";
 
     if (latestByCharacter.has(characterKey)) continue;
-
-    const threadKey =
-      item.content_json?.threadKey?.trim() ||
-      item.slug?.trim() ||
-      "";
-
-    if (!threadKey) continue;
+    if (!slug) continue;
 
     latestByCharacter.set(characterKey, {
       characterKey,
@@ -124,7 +119,7 @@ export default async function MessagesPage() {
           ? item.content_json.level
           : undefined,
       preview: getPreview(item),
-      threadKey,
+      slug,
       createdAt: item.created_at,
     });
   }

@@ -6,7 +6,7 @@ type MessageInboxItemProps = {
   avatarUrl: string;
   level?: number;
   preview: string;
-  threadKey: string;
+  slug: string;
 };
 
 export default function MessageInboxItem({
@@ -15,11 +15,11 @@ export default function MessageInboxItem({
   avatarUrl,
   level,
   preview,
-  threadKey,
+  slug,
 }: MessageInboxItemProps) {
   return (
     <Link
-      href={`/phone-items/messages/${characterKey}/${threadKey}`}
+      href={`/phone-items/messages/${characterKey}/${slug}`}
       className="message-inbox-item"
     >
       <div className="phone-avatar-wrap">

@@ -6,15 +6,19 @@ type InboxRow = {
   avatarUrl: string;
   level?: number;
   preview: string;
-  threadKey: string;
+  slug: string;
 };
 
-export default function MessageInboxList({ items }: { items: InboxRow[] }) {
+export default function MessageInboxList({
+  items = [],
+}: {
+  items?: InboxRow[];
+}) {
   return (
     <div className="message-inbox-list">
       {items.map((item) => (
         <MessageInboxItem
-          key={`${item.characterKey}-${item.threadKey}`}
+          key={`${item.characterKey}-${item.slug}`}
           {...item}
         />
       ))}

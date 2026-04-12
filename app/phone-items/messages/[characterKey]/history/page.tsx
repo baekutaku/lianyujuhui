@@ -38,7 +38,6 @@ type HistoryItem = {
   title: string;
   slug: string;
   preview: string;
-  threadKey: string;
   groupLabel: string;
   categoryKey: string;
   metaSummary: string;
@@ -80,40 +79,37 @@ export default async function MessageHistoryPage({
     "이름 없음";
 
   const allItems: HistoryItem[] = rows.map((row) => {
-    const threadKey =
-      row.content_json?.threadKey?.trim() || row.slug?.trim() || "";
+  const preview =
+    row.content_json?.preview?.trim() ||
+    extractPreview(row.content_json?.editorEntries) ||
+    extractPreview(row.content_json?.entries) ||
+    "미리보기가 없습니다.";
 
-    const preview =
-      row.content_json?.preview?.trim() ||
-      extractPreview(row.content_json?.editorEntries) ||
-      extractPreview(row.content_json?.entries) ||
-      "미리보기가 없습니다.";
+  const categoryKey =
+    row.content_json?.historyCategory?.trim() || "daily";
 
-    const categoryKey =
-      row.content_json?.historyCategory?.trim() || "daily";
+  return {
+    id: String(row.id),
+    title: row.title?.trim() || "제목 없음",
+    slug: row.slug?.trim() || "",
+    preview,
+    categoryKey,
+    groupLabel:
+      row.content_json?.historyCategoryLabel?.trim() ||
+      CATEGORY_LABEL_MAP[categoryKey] ||
+      "일상",
+    metaSummary: row.content_json?.historySummary?.trim() || "",
+    metaSource: row.content_json?.historySource?.trim() || "",
+    isComplete: Boolean(row.content_json?.isComplete ?? true),
+    isFavorite: Boolean(row.content_json?.isFavorite ?? false),
+  };
+});
 
-    return {
-      id: String(row.id),
-      title: row.title?.trim() || "제목 없음",
-      slug: row.slug?.trim() || threadKey,
-      threadKey,
-      preview,
-      categoryKey,
-      groupLabel:
-        row.content_json?.historyCategoryLabel?.trim() ||
-        CATEGORY_LABEL_MAP[categoryKey] ||
-        "일상",
-      metaSummary: row.content_json?.historySummary?.trim() || "",
-      metaSource: row.content_json?.historySource?.trim() || "",
-      isComplete: Boolean(row.content_json?.isComplete ?? true),
-      isFavorite: Boolean(row.content_json?.isFavorite ?? false),
-    };
-  });
-
-  const items =
-    selectedCategory === "all"
-      ? allItems
-      : allItems.filter((item) => item.categoryKey === selectedCategory);
+const items =
+  (selectedCategory === "all"
+    ? allItems
+    : allItems.filter((item) => item.categoryKey === selectedCategory)
+  ).filter((item) => item.slug);
 
   return (
     <main className="phone-page">
@@ -155,7 +151,7 @@ export default async function MessageHistoryPage({
               {items.map((item) => (
                 <Link
                   key={item.id}
-                  href={`/phone-items/messages/${characterKey}/${item.threadKey || item.slug}`}
+href={`/phone-items/messages/${characterKey}/${item.slug}`}
                   className="message-history-card"
                 >
                   <div className="message-history-card-top">

@@ -12,83 +12,104 @@ type PageProps = {
   }>;
 };
 
-type PublisherRow = {
-  id: string;
-  name: string;
-  slug: string;
+type ArticleComment = {
+  avatarUrl?: string;
+  nickname?: string;
+  content?: string;
+  likeCount?: number;
 };
 
-type PostRow = {
+type ArticleItemRow = {
   id: string;
+  slug: string;
   title: string;
-  slug: string;
-  author_name: string;
-  image_url: string;
-  body: string;
-  subscriber_count: number;
-  like_count: number;
-  related_story_slug?: string | null;
-  related_story_label?: string | null;
+  preview_text?: string | null;
+  is_published?: boolean | null;
+  content_json?: {
+    sourceName?: string;
+    sourceSlug?: string;
+    author?: string;
+    imageUrl?: string;
+    body?: string;
+    subscriberCount?: number;
+    likeCount?: number;
+    relatedStorySlug?: string;
+    relatedStoryLabel?: string;
+    relatedEventSlug?: string;
+    relatedEventLabel?: string;
+    comments?: ArticleComment[];
+  } | null;
 };
 
-type CommentRow = {
-  id: string;
-  avatar_url: string;
-  nickname: string;
-  content: string;
-  like_count: number;
-};
+function safeDecode(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
 
 export default async function PhoneArticleDetailPage({ params }: PageProps) {
-  const { publisherSlug, articleSlug } = await params;
+  const {
+    publisherSlug: rawPublisherSlug,
+    articleSlug: rawArticleSlug,
+  } = await params;
 
-  const { data: publisher, error: publisherError } = await supabase
-    .from("phone_article_publishers")
-    .select("id, name, slug")
-    .eq("slug", publisherSlug)
-    .eq("is_active", true)
-    .maybeSingle();
+  const publisherSlug = safeDecode(rawPublisherSlug).trim();
+  const articleSlug = safeDecode(rawArticleSlug).trim();
 
-  if (publisherError) throw new Error(publisherError.message);
-  if (!publisher) notFound();
-
-  const { data: post, error: postError } = await supabase
-    .from("phone_article_posts")
-    .select(
-      "id, title, slug, author_name, image_url, body, subscriber_count, like_count, related_story_slug, related_story_label"
-    )
-    .eq("publisher_id", publisher.id)
-    .eq("slug", articleSlug)
+  const { data: item, error } = await supabase
+    .from("phone_items")
+    .select("id, slug, title, preview_text, is_published, content_json")
+    .eq("subtype", "article")
     .eq("is_published", true)
+    .eq("slug", articleSlug)
     .maybeSingle();
 
-  if (postError) throw new Error(postError.message);
-  if (!post) notFound();
+  if (error || !item) notFound();
 
-  const { data: comments, error: commentError } = await supabase
-    .from("phone_article_comments")
-    .select("id, avatar_url, nickname, content, like_count")
-    .eq("post_id", post.id)
-    .eq("is_visible", true)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
+  const postRow = item as ArticleItemRow;
+  const rowPublisherSlug = postRow.content_json?.sourceSlug?.trim() || "";
 
-  if (commentError) throw new Error(commentError.message);
+  if (rowPublisherSlug !== publisherSlug) {
+    notFound();
+  }
 
-  const publisherRow = publisher as PublisherRow;
-  const postRow = post as PostRow;
-  const commentList = (comments as CommentRow[] | null) ?? [];
+  const publisherName = postRow.content_json?.sourceName?.trim() || "핫이슈";
+  const authorName = postRow.content_json?.author?.trim() || "편집부";
+  const imageUrl = postRow.content_json?.imageUrl?.trim() || "";
+  const body =
+    postRow.content_json?.body?.trim() ||
+    postRow.preview_text?.trim() ||
+    "";
+  const subscriberCount = postRow.content_json?.subscriberCount ?? 0;
+  const likeCount = postRow.content_json?.likeCount ?? 0;
+
+  const relatedStorySlug = postRow.content_json?.relatedStorySlug?.trim() || "";
+  const relatedStoryLabel =
+    postRow.content_json?.relatedStoryLabel?.trim() || "";
+
+  const relatedEventSlug = postRow.content_json?.relatedEventSlug?.trim() || "";
+  const relatedEventLabel =
+    postRow.content_json?.relatedEventLabel?.trim() || "";
+
+  const hasStoryButton = Boolean(relatedStorySlug || relatedStoryLabel);
+  const hasEventButton = Boolean(relatedEventSlug || relatedEventLabel);
+
+  const commentList = Array.isArray(postRow.content_json?.comments)
+    ? postRow.content_json.comments
+    : [];
 
   return (
     <main className="phone-page">
       <PhoneShell>
         <PhoneTopBar
-          title={publisherRow.name}
+          title={publisherName}
           subtitle="기사 상세"
-          backHref={`/phone-items/articles/${publisherRow.slug}`}
+          backHref={`/phone-items/articles/${publisherSlug}`}
           rightSlot={
             <Link
-              href={`/phone-items/articles/${publisherRow.slug}`}
+              href={`/phone-items/articles/${publisherSlug}`}
               className="phone-topbar-icon-button"
               aria-label="히스토리"
               title="히스토리"
@@ -112,6 +133,9 @@ export default async function PhoneArticleDetailPage({ params }: PageProps) {
         <div
           className="phone-content"
           style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
             padding: "18px 16px 24px",
             background:
               "linear-gradient(rgba(255,255,255,0.68), rgba(255,255,255,0.82)), url('/phone/article-bg.png') center/cover no-repeat",
@@ -119,19 +143,20 @@ export default async function PhoneArticleDetailPage({ params }: PageProps) {
         >
           <div
             style={{
-              background: "rgba(255,255,255,0.82)",
-              padding: 14,
-              boxShadow: "0 6px 18px rgba(191, 181, 191, 0.16)",
-              marginBottom: 16,
+              background: "rgba(255,255,255,0.72)",
+              padding: "14px 14px 12px",
+              border: "1px solid rgba(230, 224, 231, 0.9)",
+              boxShadow: "none",
+              marginBottom: 14,
             }}
           >
             <h1
               style={{
-                fontSize: 17,
+                fontSize: 21,
                 fontWeight: 500,
-                lineHeight: 1.45,
+                lineHeight: 1.55,
                 color: "#64606a",
-                margin: "0 0 12px",
+                margin: "0 0 10px",
               }}
             >
               {postRow.title}
@@ -142,7 +167,7 @@ export default async function PhoneArticleDetailPage({ params }: PageProps) {
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                marginBottom: 14,
+                marginBottom: 12,
                 color: "#8d8792",
                 fontSize: 14,
               }}
@@ -160,66 +185,129 @@ export default async function PhoneArticleDetailPage({ params }: PageProps) {
               >
                 작성자
               </span>
-              <span>{postRow.author_name || "편집부"}</span>
+              <span>{authorName}</span>
             </div>
 
-            {postRow.image_url ? (
+            {imageUrl ? (
               <img
-                src={postRow.image_url}
+                src={imageUrl}
                 alt={postRow.title}
                 style={{
                   width: "100%",
                   display: "block",
-                  aspectRatio: "16 / 8",
+                  aspectRatio: "16 / 5.2",
                   objectFit: "cover",
-                  marginBottom: 14,
+                  marginBottom: 12,
                 }}
               />
             ) : null}
 
             <div
               style={{
-                fontSize: 15,
-                lineHeight: 1.7,
+fontSize: 16,
+lineHeight: 1.8,
                 color: "#6d6872",
                 whiteSpace: "pre-wrap",
               }}
             >
-              {postRow.body}
+              {body}
             </div>
 
             <div
               style={{
                 display: "flex",
-                gap: 18,
+                gap: 24,
                 alignItems: "center",
-                marginTop: 18,
-                fontSize: 14,
+                marginTop: 14,
+                fontSize: 15,
                 color: "#7d7783",
               }}
             >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                구독 {postRow.subscriber_count ?? 0}
-              </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <span className="material-symbols-rounded">thumb_up</span>
-                {postRow.like_count ?? 0}
-              </span>
+              <span>구독 {subscriberCount}</span>
+              <span
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+  }}
+>
+  <span
+    className="material-symbols-rounded"
+    style={{ fontSize: 20, color: "#ef8f8f" }}
+  >
+    thumb_up
+  </span>
+  {likeCount}
+</span>
             </div>
 
-            {postRow.related_story_slug ? (
-              <div style={{ marginTop: 18 }}>
-                <Link
-                  href={`/stories/${postRow.related_story_slug}`}
-                  className="primary-button"
-                  style={{
-                    marginTop: 0,
-                    textDecoration: "none",
-                    display: "inline-flex",
-                  }}
-                >
-                  {postRow.related_story_label?.trim() || "관련 스토리 보기"}
-                </Link>
+            {hasStoryButton || hasEventButton ? (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  marginTop: 10,
+                }}
+              >
+                {hasStoryButton ? (
+                  relatedStorySlug ? (
+                    <Link
+                      href={`/stories/${relatedStorySlug}`}
+                      style={{
+                        fontSize: 12,
+                        lineHeight: 1.2,
+                        fontWeight: 500,
+                        textDecoration: "none",
+                        color: "#9b8894",
+                      }}
+                    >
+                      #{relatedStoryLabel || "관련스토리"}
+                    </Link>
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: 12,
+                        lineHeight: 1.2,
+                        fontWeight: 500,
+                        color: "#b2a5ad",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      #{relatedStoryLabel || "관련스토리"}
+                    </span>
+                  )
+                ) : null}
+
+                {hasEventButton ? (
+                  relatedEventSlug ? (
+                    <Link
+                      href={`/events/${relatedEventSlug}`}
+                      style={{
+                        fontSize: 12,
+                        lineHeight: 1.2,
+                        fontWeight: 500,
+                        textDecoration: "none",
+                        color: "#9b8894",
+                      }}
+                    >
+                      #{relatedEventLabel || "관련이벤트"}
+                    </Link>
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: 12,
+                        lineHeight: 1.2,
+                        fontWeight: 500,
+                        color: "#b2a5ad",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      #{relatedEventLabel || "관련이벤트"}
+                    </span>
+                  )
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -246,23 +334,23 @@ export default async function PhoneArticleDetailPage({ params }: PageProps) {
                 <div style={{ height: 1, background: "rgba(188, 178, 188, 0.6)" }} />
               </div>
 
-              <div style={{ display: "grid", gap: 12 }}>
-                {commentList.map((comment) => (
+              <div style={{ display: "grid", gap: 10 }}>
+                {commentList.map((comment, index) => (
                   <div
-                    key={comment.id}
+                    key={`${comment.nickname || "comment"}-${index}`}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "48px minmax(0, 1fr) auto",
-                      gap: 12,
+                      gridTemplateColumns: "42px minmax(0, 1fr) auto",
+                      gap: 10,
                       alignItems: "start",
                     }}
                   >
                     <img
-                      src={comment.avatar_url || "/profile/mc.png"}
-                      alt={comment.nickname}
+                      src={comment.avatarUrl || "/profile/mc.png"}
+                      alt={comment.nickname || "익명"}
                       style={{
-                        width: 44,
-                        height: 44,
+                        width: 38,
+                        height: 38,
                         borderRadius: 999,
                         objectFit: "cover",
                         display: "block",
@@ -273,38 +361,43 @@ export default async function PhoneArticleDetailPage({ params }: PageProps) {
                       <div
                         style={{
                           fontSize: 15,
-                          color: "#f09b9b",
-                          marginBottom: 4,
+                          color: "#ef9aa0",
+                          marginBottom: 3,
                         }}
                       >
-                        {comment.nickname}
+                        {comment.nickname || "익명"}
                       </div>
 
                       <div
                         style={{
                           fontSize: 15,
-                          lineHeight: 1.6,
+                          lineHeight: 1.55,
                           color: "#736e78",
                           whiteSpace: "pre-wrap",
                         }}
                       >
-                        {comment.content}
+                        {comment.content || ""}
                       </div>
                     </div>
 
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        fontSize: 14,
-                        color: "#8a8390",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      <span className="material-symbols-rounded">thumb_up</span>
-                      {comment.like_count}
-                    </div>
+<div
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 16,
+    color: "#8a8390",
+    whiteSpace: "nowrap",
+  }}
+>
+  <span
+    className="material-symbols-rounded"
+    style={{ fontSize: 18, color: "#ef8f8f" }}
+  >
+    thumb_up
+  </span>
+  {comment.likeCount ?? 0}
+</div>
                   </div>
                 ))}
               </div>

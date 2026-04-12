@@ -50,7 +50,7 @@ type MessageEntry =
   | ChoiceEntry;
 
 type MessageThreadViewProps = {
-  avatarUrl: string; // 상대방 아바타
+  avatarUrl: string;
   entries: MessageEntry[];
 };
 
@@ -337,13 +337,15 @@ export default function MessageThreadView({
   }, []);
 
   return (
-    <>
-      <div className="thread-wrap">
-        <ThreadEntries
-          otherAvatarUrl={avatarUrl}
-          myAvatarUrl={myAvatarUrl}
-          entries={entries}
-        />
+    <div className="thread-layout">
+      <div className="thread-scroll">
+        <div className="thread-wrap">
+          <ThreadEntries
+            otherAvatarUrl={avatarUrl}
+            myAvatarUrl={myAvatarUrl}
+            entries={entries}
+          />
+        </div>
       </div>
 
       <div className="thread-toolbar">
@@ -361,6 +363,6 @@ export default function MessageThreadView({
           <span className="material-symbols-rounded">add</span>
         </button>
       </div>
-    </>
+    </div>
   );
 }

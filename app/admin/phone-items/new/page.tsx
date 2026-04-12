@@ -1,7 +1,32 @@
 import PhoneItemForm from "@/components/admin/phone-items/PhoneItemForm";
-import { createPhoneItemAction } from "@/app/admin/actions";
+import { createPhoneItem } from "@/app/admin/actions";
 
-export default function NewPhoneItemPage() {
+type NewPhoneItemPageProps = {
+  searchParams?: Promise<{
+    subtype?: string;
+    server_key?: string;
+    is_published?: string;
+    error?: string;
+  }>;
+};
+
+export default async function NewPhoneItemPage({
+  searchParams,
+}: NewPhoneItemPageProps) {
+  const params = (await searchParams) ?? {};
+
+  const subtype =
+    params.subtype === "message" ||
+    params.subtype === "moment" ||
+    params.subtype === "call" ||
+    params.subtype === "video_call" ||
+    params.subtype === "article"
+      ? params.subtype
+      : "call";
+
+  const serverKey = params.server_key === "cn" ? "cn" : "kr";
+  const isPublished = params.is_published !== "off";
+
   return (
     <main>
       <header className="page-header">
@@ -10,15 +35,18 @@ export default function NewPhoneItemPage() {
         <p className="page-desc">
           메시지, 모멘트, 음성, 기사를 subtype별로 작성합니다.
         </p>
+        {params.error ? (
+          <p style={{ color: "crimson", marginTop: 12 }}>{params.error}</p>
+        ) : null}
       </header>
 
       <PhoneItemForm
-        action={createPhoneItemAction}
+        action={createPhoneItem}
         submitLabel="저장"
         initialValues={{
-          subtype: "call",
-          server_key: "kr",
-          is_published: true,
+          subtype,
+          server_key: serverKey,
+          is_published: isPublished,
         }}
       />
     </main>

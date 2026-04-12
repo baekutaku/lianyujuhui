@@ -2672,3 +2672,86 @@ a {
     max-width: 100%;
   }
 }
+
+
+.phone-tabbar {
+  height: 76px;
+  min-height: 76px;
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  border-top: 1px solid rgba(210, 201, 212, 0.8);
+  background: rgba(255, 255, 255, 0.96);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.phone-tab {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-decoration: none;
+  color: #8d8394;
+}
+
+.phone-tab.active {
+  color: #d989f0;
+}
+
+.phone-tab-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.phone-tab-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.phone-tab-label {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.phone-page {
+  min-height: 100%;
+}
+
+.phone-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.thread-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.thread-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.thread-wrap {
+  min-height: 100%;
+  padding-bottom: 12px;
+  box-sizing: border-box;
+}
+
+.thread-toolbar {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  background: #f7f1f6;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}

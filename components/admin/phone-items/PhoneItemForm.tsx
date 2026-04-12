@@ -62,6 +62,8 @@ history_source?: string;
     article_like_count?: number | string;
     article_related_story_slug?: string;
     article_related_story_label?: string;
+    article_related_event_slug?: string;
+article_related_event_label?: string;
 
     article_comment_0_avatar_url?: string;
     article_comment_0_nickname?: string;
@@ -93,6 +95,34 @@ const CHARACTER_OPTIONS = [
   { key: "zhouqiluo", label: "주기락" },
   { key: "xumo", label: "허묵" },
   { key: "lingxiao", label: "연시호" },
+] as const;
+
+const ARTICLE_PUBLISHERS = [
+  {
+    slug: "news-preview",
+    name: "뉴스 미리보기",
+    iconUrl: "/article/news-preview.png",
+  },
+  {
+    slug: "bonjour-francais",
+    name: "오늘의 불어",
+    iconUrl: "/article/bonjour-francais.png",
+  },
+  {
+    slug: "ym-communication",
+    name: "스캔들 공작소",
+    iconUrl: "/article/scandal-lab.png",
+  },
+  {
+    slug: "romirro-diner",
+    name: "연모식도락",
+    iconUrl: "/article/romirro-diner.png",
+  },
+  {
+    slug: "entertainverse",
+    name: "연예버스",
+    iconUrl: "/article/entertainverse.png",
+  },
 ] as const;
 
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
@@ -201,6 +231,14 @@ history_source: initialValues?.history_source ?? "",
     const [messageInputMode, setMessageInputMode] = useState<"simple" | "bulk">(
     values.input_mode
   );
+
+  const [articlePublisherSlug, setArticlePublisherSlug] = useState(
+  initialValues?.article_publisher_slug?.trim() || "news-preview"
+);
+
+const selectedArticlePublisher =
+  ARTICLE_PUBLISHERS.find((item) => item.slug === articlePublisherSlug) ||
+  ARTICLE_PUBLISHERS[0];
 
   const initialMessageEditorEntries = useMemo(() => {
     try {
@@ -712,20 +750,46 @@ history_source: initialValues?.history_source ?? "",
       </label>
 
       <label className="form-field">
+        <span>신문사 선택</span>
+        <select
+          value={articlePublisherSlug}
+          onChange={(e) => setArticlePublisherSlug(e.target.value)}
+        >
+          {ARTICLE_PUBLISHERS.map((publisher) => (
+            <option key={publisher.slug} value={publisher.slug}>
+              {publisher.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="form-field">
         <span>신문사명</span>
+        <input value={selectedArticlePublisher.name} readOnly />
         <input
+          type="hidden"
           name="article_publisher"
-          defaultValue={initialValues?.article_publisher ?? ""}
-          placeholder="뉴스 미리보기"
+          value={selectedArticlePublisher.name}
         />
       </label>
 
       <label className="form-field">
         <span>신문사 slug</span>
+        <input value={selectedArticlePublisher.slug} readOnly />
         <input
+          type="hidden"
           name="article_publisher_slug"
-          defaultValue={initialValues?.article_publisher_slug ?? ""}
-          placeholder="news-preview"
+          value={selectedArticlePublisher.slug}
+        />
+      </label>
+
+      <label className="form-field">
+        <span>신문사 아이콘 URL</span>
+        <input value={selectedArticlePublisher.iconUrl} readOnly />
+        <input
+          type="hidden"
+          name="article_icon_url"
+          value={selectedArticlePublisher.iconUrl}
         />
       </label>
 
@@ -744,15 +808,6 @@ history_source: initialValues?.history_source ?? "",
           name="article_author"
           defaultValue={initialValues?.article_author ?? ""}
           placeholder="편집자 오궁"
-        />
-      </label>
-
-      <label className="form-field">
-        <span>신문사 아이콘 URL</span>
-        <input
-          name="article_icon_url"
-          defaultValue={initialValues?.article_icon_url ?? ""}
-          placeholder="/phone/article/news-preview.png"
         />
       </label>
 

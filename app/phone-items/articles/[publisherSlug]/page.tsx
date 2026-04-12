@@ -11,54 +11,44 @@ type PageProps = {
   }>;
 };
 
-type PublisherRow = {
+type ArticleItemRow = {
   id: string;
-  name: string;
   slug: string;
-  icon_url: string;
-};
-
-type PostRow = {
-  id: string;
   title: string;
-  slug: string;
-  image_url: string;
-  is_published: boolean;
-  sort_order: number;
   created_at: string;
+  content_json?: {
+    sourceName?: string;
+    sourceSlug?: string;
+    imageUrl?: string;
+  } | null;
 };
 
 export default async function PhoneArticleHistoryPage({ params }: PageProps) {
   const { publisherSlug } = await params;
 
-  const { data: publisher, error: publisherError } = await supabase
-    .from("phone_article_publishers")
-    .select("id, name, slug, icon_url")
-    .eq("slug", publisherSlug)
-    .eq("is_active", true)
-    .maybeSingle();
-
-  if (publisherError) throw new Error(publisherError.message);
-  if (!publisher) notFound();
-
-  const { data: posts, error: postError } = await supabase
-    .from("phone_article_posts")
-    .select("id, title, slug, image_url, is_published, sort_order, created_at")
-    .eq("publisher_id", publisher.id)
+  const { data: items, error } = await supabase
+    .from("phone_items")
+    .select("id, slug, title, created_at, content_json")
+    .eq("subtype", "article")
     .eq("is_published", true)
-    .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
 
-  if (postError) throw new Error(postError.message);
+  if (error) throw new Error(error.message);
 
-  const publisherRow = publisher as PublisherRow;
-  const postList = (posts as PostRow[] | null) ?? [];
+  const articleItems = ((items as ArticleItemRow[] | null) ?? []).filter(
+    (item) => (item.content_json?.sourceSlug?.trim() || "news") === publisherSlug
+  );
+
+  if (articleItems.length === 0) notFound();
+
+  const publisherName =
+    articleItems[0]?.content_json?.sourceName?.trim() || "핫이슈";
 
   return (
     <main className="phone-page">
       <PhoneShell>
         <PhoneTopBar
-          title={publisherRow.name}
+          title={publisherName}
           subtitle="히스토리"
           backHref="/phone-items/articles"
         />
@@ -71,55 +61,58 @@ export default async function PhoneArticleHistoryPage({ params }: PageProps) {
           }}
         >
           <div style={{ display: "grid", gap: 18 }}>
-            {postList.map((post) => (
-              <Link
-                key={post.id}
-                href={`/phone-items/articles/${publisherRow.slug}/${post.slug}`}
-                style={{
-                  display: "block",
-                  padding: 14,
-                  borderRadius: 0,
-                  textDecoration: "none",
-                  color: "inherit",
-                  background: "rgba(255,255,255,0.82)",
-                  boxShadow: "0 6px 18px rgba(191, 181, 191, 0.16)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 500,
-                    lineHeight: 1.5,
-                    color: "#66606b",
-                    marginBottom: 12,
-                  }}
-                >
-                  {post.title}
-                </div>
+            {articleItems.map((item) => (
+<Link
+  key={item.id}
+  href={`/phone-items/articles/${publisherSlug}/${item.slug}`}
+  style={{
+    display: "block",
+    textDecoration: "none",
+    color: "inherit",
+    background: "rgba(255,255,255,0.72)",
+    border: "1px solid rgba(231, 225, 232, 0.9)",
+    padding: 10,
+  }}
+>
+  {item.content_json?.imageUrl ? (
+    <div style={{ position: "relative", marginBottom: 10 }}>
+      <img
+        src={item.content_json.imageUrl}
+        alt={item.title}
+        style={{
+          width: "100%",
+          display: "block",
+          aspectRatio: "16 / 5.2",
+          objectFit: "cover",
+        }}
+      />
+      <span
+        style={{
+          position: "absolute",
+          left: 10,
+          bottom: 10,
+          fontSize: 12,
+          padding: "4px 8px",
+          background: "rgba(90,90,90,0.5)",
+          color: "white",
+        }}
+      >
+        전체보기
+      </span>
+    </div>
+  ) : null}
 
-                {post.image_url ? (
-                  <img
-                    src={post.image_url}
-                    alt={post.title}
-                    style={{
-                      width: "100%",
-                      display: "block",
-                      aspectRatio: "16 / 8",
-                      objectFit: "cover",
-                      marginBottom: 12,
-                    }}
-                  />
-                ) : null}
-
-                <div
-                  style={{
-                    fontSize: 15,
-                    color: "#8d8792",
-                  }}
-                >
-                  상세보기
-                </div>
-              </Link>
+  <div
+    style={{
+      fontSize: 16,
+      lineHeight: 1.6,
+      color: "#66606b",
+      padding: "0 4px 2px",
+    }}
+  >
+    {item.title}
+  </div>
+</Link>
             ))}
           </div>
         </div>

@@ -26,28 +26,23 @@ const RESERVED_PHONE_SLUGS = new Set([
 ]);
 
 function slugify(input: string) {
-  return input
+  return String(input || "")
     .trim()
-    .toLowerCase()
-    .replace(/[^\w가-힣\s-]/g, "")
+    .replace(/[<>[\]{}()'"`.,!?/\\|@#$%^&*+=:;]+/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 }
 
-function makeSafePhoneSlug(
-  rawSlug: string,
-  fallbackTitle: string,
-  characterKey?: string
-) {
-  let base = slugify(rawSlug || fallbackTitle || "item");
+function makeSafePhoneSlug(rawSlug: string, fallbackTitle: string) {
+  const base = slugify(rawSlug || fallbackTitle);
 
-  if (characterKey && !base.startsWith(`${characterKey}-`)) {
-    base = `${characterKey}-${base}`;
+  if (!base) {
+    return `item-${Date.now()}`;
   }
 
   if (RESERVED_PHONE_SLUGS.has(base)) {
-    base = `${base}-item`;
+    return `${base}-${Date.now()}`;
   }
 
   return base;
@@ -104,6 +99,7 @@ async function resolveServerAndCharacterIds(
   };
 }
 
+
 export async function createPhoneItemAction(formData: FormData) {
   const subtype = String(formData.get("subtype") || "");
   const serverKey = String(formData.get("server_key") || "kr");
@@ -139,19 +135,28 @@ if (subtype === "message") {
   const entries = entriesJson ? JSON.parse(entriesJson) : parseMessageBulk(raw);
   const editorEntries = editorEntriesJson ? JSON.parse(editorEntriesJson) : entries;
 
-  const finalThreadKey =
-    threadKey ||
-    `${characterKey}-${(title || preview || "thread")
-      .toLowerCase()
-      .replace(/[^\w가-힣\s-]/g, "")
-      .replace(/\s+/g, "-")}`;
+  const rawSlug = String(formData.get("slug") || "").trim();
 
-  const finalSlug = String(formData.get("slug") || "").trim() || finalThreadKey;
+const finalSlug = makeSafePhoneSlug(
+  String(formData.get("slug") || "").trim(),
+  title || preview || "thread"
+);
+
+  const finalThreadKey =
+    threadKey || `${characterKey || "thread"}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
   const { serverId, characterId } = await resolveServerAndCharacterIds(
     serverKey,
     characterKey
   );
+
+  console.log("phone_items message insert:", {
+    title: title || preview,
+    slug: finalSlug,
+    subtype: "message",
+    threadKey: finalThreadKey,
+    characterKey,
+  });
 
   const { error } = await supabase.from("phone_items").insert({
     content_id: makeContentId("phone-message"),
@@ -238,7 +243,7 @@ if (subtype === "message") {
     const title = String(formData.get("title") || "").trim();
 
     const rawSlug = String(formData.get("slug") || "").trim();
-    const slug = makeSafePhoneSlug(rawSlug, title, characterKey);
+    const slug = makeSafePhoneSlug(rawSlug, title);
 
     const avatarUrl = String(formData.get("avatar_url") || "").trim();
     const coverImage = String(formData.get("cover_image") || "").trim();
