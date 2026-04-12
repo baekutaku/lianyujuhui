@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 export default async function AdminPhoneItemIdPage({ params }: PageProps) {
-  const id = params.id;
+  const { id } = await params;
   redirect(`/admin/phone-items/${id}/edit`);
 }
