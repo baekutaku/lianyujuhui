@@ -2,10 +2,12 @@ import Link from "next/link";
 
 type CallDetailProps = {
   characterName: string;
-  title: string;
-  coverImage?: string;
-  youtubeEmbedUrl?: string;
-  body?: string;
+  title: string | null;
+  coverImage: string;
+  youtubeEmbedUrl: string;
+  body: string;
+  translationHtml?: string;
+  memoHtml?: string;
 };
 
 function normalizeYoutubeEmbedUrl(raw?: string) {
@@ -38,6 +40,8 @@ export default function CallDetail({
   coverImage,
   youtubeEmbedUrl,
   body,
+  translationHtml = "",
+  memoHtml = "",
 }: CallDetailProps) {
   const embedUrl = normalizeYoutubeEmbedUrl(youtubeEmbedUrl);
 
@@ -55,7 +59,34 @@ export default function CallDetail({
         </div>
       ) : (
         <div className="call-fullscreen-empty">영상 링크가 없습니다.</div>
-      )}
+        
+      )}{translationHtml || memoHtml ? (
+  <div
+    style={{
+      marginTop: 24,
+      display: "grid",
+      gap: 20,
+    }}
+  >
+    {translationHtml ? (
+      <section className="content-card">
+        <h3 style={{ marginBottom: 12 }}>번역</h3>
+        <div
+          dangerouslySetInnerHTML={{ __html: translationHtml }}
+        />
+      </section>
+    ) : null}
+
+    {memoHtml ? (
+      <section className="content-card">
+        <h3 style={{ marginBottom: 12 }}>메모</h3>
+        <div
+          dangerouslySetInnerHTML={{ __html: memoHtml }}
+        />
+      </section>
+    ) : null}
+  </div>
+) : null}
 
       <div className="call-top-only">
         <Link href="/phone-items/calls" className="call-back-button">
@@ -63,5 +94,8 @@ export default function CallDetail({
         </Link>
       </div>
     </div>
-  );
+ 
+
+
+);
 }

@@ -46,12 +46,9 @@ export default async function CallDetailPage({ params }: PageProps) {
     .eq("is_published", true)
     .maybeSingle();
 
-  if (error || !item) {
-    notFound();
-  }
+  if (error || !item) notFound();
 
   const savedCharacterKey = item.content_json?.characterKey ?? "";
-
   if (savedCharacterKey && savedCharacterKey !== characterKey) {
     notFound();
   }
@@ -67,17 +64,46 @@ export default async function CallDetailPage({ params }: PageProps) {
     DEFAULT_AVATAR_MAP[resolvedCharacterKey] ||
     "/profile/baiqi.png";
 
+  const translationHtml = item.content_json?.translationHtml ?? "";
+  const memoHtml = item.content_json?.memoHtml ?? "";
+
   return (
     <main className="phone-page">
-      <PhoneShell>
-        <CallDetail
-          characterName={resolvedCharacterName}
-          title={item.title}
-          coverImage={resolvedCover}
-          youtubeEmbedUrl={item.embed_url ?? ""}
-          body={item.content_json?.body ?? ""}
-        />
-      </PhoneShell>
+      <div className="call-detail-layout">
+        <PhoneShell>
+          <CallDetail
+            characterName={resolvedCharacterName}
+            title={item.title}
+            coverImage={resolvedCover}
+            youtubeEmbedUrl={item.embed_url ?? ""}
+            body={item.content_json?.body ?? ""}
+          />
+        </PhoneShell>
+
+        {(translationHtml || memoHtml) ? (
+          <aside className="call-detail-side">
+            {translationHtml ? (
+              <section className="call-detail-rich">
+                <div className="call-detail-rich-title">번역</div>
+                <div
+                  className="call-detail-rich-body"
+                  dangerouslySetInnerHTML={{ __html: translationHtml }}
+                />
+              </section>
+            ) : null}
+
+            {memoHtml ? (
+              <section className="call-detail-rich">
+                <div className="call-detail-rich-title">메모</div>
+                <div
+                  className="call-detail-rich-body"
+                  dangerouslySetInnerHTML={{ __html: memoHtml }}
+                />
+              </section>
+            ) : null}
+          </aside>
+        ) : null}
+      </div>
     </main>
   );
 }

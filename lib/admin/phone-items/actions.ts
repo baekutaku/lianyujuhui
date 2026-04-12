@@ -464,24 +464,40 @@ async function updateCallPhoneItem(params: {
   const body = String(params.formData.get("body") || "").trim();
   const levelRaw = String(params.formData.get("level") || "").trim();
   const level = levelRaw ? Number(levelRaw) : null;
+  const translationHtml = String(
+  params.formData.get("call_translation_html") || ""
+).trim();
+
+const memoHtml = String(
+  params.formData.get("call_memo_html") || ""
+).trim();
 
   const { error } = await supabase
     .from("phone_items")
     .update({
       title: params.title,
-      slug: params.rawSlug || null,
+     slug:
+  params.rawSlug ||
+  buildPhoneItemSlug({
+    subtype: params.subtype,
+    characterKey,
+    title: params.title,
+    fallback: body.slice(0, 30),
+  }),
       subtype: params.subtype,
       summary: params.summary || body.slice(0, 60),
       is_published: params.isPublished,
       embed_url: toEmbedUrl(youtubeUrl) || null,
-      content_json: {
-        characterKey,
-        characterName,
-        avatarUrl,
-        level,
-        coverImage,
-        body,
-      },
+content_json: {
+  characterKey,
+  characterName,
+  avatarUrl,
+  level,
+  coverImage,
+  body,
+  translationHtml,
+  memoHtml,
+},
     })
     .eq("id", params.phoneItemId);
 
@@ -740,6 +756,14 @@ async function createCallPhoneItem(params: {
   const levelRaw = String(params.formData.get("level") || "").trim();
   const level = levelRaw ? Number(levelRaw) : null;
 
+  const translationHtml = String(
+  params.formData.get("call_translation_html") || ""
+).trim();
+
+const memoHtml = String(
+  params.formData.get("call_memo_html") || ""
+).trim();
+
   const finalSlug =
     params.rawSlug ||
     buildPhoneItemSlug({
@@ -768,14 +792,16 @@ async function createCallPhoneItem(params: {
       summary: params.summary || body.slice(0, 60),
       is_published: params.isPublished,
       embed_url: toEmbedUrl(youtubeUrl) || null,
-      content_json: {
-        characterKey,
-        characterName,
-        avatarUrl,
-        level,
-        coverImage,
-        body,
-      },
+content_json: {
+  characterKey,
+  characterName,
+  avatarUrl,
+  level,
+  coverImage,
+  body,
+  translationHtml,
+  memoHtml,
+},
     })
     .select("id, slug")
     .single();

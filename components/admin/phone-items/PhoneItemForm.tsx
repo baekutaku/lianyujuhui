@@ -11,6 +11,7 @@ import {
   buildEditorNodesFromStoredEntries,
   flattenMessageNodes,
 } from "@/lib/admin/messageEditorTypes";
+import SmartEditor from "@/components/editor/SmartEditor";
 
 type Subtype = "message" | "moment" | "call" | "video_call" | "article";
 
@@ -84,6 +85,9 @@ article_related_event_label?: string;
     article_comment_3_nickname?: string;
     article_comment_3_content?: string;
     article_comment_3_like_count?: number | string;
+
+    call_translation_html?: string;
+call_memo_html?: string;
 
     input_mode?: "simple" | "bulk";
   };
@@ -206,6 +210,9 @@ history_source: initialValues?.history_source ?? "",
     moment_bulk_raw: initialValues?.moment_bulk_raw ?? "",
     editor_entries_json: initialValues?.editor_entries_json ?? "",
     input_mode: initialValues?.input_mode ?? "simple",
+
+    call_translation_html: initialValues?.call_translation_html ?? "",
+call_memo_html: initialValues?.call_memo_html ?? "",
 
     
   };
@@ -706,15 +713,31 @@ const selectedArticlePublisher =
             />
           </label>
 
-          <label className="form-field form-field-full">
-            <span>메모</span>
-            <textarea
-              name="body"
-              rows={6}
-              defaultValue={values.body}
-              placeholder="간단 설명"
-            />
-          </label>
+<label className="form-field form-field-full">
+  <span>메모</span>
+  <textarea
+    name="body"
+    rows={6}
+    defaultValue={values.body}
+    placeholder="휴대폰 UI 안에 들어갈 공개용 설명"
+  />
+</label>
+
+<div className="form-field form-field-full">
+  <span>번역문 (관리용)</span>
+  <SmartEditor
+    name="call_translation_html"
+    initialValue={values.call_translation_html}
+  />
+</div>
+
+<div className="form-field form-field-full">
+  <span>작업 메모 (관리용)</span>
+  <SmartEditor
+    name="call_memo_html"
+    initialValue={values.call_memo_html}
+  />
+</div>
         </div>
       ) : null}
 

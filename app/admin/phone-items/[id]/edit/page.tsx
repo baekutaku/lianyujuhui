@@ -115,6 +115,10 @@ export default async function EditPhoneItemPage({ params }: PageProps) {
             item.content_json?.comments?.[3]?.content ?? "",
           article_comment_3_like_count:
             item.content_json?.comments?.[3]?.likeCount ?? 0,
+
+
+            call_translation_html: item.content_json?.translationHtml ?? "",
+call_memo_html: item.content_json?.memoHtml ?? "",
         }}
       />
 
