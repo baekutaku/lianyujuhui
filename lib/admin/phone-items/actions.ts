@@ -158,36 +158,92 @@ async function createArticlePhoneItem(params: {
   isPublished: boolean;
   formData: FormData;
 }) {
-  const preview = String(params.formData.get("preview") || "").trim();
-  const iconUrl = String(params.formData.get("icon_url") || "").trim();
-  const imageUrl = String(params.formData.get("image_url") || "").trim();
-  const sourceName = String(params.formData.get("source_name") || "").trim();
-  const author = String(params.formData.get("author") || "").trim();
-  const body = String(params.formData.get("body") || "").trim();
+  const preview = String(params.formData.get("article_preview") || "").trim();
+  const iconUrl = String(params.formData.get("article_icon_url") || "").trim();
+  const imageUrl = String(params.formData.get("article_image_url") || "").trim();
+  const sourceName = String(params.formData.get("article_publisher") || "").trim();
+  const sourceSlugRaw = String(
+    params.formData.get("article_publisher_slug") || ""
+  ).trim();
+  const sourceSlug = sourceSlugRaw || slugify(sourceName || "news");
+  const author = String(params.formData.get("article_author") || "").trim();
+  const body = String(params.formData.get("article_body") || "").trim();
+
+  const subscriberCountRaw = String(
+    params.formData.get("article_subscriber_count") || ""
+  ).trim();
+  const subscriberCount = subscriberCountRaw ? Number(subscriberCountRaw) : 0;
+
+  const likeCountRaw = String(
+    params.formData.get("article_like_count") || ""
+  ).trim();
+  const likeCount = likeCountRaw ? Number(likeCountRaw) : 0;
+
+  const relatedStorySlug = String(
+    params.formData.get("article_related_story_slug") || ""
+  ).trim();
+  const relatedStoryLabel = String(
+    params.formData.get("article_related_story_label") || ""
+  ).trim();
+
+  const comments = [0, 1, 2, 3]
+    .map((index) => {
+      const avatarUrl = String(
+        params.formData.get(`article_comment_${index}_avatar_url`) || ""
+      ).trim();
+      const nickname = String(
+        params.formData.get(`article_comment_${index}_nickname`) || ""
+      ).trim();
+      const content = String(
+        params.formData.get(`article_comment_${index}_content`) || ""
+      ).trim();
+      const likeCountRaw = String(
+        params.formData.get(`article_comment_${index}_like_count`) || ""
+      ).trim();
+      const likeCount = likeCountRaw ? Number(likeCountRaw) : 0;
+
+      if (!nickname && !content) return null;
+
+      return {
+        avatarUrl,
+        nickname,
+        content,
+        likeCount,
+      };
+    })
+    .filter(Boolean);
+
+  const articleTitle = params.title || preview || "기사";
 
   const finalSlug =
     params.rawSlug ||
     buildPhoneItemSlug({
       subtype: params.subtype,
-      characterKey: "article",
-      title: params.title,
+      characterKey: sourceSlug || "article",
+      title: articleTitle,
       fallback: preview || body.slice(0, 30),
     });
 
   const { error } = await supabase.from("phone_items").insert({
-    title: params.title || preview || "기사",
+    title: articleTitle,
     slug: finalSlug,
     subtype: params.subtype,
     preview_text: preview,
-    summary: params.summary || preview,
+    summary: params.summary || preview || body.slice(0, 60),
     is_published: params.isPublished,
     content_json: {
       preview,
       iconUrl,
       imageUrl,
       sourceName,
+      sourceSlug,
       author,
       body,
+      subscriberCount,
+      likeCount,
+      relatedStorySlug,
+      relatedStoryLabel,
+      comments,
     },
   });
 
@@ -374,29 +430,94 @@ async function updateArticlePhoneItem(params: {
   isPublished: boolean;
   formData: FormData;
 }) {
-  const preview = String(params.formData.get("preview") || "").trim();
-  const iconUrl = String(params.formData.get("icon_url") || "").trim();
-  const imageUrl = String(params.formData.get("image_url") || "").trim();
-  const sourceName = String(params.formData.get("source_name") || "").trim();
-  const author = String(params.formData.get("author") || "").trim();
-  const body = String(params.formData.get("body") || "").trim();
+  const preview = String(params.formData.get("article_preview") || "").trim();
+  const iconUrl = String(params.formData.get("article_icon_url") || "").trim();
+  const imageUrl = String(params.formData.get("article_image_url") || "").trim();
+  const sourceName = String(params.formData.get("article_publisher") || "").trim();
+  const sourceSlugRaw = String(
+    params.formData.get("article_publisher_slug") || ""
+  ).trim();
+  const sourceSlug = sourceSlugRaw || slugify(sourceName || "news");
+  const author = String(params.formData.get("article_author") || "").trim();
+  const body = String(params.formData.get("article_body") || "").trim();
+
+  const subscriberCountRaw = String(
+    params.formData.get("article_subscriber_count") || ""
+  ).trim();
+  const subscriberCount = subscriberCountRaw ? Number(subscriberCountRaw) : 0;
+
+  const likeCountRaw = String(
+    params.formData.get("article_like_count") || ""
+  ).trim();
+  const likeCount = likeCountRaw ? Number(likeCountRaw) : 0;
+
+  const relatedStorySlug = String(
+    params.formData.get("article_related_story_slug") || ""
+  ).trim();
+  const relatedStoryLabel = String(
+    params.formData.get("article_related_story_label") || ""
+  ).trim();
+
+  const comments = [0, 1, 2, 3]
+    .map((index) => {
+      const avatarUrl = String(
+        params.formData.get(`article_comment_${index}_avatar_url`) || ""
+      ).trim();
+      const nickname = String(
+        params.formData.get(`article_comment_${index}_nickname`) || ""
+      ).trim();
+      const content = String(
+        params.formData.get(`article_comment_${index}_content`) || ""
+      ).trim();
+      const likeCountRaw = String(
+        params.formData.get(`article_comment_${index}_like_count`) || ""
+      ).trim();
+      const likeCount = likeCountRaw ? Number(likeCountRaw) : 0;
+
+      if (!nickname && !content) return null;
+
+      return {
+        avatarUrl,
+        nickname,
+        content,
+        likeCount,
+      };
+    })
+    .filter(Boolean);
+
+  const articleTitle = params.title || preview || "기사";
+
+  const finalSlug =
+    params.rawSlug ||
+    buildPhoneItemSlug({
+      subtype: params.subtype,
+      characterKey: sourceSlug || "article",
+      title: articleTitle,
+      fallback: preview || body.slice(0, 30),
+    });
 
   const { error } = await supabase
     .from("phone_items")
     .update({
-      title: params.title,
-      slug: params.rawSlug || null,
+      title: articleTitle,
+      slug: finalSlug,
       subtype: params.subtype,
       preview_text: preview,
-      summary: params.summary || preview,
+      summary: params.summary || preview || body.slice(0, 60),
       is_published: params.isPublished,
       content_json: {
         preview,
         iconUrl,
         imageUrl,
         sourceName,
+        sourceSlug,
         author,
         body,
+        subscriberCount,
+        likeCount,
+        relatedStorySlug,
+        relatedStoryLabel,
+        comments,
       },
     })
     .eq("id", params.phoneItemId);
@@ -526,11 +647,22 @@ export async function createPhoneItemAction(formData: FormData) {
   let targetSlug = "";
 
   try {
-    const rawSlug = String(formData.get("slug") || "").trim();
+    const subtype = String(formData.get("subtype") || "").trim();
+
+    const rawSlug =
+      String(formData.get("slug") || "").trim() ||
+      (subtype === "article"
+        ? String(formData.get("article_slug") || "").trim()
+        : "");
+
     assertPhoneSlugAllowed(rawSlug);
 
-    const title = String(formData.get("title") || "").trim();
-    const subtype = String(formData.get("subtype") || "").trim();
+    const title =
+      String(formData.get("title") || "").trim() ||
+      (subtype === "article"
+        ? String(formData.get("article_title") || "").trim()
+        : "");
+
     const isPublished = formData.get("is_published") === "on";
     const summary = String(formData.get("summary") || "").trim();
 
@@ -581,15 +713,25 @@ export async function createPhoneItemAction(formData: FormData) {
 }
 
 export async function updatePhoneItemAction(formData: FormData) {
-  const rawSlug = String(formData.get("slug") || "").trim();
+  const subtype = String(formData.get("subtype") || "").trim();
+
+  const rawSlug =
+    String(formData.get("slug") || "").trim() ||
+    (subtype === "article"
+      ? String(formData.get("article_slug") || "").trim()
+      : "");
+
   assertPhoneSlugAllowed(rawSlug);
 
   const safeSlug = encodeURIComponent(rawSlug || "item");
 
   try {
     const phoneItemId = String(formData.get("phoneItemId") || "").trim();
-    const title = String(formData.get("title") || "").trim();
-    const subtype = String(formData.get("subtype") || "").trim();
+    const title =
+      String(formData.get("title") || "").trim() ||
+      (subtype === "article"
+        ? String(formData.get("article_title") || "").trim()
+        : "");
     const isPublished = formData.get("is_published") === "on";
     const summary = String(formData.get("summary") || "").trim();
 

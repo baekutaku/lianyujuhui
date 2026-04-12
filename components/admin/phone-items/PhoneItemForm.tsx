@@ -49,6 +49,39 @@ history_source?: string;
     moment_bulk_raw?: string;
         editor_entries_json?: string;
 
+    article_title?: string;
+    article_slug?: string;
+    article_publisher?: string;
+    article_publisher_slug?: string;
+    article_preview?: string;
+    article_icon_url?: string;
+    article_author?: string;
+    article_image_url?: string;
+    article_body?: string;
+    article_subscriber_count?: number | string;
+    article_like_count?: number | string;
+    article_related_story_slug?: string;
+    article_related_story_label?: string;
+
+    article_comment_0_avatar_url?: string;
+    article_comment_0_nickname?: string;
+    article_comment_0_content?: string;
+    article_comment_0_like_count?: number | string;
+
+    article_comment_1_avatar_url?: string;
+    article_comment_1_nickname?: string;
+    article_comment_1_content?: string;
+    article_comment_1_like_count?: number | string;
+
+    article_comment_2_avatar_url?: string;
+    article_comment_2_nickname?: string;
+    article_comment_2_content?: string;
+    article_comment_2_like_count?: number | string;
+
+    article_comment_3_avatar_url?: string;
+    article_comment_3_nickname?: string;
+    article_comment_3_content?: string;
+    article_comment_3_like_count?: number | string;
 
     input_mode?: "simple" | "bulk";
   };
@@ -647,91 +680,219 @@ history_source: initialValues?.history_source ?? "",
         </div>
       ) : null}
 
-      {subtype === "article" ? (
-        <div className="form-grid">
-          <label className="form-field form-field-full">
-            <span>제목</span>
-            <input name="title" defaultValue={values.title} />
-          </label>
+{subtype === "article" ? (
+  <section className="content-card" style={{ marginTop: 20 }}>
+    <div
+      style={{
+        fontSize: 18,
+        fontWeight: 800,
+        marginBottom: 14,
+      }}
+    >
+      핫이슈 기사 정보
+    </div>
 
-          <label className="form-field">
-            <span>slug</span>
-            <input name="slug" defaultValue={values.slug} />
-          </label>
+    <div className="form-grid">
+      <label className="form-field">
+        <span>기사 제목</span>
+        <input
+          name="article_title"
+          defaultValue={initialValues?.article_title ?? ""}
+          placeholder="연모시에서 총격전 발생. 스나이퍼 출동으로 위기 모면"
+        />
+      </label>
 
-          <label className="form-field form-field-full">
-            <span>미리보기</span>
-            <input name="preview" defaultValue={values.preview} />
-          </label>
+      <label className="form-field">
+        <span>기사 slug</span>
+        <input
+          name="article_slug"
+          defaultValue={initialValues?.article_slug ?? ""}
+          placeholder="sniper-rescue-incident"
+        />
+      </label>
 
-          <label className="form-field form-field-full">
-            <span>아이콘 이미지</span>
-            <input
-              name="icon_url"
-              value={iconUrl}
-              onChange={(e) => setIconUrl(e.target.value)}
-              placeholder="/images/articles/news-icon.png 또는 외부 이미지 주소"
-            />
-            {iconUrl.trim() ? (
-              <div style={{ marginTop: "10px" }}>
-                <img
-                  src={iconUrl}
-                  alt="icon preview"
-                  style={{
-                    width: "88px",
-                    height: "88px",
-                    borderRadius: "18px",
-                    objectFit: "cover",
-                    border: "1px solid #d7e0ec",
-                    background: "#fff",
-                  }}
-                />
+      <label className="form-field">
+        <span>신문사명</span>
+        <input
+          name="article_publisher"
+          defaultValue={initialValues?.article_publisher ?? ""}
+          placeholder="뉴스 미리보기"
+        />
+      </label>
+
+      <label className="form-field">
+        <span>신문사 slug</span>
+        <input
+          name="article_publisher_slug"
+          defaultValue={initialValues?.article_publisher_slug ?? ""}
+          placeholder="news-preview"
+        />
+      </label>
+
+      <label className="form-field form-field-full">
+        <span>미리보기</span>
+        <input
+          name="article_preview"
+          defaultValue={initialValues?.article_preview ?? ""}
+          placeholder="백화점 인질사건 발생. 백모 경위가 여성을 구출했고..."
+        />
+      </label>
+
+      <label className="form-field">
+        <span>작성자</span>
+        <input
+          name="article_author"
+          defaultValue={initialValues?.article_author ?? ""}
+          placeholder="편집자 오궁"
+        />
+      </label>
+
+      <label className="form-field">
+        <span>신문사 아이콘 URL</span>
+        <input
+          name="article_icon_url"
+          defaultValue={initialValues?.article_icon_url ?? ""}
+          placeholder="/phone/article/news-preview.png"
+        />
+      </label>
+
+      <label className="form-field form-field-full">
+        <span>대표 이미지 URL</span>
+        <input
+          name="article_image_url"
+          defaultValue={initialValues?.article_image_url ?? ""}
+          placeholder="/phone/article/rainbow.png"
+        />
+      </label>
+
+      <label className="form-field form-field-full">
+        <span>기사 내용</span>
+        <textarea
+          name="article_body"
+          rows={10}
+          defaultValue={initialValues?.article_body ?? ""}
+          placeholder="기사 본문"
+        />
+      </label>
+
+      <label className="form-field">
+        <span>구독자 수</span>
+        <input
+          type="number"
+          name="article_subscriber_count"
+          defaultValue={initialValues?.article_subscriber_count ?? 0}
+          min={0}
+        />
+      </label>
+
+      <label className="form-field">
+        <span>좋아요 수</span>
+        <input
+          type="number"
+          name="article_like_count"
+          defaultValue={initialValues?.article_like_count ?? 0}
+          min={0}
+        />
+      </label>
+
+      <label className="form-field">
+        <span>관련 스토리 slug</span>
+        <input
+          name="article_related_story_slug"
+          defaultValue={initialValues?.article_related_story_slug ?? ""}
+          placeholder="baiqi-gun"
+        />
+      </label>
+
+      <label className="form-field">
+        <span>관련 스토리 표시명</span>
+        <input
+          name="article_related_story_label"
+          defaultValue={initialValues?.article_related_story_label ?? ""}
+          placeholder="gun"
+        />
+      </label>
+
+      <div className="form-field form-field-full">
+        <span>베스트 댓글</span>
+
+        <div style={{ display: "grid", gap: 16, marginTop: 8 }}>
+          {[0, 1, 2, 3].map((index) => (
+            <div
+              key={index}
+              style={{
+                padding: 14,
+                borderRadius: 14,
+                border: "1px solid rgba(220, 224, 232, 0.9)",
+                background: "rgba(255,255,255,0.7)",
+                display: "grid",
+                gap: 12,
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 700 }}>
+                댓글 {index + 1}
               </div>
-            ) : null}
-          </label>
 
-          <label className="form-field form-field-full">
-            <span>대표 이미지</span>
-            <input
-              name="image_url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="/images/articles/cover.jpg 또는 외부 이미지 주소"
-            />
-            {imageUrl.trim() ? (
-              <div style={{ marginTop: "10px" }}>
-                <img
-                  src={imageUrl}
-                  alt="article preview"
-                  style={{
-                    width: "100%",
-                    maxHeight: "240px",
-                    objectFit: "cover",
-                    borderRadius: "14px",
-                    border: "1px solid #d7e0ec",
-                    background: "#fff",
-                  }}
+              <label className="form-field">
+                <span>프사 URL</span>
+                <input
+                  name={`article_comment_${index}_avatar_url`}
+                  defaultValue={
+                    (initialValues?.[
+                      `article_comment_${index}_avatar_url` as keyof typeof initialValues
+                    ] as string) ?? ""
+                  }
+                  placeholder="/profile/comment1.png"
                 />
-              </div>
-            ) : null}
-          </label>
+              </label>
 
-          <label className="form-field">
-            <span>출처</span>
-            <input name="source_name" defaultValue={values.source_name} />
-          </label>
+              <label className="form-field">
+                <span>닉네임</span>
+                <input
+                  name={`article_comment_${index}_nickname`}
+                  defaultValue={
+                    (initialValues?.[
+                      `article_comment_${index}_nickname` as keyof typeof initialValues
+                    ] as string) ?? ""
+                  }
+                  placeholder="채식주의자각"
+                />
+              </label>
 
-          <label className="form-field">
-            <span>작성자</span>
-            <input name="author" defaultValue={values.author} />
-          </label>
+              <label className="form-field">
+                <span>댓글 내용</span>
+                <textarea
+                  name={`article_comment_${index}_content`}
+                  rows={3}
+                  defaultValue={
+                    (initialValues?.[
+                      `article_comment_${index}_content` as keyof typeof initialValues
+                    ] as string) ?? ""
+                  }
+                  placeholder="헐 대박 멋지…"
+                />
+              </label>
 
-          <label className="form-field form-field-full">
-            <span>본문</span>
-            <textarea name="body" rows={12} defaultValue={values.body} />
-          </label>
+              <label className="form-field">
+                <span>좋아요 수</span>
+                <input
+                  type="number"
+                  name={`article_comment_${index}_like_count`}
+                  defaultValue={
+                    (initialValues?.[
+                      `article_comment_${index}_like_count` as keyof typeof initialValues
+                    ] as number | string) ?? 0
+                  }
+                  min={0}
+                />
+              </label>
+            </div>
+          ))}
         </div>
-      ) : null}
+      </div>
+    </div>
+  </section>
+) : null}
 
       <button type="submit" className="primary-button">
         {submitLabel}

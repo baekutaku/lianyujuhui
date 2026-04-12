@@ -22,9 +22,9 @@ export default async function EditPhoneItemPage({ params }: PageProps) {
 
   const { data: item } = await supabase
     .from("phone_items")
-    .select(
-      "id, title, slug, subtype, release_year, release_date, summary, is_published, embed_url, content_json"
-    )
+.select(
+  "id, title, slug, subtype, release_year, release_date, summary, preview_text, is_published, embed_url, content_json"
+)
     .eq("slug", slug)
     .maybeSingle();
 
@@ -73,6 +73,40 @@ history_source: item.content_json?.historySource ?? "",
     source_name: item.content_json?.sourceName ?? "",
     author: item.content_json?.author ?? "",
     body: item.content_json?.body ?? "",
+
+    article_title: item.title ?? "",
+article_slug: item.slug ?? "",
+article_publisher: item.content_json?.publisher ?? item.content_json?.sourceName ?? "",
+article_publisher_slug: item.content_json?.sourceSlug ?? "",
+article_preview: item.content_json?.preview ?? item.preview_text ?? "",
+article_icon_url: item.content_json?.iconUrl ?? "",
+article_author: item.content_json?.author ?? "",
+article_image_url: item.content_json?.imageUrl ?? "",
+article_body: item.content_json?.body ?? "",
+article_subscriber_count: item.content_json?.subscriberCount ?? 0,
+article_like_count: item.content_json?.likeCount ?? 0,
+article_related_story_slug: item.content_json?.relatedStorySlug ?? "",
+article_related_story_label: item.content_json?.relatedStoryLabel ?? "",
+
+article_comment_0_avatar_url: item.content_json?.comments?.[0]?.avatarUrl ?? "",
+article_comment_0_nickname: item.content_json?.comments?.[0]?.nickname ?? "",
+article_comment_0_content: item.content_json?.comments?.[0]?.content ?? "",
+article_comment_0_like_count: item.content_json?.comments?.[0]?.likeCount ?? 0,
+
+article_comment_1_avatar_url: item.content_json?.comments?.[1]?.avatarUrl ?? "",
+article_comment_1_nickname: item.content_json?.comments?.[1]?.nickname ?? "",
+article_comment_1_content: item.content_json?.comments?.[1]?.content ?? "",
+article_comment_1_like_count: item.content_json?.comments?.[1]?.likeCount ?? 0,
+
+article_comment_2_avatar_url: item.content_json?.comments?.[2]?.avatarUrl ?? "",
+article_comment_2_nickname: item.content_json?.comments?.[2]?.nickname ?? "",
+article_comment_2_content: item.content_json?.comments?.[2]?.content ?? "",
+article_comment_2_like_count: item.content_json?.comments?.[2]?.likeCount ?? 0,
+
+article_comment_3_avatar_url: item.content_json?.comments?.[3]?.avatarUrl ?? "",
+article_comment_3_nickname: item.content_json?.comments?.[3]?.nickname ?? "",
+article_comment_3_content: item.content_json?.comments?.[3]?.content ?? "",
+article_comment_3_like_count: item.content_json?.comments?.[3]?.likeCount ?? 0,
 
   }}
 />

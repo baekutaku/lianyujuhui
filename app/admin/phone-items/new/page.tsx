@@ -1,5 +1,5 @@
 import PhoneItemForm from "@/components/admin/phone-items/PhoneItemForm";
-import { createPhoneItemAction } from "./actions";
+import { createPhoneItemAction } from "@/app/admin/actions";
 
 export default function NewPhoneItemPage() {
   return (
