@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/server";
 import { buildStoryKeys } from "@/lib/utils/admin-keys";
 
 function extractYoutubeVideoId(url: string) {
