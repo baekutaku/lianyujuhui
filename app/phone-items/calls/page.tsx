@@ -1,7 +1,7 @@
+import Link from "next/link";
 import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
-import CallHistoryList from "@/components/phone/call/CallHistoryList";
 import { supabase } from "@/lib/supabase/server";
 
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
@@ -20,96 +20,107 @@ const DEFAULT_NAME_MAP: Record<string, string> = {
   lingxiao: "연시호",
 };
 
-type PhoneCallRow = {
+type CallRow = {
   id: string;
   title: string | null;
   slug: string | null;
-  subtype: string;
   created_at: string;
+  subtype: string;
+  is_published: boolean | null;
   content_json?: {
     characterKey?: string;
     characterName?: string;
     avatarUrl?: string;
-    level?: number;
   } | null;
 };
 
 type CallItem = {
+  id: string;
+  slug: string;
+  subtype: string;
   characterKey: string;
   characterName: string;
   avatarUrl: string;
-  level?: number;
-  slug: string;
   title: string;
-  isVideo?: boolean;
   createdAt: string;
 };
 
 export default async function CallsPage() {
   const { data, error } = await supabase
     .from("phone_items")
-    .select("id, title, slug, subtype, created_at, content_json")
-    .eq("is_published", true)
+    .select("id, title, slug, created_at, subtype, is_published, content_json")
     .in("subtype", ["call", "video_call"])
+    .eq("is_published", true)
     .order("created_at", { ascending: false });
 
   if (error) {
-    return (
-      <main className="phone-page">
-        <PhoneShell>
-          <PhoneTopBar title="음성" subtitle="최근 통화" />
-          <div className="phone-content">
-            <pre className="error-box">{JSON.stringify(error, null, 2)}</pre>
-          </div>
-          <PhoneTabNav currentPath="/phone-items/calls" />
-        </PhoneShell>
-      </main>
-    );
+    throw new Error(error.message);
   }
 
-  const rows = (data as PhoneCallRow[] | null) ?? [];
-  const latestByCharacter = new Map<string, CallItem>();
+  const rows = (data as CallRow[] | null) ?? [];
 
-  for (const item of rows) {
-    const characterKey = item.content_json?.characterKey?.trim() || "baiqi";
-    if (latestByCharacter.has(characterKey)) continue;
+  const items: CallItem[] = rows
+    .map((row) => {
+      const characterKey = row.content_json?.characterKey?.trim() || "baiqi";
+      const slug = row.slug?.trim() || "";
+      if (!slug) return null;
 
-    const slug = item.slug?.trim() || "";
-    if (!slug) continue;
+      return {
+  id: String(row.id),
+  slug,
+  subtype: row.subtype,
+  characterKey,
+  characterName:
+    row.content_json?.characterName?.trim() ||
+    DEFAULT_NAME_MAP[characterKey] ||
+    "이름 없음",
+  avatarUrl:
+    row.content_json?.avatarUrl?.trim() ||
+    DEFAULT_AVATAR_MAP[characterKey] ||
+    "/profile/baiqi.png",
+  title: row.title?.trim() || "제목 없음",
+  createdAt: row.created_at,
+};
+    })
+    .filter(Boolean) as CallItem[];
 
-    latestByCharacter.set(characterKey, {
-      characterKey,
-      characterName:
-        item.content_json?.characterName?.trim() ||
-        DEFAULT_NAME_MAP[characterKey] ||
-        "이름 없음",
-      avatarUrl:
-        item.content_json?.avatarUrl?.trim() ||
-        DEFAULT_AVATAR_MAP[characterKey] ||
-        "/profile/baiqi.png",
-      level:
-        typeof item.content_json?.level === "number"
-          ? item.content_json.level
-          : undefined,
-      slug,
-      title: item.title?.trim() || "통화 기록",
-      isVideo: item.subtype === "video_call",
-      createdAt: item.created_at,
-    });
-  }
+  const latestBaiqi = items.find((item) => item.characterKey === "baiqi");
 
-  const items = Array.from(latestByCharacter.values()).sort((a, b) => {
-    if (a.characterKey === "baiqi" && b.characterKey !== "baiqi") return -1;
-    if (a.characterKey !== "baiqi" && b.characterKey === "baiqi") return 1;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+  const orderedItems = latestBaiqi
+    ? [latestBaiqi, ...items.filter((item) => item.id !== latestBaiqi.id)]
+    : items;
 
   return (
     <main className="phone-page">
       <PhoneShell>
-        <PhoneTopBar title="음성" subtitle="최근 통화" />
+        <PhoneTopBar title="통화" subtitle="최근 통화" />
         <div className="phone-content">
-          <CallHistoryList items={items} />
+          <div className="call-history-list">
+            {orderedItems.map((item) => (
+              <Link
+                key={item.id}
+                href={`/phone-items/calls/${item.characterKey}/${item.slug}`}
+                className="call-history-item"
+              >
+                <img
+                  src={item.avatarUrl}
+                  alt={item.characterName}
+                  className="phone-avatar"
+                />
+
+                <div className="call-main">
+                  <div className="call-name">{item.characterName}</div>
+                  <div className="call-title">{item.title}</div>
+                </div>
+
+<div className="call-action">
+  <span className="material-symbols-rounded">
+    {item.subtype === "video_call" ? "videocam" : "volume_up"}
+  </span>
+</div>
+              </Link>
+            ))}
+          </div>
         </div>
         <PhoneTabNav currentPath="/phone-items/calls" />
       </PhoneShell>
