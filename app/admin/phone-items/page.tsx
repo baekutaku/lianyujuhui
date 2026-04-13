@@ -40,34 +40,39 @@ const CATEGORY_LABELS: Record<string, string> = {
   tangle: "얽힘",
 };
 
+
 function getPublicPhoneItemHref(item: {
   slug: string;
   subtype: string;
   content_json?: any;
 }) {
-if (item.subtype === "message") {
-  const characterKey = item.content_json?.characterKey || "baiqi";
-  return `/phone-items/messages/${characterKey}/${item.slug}`;
-}
+  const slug = encodeURIComponent(String(item.slug || "").trim());
+
+  if (item.subtype === "message") {
+    const characterKey =
+      String(item.content_json?.characterKey || "").trim() || "baiqi";
+    return `/phone-items/messages/${characterKey}/${slug}`;
+  }
 
   if (item.subtype === "moment") {
-    const characterKey = item.content_json?.characterKey || "baiqi";
-    return `/phone-items/moments/${characterKey}`;
+    const authorKey =
+      String(item.content_json?.authorKey || "").trim() || "other";
+    return `/phone-items/moments/${authorKey}/${slug}`;
   }
 
   if (item.subtype === "call" || item.subtype === "video_call") {
-    const characterKey = item.content_json?.characterKey;
+    const characterKey = String(item.content_json?.characterKey || "").trim();
     return characterKey
-      ? `/phone-items/calls/${characterKey}/${item.slug}`
+      ? `/phone-items/calls/${characterKey}/${slug}`
       : `/phone-items/calls`;
   }
 
-if (item.subtype === "article") {
-  const publisherSlug = item.content_json?.sourceSlug;
-  return publisherSlug
-    ? `/phone-items/articles/${publisherSlug}/${item.slug}`
-    : `/phone-items/articles`;
-}
+  if (item.subtype === "article") {
+    const publisherSlug = String(item.content_json?.sourceSlug || "").trim();
+    return publisherSlug
+      ? `/phone-items/articles/${publisherSlug}/${slug}`
+      : `/phone-items/articles`;
+  }
 
   return `/phone-items`;
 }
@@ -120,9 +125,15 @@ export default async function AdminPhoneItemsPage({
 
   const filteredItems =
     (phoneItems as PhoneItemRow[] | null)?.filter((item) => {
-      const characterKey = item.content_json?.characterKey ?? "";
-      const historyCategory = item.content_json?.historyCategory ?? "";
+      const characterKey =
+  item.subtype === "moment"
+    ? String(item.content_json?.authorKey || "").trim()
+    : String(item.content_json?.characterKey || "").trim();
 
+const historyCategory =
+  item.subtype === "moment"
+    ? String(item.content_json?.momentCategory || "").trim()
+    : String(item.content_json?.historyCategory || "").trim();
       const matchesSubtype =
         subtypeFilter === "all" || item.subtype === subtypeFilter;
       const matchesCharacter =
@@ -274,8 +285,15 @@ export default async function AdminPhoneItemsPage({
 
           <ul className="list-grid">
             {filteredItems.map((item) => {
-              const characterKey = item.content_json?.characterKey ?? "";
-              const historyCategory = item.content_json?.historyCategory ?? "";
+              const characterKey =
+  item.subtype === "moment"
+    ? String(item.content_json?.authorKey || "").trim()
+    : String(item.content_json?.characterKey || "").trim();
+
+const historyCategory =
+  item.subtype === "moment"
+    ? String(item.content_json?.momentCategory || "").trim()
+    : String(item.content_json?.historyCategory || "").trim();
               const preview =
                 item.content_json?.preview ||
                 item.content_json?.historySummary ||
@@ -351,13 +369,16 @@ export default async function AdminPhoneItemsPage({
                       </Link>
 
                       {characterKey ? (
-                        <Link
-                          href={`/characters/${characterKey}`}
-                          className="nav-link"
-                        >
-                          캐릭터 허브
-                        </Link>
-                      ) : null}
+  characterKey === "mc" ? (
+    <Link href="/phone-items/me" className="nav-link">
+      나 프로필
+    </Link>
+  ) : (
+    <Link href={`/characters/${characterKey}`} className="nav-link">
+      캐릭터 허브
+    </Link>
+  )
+) : null}
 
                       <form action={deletePhoneItem}>
                         <input type="hidden" name="phoneItemId" value={item.id} />

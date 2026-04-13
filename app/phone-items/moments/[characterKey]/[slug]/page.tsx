@@ -37,6 +37,24 @@ type PageProps = {
   }>;
 };
 
+type MomentReplyLine = {
+  speakerKey?: string;
+  speakerName?: string;
+  targetName?: string;
+  content?: string;
+  isReplyToMc?: boolean;
+};
+
+type MomentChoiceOption = {
+  id: string;
+  label: string;
+  isHistory: boolean;
+  replySpeakerKey: string;
+  replySpeakerName: string;
+  replyTargetName: string;
+  replyContent: string;
+};
+
 type MomentRow = {
   id: string;
   title: string | null;
@@ -55,13 +73,7 @@ type MomentRow = {
     momentSummary?: string;
     momentSource?: string;
     momentImageUrls?: string[];
-    momentReplyLines?: Array<{
-      speakerKey?: string;
-      speakerName?: string;
-      targetName?: string;
-      content?: string;
-      isReplyToMc?: boolean;
-    }>;
+    momentReplyLines?: MomentReplyLine[];
     momentComments?: Array<{
       avatarUrl?: string;
       nickname?: string;
@@ -81,6 +93,13 @@ type MomentRow = {
     isFavorite?: boolean;
     isComplete?: boolean;
   } | null;
+};
+
+type RenderLine = {
+  speakerName: string;
+  targetName?: string;
+  content: string;
+  isReplyToMc?: boolean;
 };
 
 function safeDecode(value: string) {
@@ -114,7 +133,7 @@ const UI = {
   bodyLineHeight: 1.34,
   dateSize: 12.5,
   replyFontSize: 15,
-  replyLineHeight: 1.32,
+  replyLineHeight: 1.42,
   replyBg: "rgba(248, 236, 241, 0.56)",
   replyAccent: "#df7f96",
   replySub: "#7a6e79",
@@ -122,27 +141,65 @@ const UI = {
   imageAspectRatio: "1.95 / 1",
 };
 
+function buildRenderLines(
+  activeChoice: MomentChoiceOption | null,
+  replyLines: MomentReplyLine[]
+): RenderLine[] {
+  const lines: RenderLine[] = [];
+
+  if (activeChoice?.label?.trim()) {
+    lines.push({
+      speakerName: activeChoice.replyTargetName.trim() || "유연",
+      content: activeChoice.label.trim(),
+      isReplyToMc: false,
+    });
+  }
+
+  if (activeChoice?.replyContent?.trim()) {
+    lines.push({
+      speakerName: activeChoice.replySpeakerName.trim() || "이름 없음",
+      targetName: activeChoice.replyTargetName.trim() || "유연",
+      content: activeChoice.replyContent.trim(),
+      isReplyToMc: true,
+    });
+  }
+
+  for (const line of replyLines) {
+    const content = String(line.content || "").trim();
+    if (!content) continue;
+
+    lines.push({
+      speakerName: String(line.speakerName || "").trim() || "이름 없음",
+      targetName: String(line.targetName || "").trim(),
+      content,
+      isReplyToMc: Boolean(line.isReplyToMc),
+    });
+  }
+
+  return lines;
+}
+
 function ReplyPrefix({
   speakerName,
   targetName,
   isReplyToMc,
 }: {
-  speakerName?: string;
+  speakerName: string;
   targetName?: string;
   isReplyToMc?: boolean;
 }) {
-  const safeSpeaker = speakerName?.trim() || "이름 없음";
+  const safeSpeaker = speakerName.trim() || "이름 없음";
   const safeTarget = targetName?.trim() || "유연";
 
   return (
     <>
-      <span style={{ color: UI.replyAccent, fontWeight: 700 }}>{safeSpeaker}</span>
+      <span style={{ color: UI.replyAccent, fontWeight: 700 }}>
+        {safeSpeaker}
+      </span>
       {isReplyToMc ? (
         <span style={{ color: UI.replySub }}>{` 답장 ${safeTarget}`}</span>
-      ) : targetName ? (
-        <span style={{ color: UI.replySub }}>{` → ${safeTarget}`}</span>
       ) : null}
-      <span style={{ color: UI.replySub }}>:</span>
+      <span style={{ color: UI.replySub }}>:</span>{" "}
     </>
   );
 }
@@ -205,7 +262,9 @@ export default async function MomentDetailPage({
     ? item.content_json!.momentComments!
     : [];
 
-  const choiceOptions = Array.isArray(item.content_json?.momentChoiceOptions)
+  const choiceOptions: MomentChoiceOption[] = Array.isArray(
+    item.content_json?.momentChoiceOptions
+  )
     ? item.content_json!.momentChoiceOptions!.map((option, index) => ({
         id: option.id?.trim() || `option-${index + 1}`,
         label: option.label?.trim() || `선택지 ${index + 1}`,
@@ -226,6 +285,9 @@ export default async function MomentDetailPage({
   const activeChoice =
     choiceOptions.find((option) => option.id === selectedOptionId) || null;
 
+  const renderLines = buildRenderLines(activeChoice, replyLines);
+const profileHref =
+  authorKey === "mc" ? "/phone-items/me" : `/phone-items/me/${authorKey}`;
   return (
     <main className="phone-page">
       <PhoneShell>
@@ -284,30 +346,30 @@ export default async function MomentDetailPage({
               >
                 <div>
                   {authorHasProfile ? (
-                    <Link href={`/phone-items/me/${authorKey}`}>
-                      <img
-                        src={authorAvatarUrl}
-                        alt={authorName}
-                        style={{
-                          width: 58,
-                          height: 58,
-                          borderRadius: "999px",
-                          objectFit: "cover",
-                        }}
-                      />
-                    </Link>
-                  ) : (
-                    <img
-                      src={authorAvatarUrl}
-                      alt={authorName}
-                      style={{
-                        width: 58,
-                        height: 58,
-                        borderRadius: "999px",
-                        objectFit: "cover",
-                      }}
-                    />
-                  )}
+  <Link href={profileHref}>
+    <img
+      src={authorAvatarUrl}
+      alt={authorName}
+      style={{
+        width: 58,
+        height: 58,
+        borderRadius: "999px",
+        objectFit: "cover",
+      }}
+    />
+  </Link>
+) : (
+  <img
+    src={authorAvatarUrl}
+    alt={authorName}
+    style={{
+      width: 58,
+      height: 58,
+      borderRadius: "999px",
+      objectFit: "cover",
+    }}
+  />
+)}
                 </div>
 
                 <div style={{ minWidth: 0 }}>
@@ -410,7 +472,7 @@ export default async function MomentDetailPage({
                     </div>
                   ) : null}
 
-                  {activeChoice ? (
+                  {renderLines.length ? (
                     <div
                       style={{
                         marginTop: 14,
@@ -421,50 +483,18 @@ export default async function MomentDetailPage({
                         lineHeight: UI.replyLineHeight,
                         letterSpacing: "-0.015em",
                         fontSize: UI.replyFontSize,
+                        display: "grid",
+                        gap: 4,
                       }}
                     >
-                      <div>
-                        <strong style={{ color: UI.replyAccent }}>
-                          {activeChoice.replyTargetName || "유연"}
-                        </strong>
-                        <span style={{ color: UI.replySub }}>:</span>{" "}
-                        {activeChoice.label}
-                      </div>
-
-                      {activeChoice.replyContent ? (
-                        <div style={{ marginTop: 6 }}>
+                      {renderLines.map((line, index) => (
+                        <div key={`reaction-${index}`}>
                           <ReplyPrefix
-                            speakerName={activeChoice.replySpeakerName || "답장"}
-                            targetName={activeChoice.replyTargetName || "유연"}
-                            isReplyToMc
-                          />{" "}
-                          {activeChoice.replyContent}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : replyLines.length ? (
-                    <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-                      {replyLines.map((line, index) => (
-                        <div
-                          key={`${line.speakerName || "reply"}-${index}`}
-                          style={{
-                            padding: "11px 14px",
-                            background: UI.replyBg,
-                            color: "#665561",
-                            whiteSpace: "pre-wrap",
-                            lineHeight: UI.replyLineHeight,
-                            letterSpacing: "-0.015em",
-                            fontSize: UI.replyFontSize,
-                          }}
-                        >
-                          <div>
-                            <ReplyPrefix
-                              speakerName={line.speakerName}
-                              targetName={line.targetName}
-                              isReplyToMc={line.isReplyToMc}
-                            />{" "}
-                            {line.content || ""}
-                          </div>
+                            speakerName={line.speakerName}
+                            targetName={line.targetName}
+                            isReplyToMc={line.isReplyToMc}
+                          />
+                          <span>{line.content}</span>
                         </div>
                       ))}
                     </div>

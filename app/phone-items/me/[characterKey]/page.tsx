@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
+import { getMomentCountByAuthorKey } from "@/lib/phone/moment-author";
 
 type PageProps = {
   params: Promise<{
@@ -91,18 +92,21 @@ export default async function PhoneMeCharacterPage({ params }: PageProps) {
   if (error) throw new Error(error.message);
 
   const items =
-    ((data as PhoneItemRow[] | null) ?? []).filter(
-      (item) => item.content_json?.characterKey === characterKey
-    ) ?? [];
+  ((data as PhoneItemRow[] | null) ?? []).filter(
+    (item) => item.content_json?.characterKey === characterKey
+  ) ?? [];
 
-  const momentCount = items.filter((item) => item.subtype === "moment").length;
-  const messageCount = items.filter((item) => item.subtype === "message").length;
-  const callCount = items.filter(
-    (item) => item.subtype === "call" || item.subtype === "video_call"
-  ).length;
-  const articleCount = items.filter((item) => item.subtype === "article").length;
+const messageCount = items.filter((item) => item.subtype === "message").length;
 
-  const totalCollected = momentCount + messageCount + callCount + articleCount;
+const callCount = items.filter(
+  (item) => item.subtype === "call" || item.subtype === "video_call"
+).length;
+
+const articleCount = items.filter((item) => item.subtype === "article").length;
+
+const momentCount = await getMomentCountByAuthorKey(characterKey);
+
+const totalCollected = momentCount + messageCount + callCount + articleCount;
   const progressPercent =
     meta.affinityMax > 0
       ? Math.min((meta.affinityNow / meta.affinityMax) * 100, 100)

@@ -11,6 +11,7 @@ import {
   selectPhoneProfile,
 } from "@/app/phone-items/me/actions";
 
+
 type ProfileOption = {
   id: string;
   title: string;
@@ -33,11 +34,12 @@ type Props = {
   baseProfileOptions?: ProfileOption[];
   customProfileOptions?: ProfileOption[];
   characters?: CharacterCard[];
+  myMomentCount?: number;
+  totalMomentCount?: number;
   initialSelectedSourceType?: "option" | "custom" | null;
   initialSelectedSourceId?: string | null;
   isAdmin?: boolean;
 };
-
 const STORAGE_KEY = "mlqc_phone_me_avatar";
 const STORAGE_URL_KEY = "mlqc_phone_me_avatar_url";
 
@@ -47,6 +49,8 @@ export default function PhoneMeScreen({
   baseProfileOptions,
   customProfileOptions,
   characters,
+  myMomentCount = 0,
+  totalMomentCount = 0,
   initialSelectedSourceType,
   initialSelectedSourceId,
   isAdmin = false,
@@ -465,21 +469,26 @@ useEffect(() => {
     ))}
   </div>
           <div style={{ display: "grid", gap: 12 }}>
-  <div
-    className="link-card"
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-padding: "15px 18px",
-fontSize: 17,
-fontWeight: 700,
-borderRadius: 20,
-    }}
-  >
-    <span>내 모멘트</span>
-    <span />
-  </div>
+<Link
+  href="/phone-items/moments/mc"
+  className="link-card"
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "15px 18px",
+    fontSize: 17,
+    fontWeight: 700,
+    borderRadius: 20,
+    textDecoration: "none",
+    color: "inherit",
+  }}
+>
+  <span>내 모멘트</span>
+  <span style={{ color: "#de9fc2", fontWeight: 800 }}>
+    {totalMomentCount > 0 ? `${myMomentCount}/${totalMomentCount}` : myMomentCount}
+  </span>
+</Link>
 
   <div
     className="link-card"
@@ -493,6 +502,7 @@ fontWeight: 700,
 borderRadius: 20,
       opacity: 0.72,
     }}
+    
   >
     <span>앨범</span>
     <span />
@@ -530,6 +540,27 @@ borderRadius: 20,
   >
     <span>채팅 버블</span>
     <span />
+
+    
+  </div>
+
+  <div
+    className="link-card"
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+padding: "15px 18px",
+fontSize: 17,
+fontWeight: 700,
+borderRadius: 20,
+      opacity: 0.72,
+    }}
+  >
+    <span>통화 중 배경음악 끄기</span>
+    <span />
+
+    
   </div>
 </div>
         </div>

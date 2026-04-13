@@ -33,15 +33,6 @@ export type MomentFeedItem = {
   isFavorite: boolean;
 };
 
-function getMomentReplyDisplayName(line: {
-  speakerName?: string;
-  isReplyToMc?: boolean;
-}) {
-  const baseName = line.speakerName?.trim() || "이름 없음";
-  if (line.isReplyToMc) return `${baseName}답장유연`;
-  return baseName;
-}
-
 const UI = {
   wrapperPadding: "18px 10px 20px",
   nameSize: 18,
@@ -49,9 +40,10 @@ const UI = {
   bodyLineHeight: 1.34,
   dateSize: 12.5,
   replyFontSize: 15,
-  replyLineHeight: 1.32,
+  replyLineHeight: 1.42,
   replyBg: "rgba(248, 236, 241, 0.56)",
   replyAccent: "#df7f96",
+  replySub: "#746a74",
   imageWidth: "78%",
   imageAspectRatio: "1.95 / 1",
 };
@@ -60,7 +52,103 @@ type MomentFeedPostProps = {
   item: MomentFeedItem;
 };
 
+type RenderLine = {
+  kind: "choice" | "reply";
+  speakerName: string;
+  targetName?: string;
+  content: string;
+  isReplyToMc?: boolean;
+};
+
+
+
+function buildRenderLines(item: MomentFeedItem): RenderLine[] {
+  const lines: RenderLine[] = [];
+
+  if (item.activeChoice?.label?.trim()) {
+    lines.push({
+      kind: "choice",
+      speakerName: item.activeChoice.replyTargetName?.trim() || "유연",
+      content: item.activeChoice.label.trim(),
+      isReplyToMc: false,
+    });
+  }
+
+  if (item.activeChoice?.replyContent?.trim()) {
+    lines.push({
+      kind: "reply",
+      speakerName: item.activeChoice.replySpeakerName?.trim() || "답장",
+      targetName: item.activeChoice.replyTargetName?.trim() || "유연",
+      content: item.activeChoice.replyContent.trim(),
+      isReplyToMc: true,
+    });
+  }
+
+  for (const line of item.replyLines ?? []) {
+    const content = String(line.content || "").trim();
+    if (!content) continue;
+
+    lines.push({
+      kind: "reply",
+      speakerName: String(line.speakerName || "").trim() || "이름 없음",
+      targetName: String(line.targetName || "").trim(),
+      content,
+      isReplyToMc: Boolean(line.isReplyToMc),
+    });
+  }
+
+  return lines;
+}
+
+function ReactionPrefix({
+  line,
+}: {
+  line: RenderLine;
+}) {
+  if (line.kind === "choice") {
+    return (
+      <>
+        <span style={{ color: UI.replyAccent, fontWeight: 700 }}>
+          {line.speakerName}
+        </span>
+        <span style={{ color: UI.replySub }}>:</span>{" "}
+      </>
+    );
+  }
+
+  if (line.isReplyToMc && line.targetName) {
+    return (
+      <>
+        <span style={{ color: UI.replyAccent, fontWeight: 700 }}>
+          {line.speakerName}
+        </span>
+        <span style={{ color: UI.replySub }}> 답장 </span>
+        <span style={{ color: UI.replyAccent, fontWeight: 700 }}>
+          {line.targetName}
+        </span>
+        <span style={{ color: UI.replySub }}>:</span>{" "}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <span style={{ color: UI.replyAccent, fontWeight: 700 }}>
+        {line.speakerName}
+      </span>
+      <span style={{ color: UI.replySub }}>:</span>{" "}
+    </>
+  );
+}
+
 export default function MomentFeedPost({ item }: MomentFeedPostProps) {
+  const renderLines = buildRenderLines(item);
+
+  const profileHref =
+    item.authorKey === "mc"
+      ? "/phone-items/me"
+      : `/phone-items/me/${item.authorKey}`;
+
   return (
     <div
       style={{
@@ -80,7 +168,7 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
       >
         <div>
           {item.authorHasProfile ? (
-            <Link href={`/phone-items/me/${item.authorKey}`}>
+            <Link href={profileHref}>
               <img
                 src={item.authorAvatarUrl}
                 alt={item.authorName}
@@ -201,7 +289,7 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
             </div>
           ) : null}
 
-          {item.activeChoice ? (
+          {renderLines.length ? (
             <div
               style={{
                 marginTop: 14,
@@ -212,60 +300,14 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
                 lineHeight: UI.replyLineHeight,
                 letterSpacing: "-0.015em",
                 fontSize: UI.replyFontSize,
+                display: "grid",
+                gap: 4,
               }}
             >
-              <div>
-                <strong style={{ color: UI.replyAccent }}>
-                  {item.activeChoice.replyTargetName || "유연"}:
-                </strong>{" "}
-                {item.activeChoice.label}
-              </div>
-
-              {item.activeChoice.replyContent ? (
-                <div style={{ marginTop: 6 }}>
-                  <strong
-                    style={{
-                      color: UI.replyAccent,
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {item.activeChoice.replySpeakerName || "답장"}
-                    {item.activeChoice.replyTargetName
-                      ? `답장${item.activeChoice.replyTargetName}`
-                      : ""}
-                    :
-                  </strong>{" "}
-                  {item.activeChoice.replyContent}
-                </div>
-              ) : null}
-            </div>
-          ) : item.replyLines.length ? (
-            <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-              {item.replyLines.map((line, index) => (
-                <div
-                  key={`${line.speakerName || "reply"}-${index}`}
-                  style={{
-                    padding: "11px 14px",
-                    background: UI.replyBg,
-                    color: "#665561",
-                    whiteSpace: "pre-wrap",
-                    lineHeight: UI.replyLineHeight,
-                    letterSpacing: "-0.015em",
-                    fontSize: UI.replyFontSize,
-                  }}
-                >
-                  <strong
-                    style={{
-                      display: "block",
-                      marginBottom: 4,
-                      lineHeight: 1.2,
-                      color: UI.replyAccent,
-                    }}
-                  >
-                    {getMomentReplyDisplayName(line)}
-                    {line.targetName ? `→${line.targetName}` : ""}
-                  </strong>
-                  <div>{line.content || ""}</div>
+              {renderLines.map((line, index) => (
+                <div key={`reaction-${index}`}>
+                  <ReactionPrefix line={line} />
+                  <span>{line.content}</span>
                 </div>
               ))}
             </div>

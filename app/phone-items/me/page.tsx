@@ -4,6 +4,7 @@ import PhoneMeScreen from "@/components/phone/PhoneMeScreen";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import { getPhoneProfileActor } from "@/lib/phone/get-phone-profile-actor";
 import { redirect } from "next/navigation";
+import { getMomentCountByAuthorKey } from "@/lib/phone/moment-author";
 
 type PhoneItemRow = {
   id: string;
@@ -97,12 +98,20 @@ export default async function PhoneMePage() {
   if (customError) throw new Error(customError.message);
   if (selectedError) throw new Error(selectedError.message);
 
-  const items = (phoneItems as PhoneItemRow[] | null) ?? [];
+const items = (phoneItems as PhoneItemRow[] | null) ?? [];
 
-  const characters = CHARACTERS.map((character) => ({
-    ...character,
-    moments: getMomentCount(items, character.key),
-  }));
+const myMomentCount = await getMomentCountByAuthorKey("mc");
+
+const { count: totalMomentCount } = await supabase
+  .from("phone_items")
+  .select("*", { count: "exact", head: true })
+  .eq("subtype", "moment")
+  .eq("is_published", true);
+
+const characters = CHARACTERS.map((character) => ({
+  ...character,
+  moments: getMomentCount(items, character.key),
+}));
 
   const baseProfileOptions =
     ((baseProfiles as BaseProfileRow[] | null) ?? []).map((item) => ({
@@ -145,16 +154,18 @@ export default async function PhoneMePage() {
         }}
       >
         <div style={{ flex: 1 }}>
-          <PhoneMeScreen
-            viewerName="유연"
-            defaultAvatarUrl="/profile/mc.png"
-            characters={characters}
-            baseProfileOptions={baseProfileOptions}
-            customProfileOptions={customProfileOptions}
-            initialSelectedSourceType={selectedRow?.source_type ?? null}
-            initialSelectedSourceId={selectedRow?.source_id ?? null}
-            isAdmin={actor.isAdmin}
-          />
+<PhoneMeScreen
+  viewerName="유연"
+  defaultAvatarUrl="/profile/mc.png"
+  characters={characters}
+  baseProfileOptions={baseProfileOptions}
+  customProfileOptions={customProfileOptions}
+  myMomentCount={myMomentCount}
+  totalMomentCount={totalMomentCount ?? 0}
+  initialSelectedSourceType={selectedRow?.source_type ?? null}
+  initialSelectedSourceId={selectedRow?.source_id ?? null}
+  isAdmin={actor.isAdmin}
+/>
         </div>
 
         <div

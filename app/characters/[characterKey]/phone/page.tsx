@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
+import { getMomentCountByAuthorKey } from "@/lib/phone/moment-author";
+
 
 type PageProps = {
   params: Promise<{ characterKey: string }>;
@@ -41,8 +43,10 @@ const CHARACTER_META: Record<
   },
 };
 
+
 export default async function CharacterPhonePage({ params }: PageProps) {
   const { characterKey } = await params;
+  const momentCount = await getMomentCountByAuthorKey(characterKey);
   const meta = CHARACTER_META[characterKey];
 
   if (!meta) notFound();
@@ -66,10 +70,6 @@ export default async function CharacterPhonePage({ params }: PageProps) {
     (item) => item.subtype === "message"
   ).length;
 
-  const momentCount = ownItems.filter(
-    (item) => item.subtype === "moment"
-  ).length;
-
   const callCount = ownItems.filter(
     (item) => item.subtype === "call" || item.subtype === "video_call"
   ).length;
@@ -78,7 +78,7 @@ export default async function CharacterPhonePage({ params }: PageProps) {
     (item) => item.subtype === "article"
   ).length;
 
-  const totalCount = ownItems.length;
+ const totalCount = messageCount + momentCount + callCount + articleCount;
 
   return (
     <main>
