@@ -1,6 +1,32 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 
+function getAttributeClass(attribute?: string | null) {
+  const value = String(attribute || "").trim().toLowerCase();
+
+  switch (value) {
+    case "결단력":
+    case "decisiveness":
+    case "judgment":
+      return "stat-decisiveness";
+
+    case "창의력":
+    case "creativity":
+      return "stat-creativity";
+
+    case "친화력":
+    case "affinity":
+      return "stat-affinity";
+
+    case "추진력":
+    case "drive":
+    case "action":
+      return "stat-drive";
+
+    default:
+      return "";
+  }
+}
 export default async function CardsPage() {
   const { data: cards, error } = await supabase
     .from("cards")
@@ -12,7 +38,6 @@ export default async function CardsPage() {
     .order("created_at", { ascending: false });
 
   const cardIds = (cards ?? []).map((card) => card.id);
-
   const afterThumbMap = new Map<string, string>();
 
   if (cardIds.length > 0) {
@@ -57,7 +82,10 @@ export default async function CardsPage() {
 
             return (
               <li key={card.id} className="card-thumb-card">
-                <Link href={`/cards/${card.slug}`} className="card-thumb-link">
+                <Link
+                  href={`/cards/${card.slug}`}
+                  className={`card-thumb-link ${getAttributeClass(card.attribute)}`.trim()}
+                >
                   <div
                     className={`card-thumb-media${
                       afterImageUrl ? " has-after" : ""
