@@ -12,16 +12,6 @@ import {
   normalizeMomentCategory,
 } from "@/lib/phone/moment-filters";
 
-const DEFAULT_AVATAR_MAP: Record<string, string> = {
-  baiqi: "/profile/baiqi.png",
-  lizeyan: "/profile/lizeyan.png",
-  zhouqiluo: "/profile/zhouqiluo.png",
-  xumo: "/profile/xumo.png",
-  lingxiao: "/profile/lingxiao.png",
-  mc: "/profile/mc.png",
-  other: "/profile/npc.png",
-};
-
 const DEFAULT_NAME_MAP: Record<string, string> = {
   baiqi: "백기",
   lizeyan: "이택언",
@@ -42,6 +32,8 @@ type PageProps = {
   }>;
 };
 
+type CategoryKey = "all" | "daily" | "card" | "story";
+
 type MomentRow = {
   id: string;
   title: string | null;
@@ -52,7 +44,6 @@ type MomentRow = {
   content_json?: {
     authorKey?: string;
     authorName?: string;
-    authorAvatarUrl?: string;
     momentCategory?: string;
     momentCategoryLabel?: string;
     momentYear?: number | string;
@@ -65,22 +56,17 @@ type MomentRow = {
   } | null;
 };
 
-type CategoryKey = "all" | "daily" | "card" | "story";
-
-type MomentHistoryItem = {
+type HistoryItem = {
   id: string;
   slug: string;
-  authorKey: string;
-  authorName: string;
-  authorAvatarUrl: string;
   title: string;
   categoryKey: CategoryKey;
   categoryLabel: string;
   yearText: string;
   dateText: string;
+  preview: string;
   summary: string;
   source: string;
-  preview: string;
   isFavorite: boolean;
   isComplete: boolean;
 };
@@ -120,9 +106,10 @@ function getDateText(row: MomentRow) {
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return "";
 
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-    date.getDate()
-  ).padStart(2, "0")}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 export default async function CharacterMomentHistoryPage({
@@ -142,61 +129,46 @@ export default async function CharacterMomentHistoryPage({
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    notFound();
-  }
+  if (error) notFound();
 
   const rows = ((data as MomentRow[] | null) ?? []).filter((row) => {
     const authorKey = row.content_json?.authorKey?.trim() || "other";
     return authorKey === characterKey;
   });
 
-  if (!rows.length) {
-    notFound();
-  }
+  if (!rows.length) notFound();
 
   const authorName =
     rows[0]?.content_json?.authorName?.trim() ||
     DEFAULT_NAME_MAP[characterKey] ||
     "이름 없음";
 
-  const allItems: MomentHistoryItem[] = rows
+  const allItems: HistoryItem[] = rows
     .map((row) => {
       const slug = row.slug?.trim() || "";
       if (!slug) return null;
 
       const categoryKey = safeNormalizeCategory(row.content_json?.momentCategory);
-      const yearText = getYearText(row);
-      const dateText = getDateText(row);
 
       return {
         id: String(row.id),
         slug,
-        authorKey: row.content_json?.authorKey?.trim() || characterKey,
-        authorName:
-          row.content_json?.authorName?.trim() ||
-          DEFAULT_NAME_MAP[characterKey] ||
-          authorName,
-        authorAvatarUrl:
-          row.content_json?.authorAvatarUrl?.trim() ||
-          DEFAULT_AVATAR_MAP[characterKey] ||
-          "/profile/npc.png",
         title: row.title?.trim() || "제목 없음",
         categoryKey,
         categoryLabel:
           row.content_json?.momentCategoryLabel?.trim() ||
           MOMENT_CATEGORY_LABEL_MAP[categoryKey] ||
           "일상",
-        yearText,
-        dateText,
+        yearText: getYearText(row),
+        dateText: getDateText(row),
+        preview: getPreview(row),
         summary: row.content_json?.momentSummary?.trim() || "",
         source: row.content_json?.momentSource?.trim() || "",
-        preview: getPreview(row),
         isFavorite: Boolean(row.content_json?.isFavorite ?? false),
         isComplete: Boolean(row.content_json?.isComplete ?? true),
       };
     })
-    .filter(Boolean) as MomentHistoryItem[];
+    .filter(Boolean) as HistoryItem[];
 
   const availableYears = Array.from(
     new Set(allItems.map((item) => item.yearText).filter(Boolean))
@@ -215,7 +187,7 @@ export default async function CharacterMomentHistoryPage({
     <main className="phone-page">
       <PhoneShell>
         <PhoneTopBar
-          title={`${authorName} · 모멘트`}
+          title={`${authorName} · 모멘트기록`}
           subtitle={`${filteredItems.length}개`}
           backHref={`/phone-items/moments/${characterKey}`}
           rightSlot={
@@ -312,44 +284,17 @@ export default async function CharacterMomentHistoryPage({
               </div>
             ) : null}
 
-            <div className="message-history-grid" style={{ marginTop: 16 }}>
+            <div className="message-history-grid">
               {filteredItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="message-history-card"
-                  style={{ position: "relative" }}
-                >
-                  <div className="message-history-card-top">
-                    <Link
-                      href={`/phone-items/me/${item.authorKey}`}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 8,
-                        textDecoration: "none",
-                        color: "inherit",
-                        minWidth: 0,
-                      }}
-                    >
-                      <img
-                        src={item.authorAvatarUrl}
-                        alt={item.authorName}
-                        style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: "999px",
-                          objectFit: "cover",
-                          flex: "0 0 auto",
-                        }}
-                      />
-                      <span className="message-history-badge">{item.authorName}</span>
-                    </Link>
+                <div key={item.id} className="message-history-card">
+                  <div className="message-history-title-row">
+                    <span className="message-history-group">{item.categoryLabel}</span>
 
                     {admin ? (
-                      <div className="call-inline-admin">
+                      <div className="message-history-actions">
                         <Link
                           href={`/admin/phone-items/${item.id}/edit`}
-                          className="call-inline-admin-btn"
+                          className="message-history-icon-btn"
                           aria-label="수정"
                           title="수정"
                         >
@@ -357,49 +302,25 @@ export default async function CharacterMomentHistoryPage({
                         </Link>
 
                         <form action={deletePhoneItem}>
-                          <input type="hidden" name="phoneItemId" value={item.id} />
+                          <input type="hidden" name="id" value={item.id} />
                           <DeletePhoneItemButton
                             label="삭제"
                             confirmMessage="이 모멘트를 삭제할까요?"
-                            className="call-inline-admin-btn"
-                            icon="delete"
+                            className="message-history-icon-btn"
                           />
                         </form>
                       </div>
-                    ) : item.isFavorite ? (
-                      <span className="message-history-heart">♡</span>
-                    ) : (
-                      <span className="message-history-steam">〰</span>
-                    )}
+                    ) : null}
                   </div>
 
                   <Link
-                    href={`/phone-items/moments/${item.slug}`}
-                    style={{
-                      textDecoration: "none",
-                      color: "inherit",
-                      display: "contents",
-                    }}
+                    href={`/phone-items/moments/${characterKey}/${item.slug}`}
+                    style={{ textDecoration: "none", color: "inherit" }}
                   >
-                    <div className="message-history-title-row">
-                      <span className="message-history-title">{item.title}</span>
-                      {!item.isComplete ? (
-                        <span className="message-history-status">[미완료]</span>
-                      ) : null}
-                    </div>
-
-                    <div className="message-history-meta-summary">
-                      {item.categoryLabel}
-                      {item.yearText ? ` · ${item.yearText}` : ""}
-                      {item.dateText ? ` · ${item.dateText}` : ""}
-                    </div>
+                    <div className="message-history-title">{item.title}</div>
 
                     {item.summary ? (
                       <div className="message-history-meta-source">{item.summary}</div>
-                    ) : null}
-
-                    {item.source ? (
-                      <div className="message-history-meta-source">{item.source}</div>
                     ) : null}
 
                     <div className="message-history-preview">{item.preview}</div>

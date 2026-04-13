@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import MomentChoiceHistoryModal, {
   type MomentChoiceOption,
 } from "@/components/phone/moment/MomentChoiceHistoryModal";
@@ -18,23 +19,34 @@ export default function MomentChoiceTrigger({
   options,
   selectedOptionId = null,
   buttonClassName,
-  buttonTitle = "선택지 다시 보기",
+  buttonTitle = "회상 선택지",
 }: MomentChoiceTriggerProps) {
   const [open, setOpen] = useState(false);
   const [draftSelectedId, setDraftSelectedId] = useState<string | null>(
     selectedOptionId
   );
 
-  const selectedLabel = useMemo(() => {
-    return options.find((option) => option.id === draftSelectedId)?.label || "";
-  }, [draftSelectedId, options]);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    setDraftSelectedId(selectedOptionId);
+  }, [selectedOptionId]);
 
   const handleConfirm = () => {
-    console.log("TODO: 선택지 저장", {
-      selectedOptionId: draftSelectedId,
-      selectedLabel,
-    });
+    const params = new URLSearchParams(searchParams.toString());
 
+    if (draftSelectedId) {
+      params.set("choice", draftSelectedId);
+    } else {
+      params.delete("choice");
+    }
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
     setOpen(false);
   };
 

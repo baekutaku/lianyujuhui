@@ -1,61 +1,35 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import MomentFilterModal from "@/components/phone/moment/MomentFilterModal";
+
+type AuthorOption = {
+  key: string;
+  label: string;
+};
 
 type MomentFeedFilterButtonProps = {
   basePath: string;
-  selectedAuthor?: string;
-  selectedCategory?: string;
-  selectedYear?: string;
-  availableYears: string[];
   showAuthor?: boolean;
+  authorOptions?: AuthorOption[];
+  selectedAuthor?: string;
+  selectedCategories?: string[];
+  selectedReply?: "all" | "replied" | "unreplied";
+  selectedYears?: string[];
+  availableYears: string[];
 };
 
 export default function MomentFeedFilterButton({
   basePath,
+  showAuthor = false,
+  authorOptions = [],
   selectedAuthor = "all",
-  selectedCategory = "all",
-  selectedYear = "",
+  selectedCategories = [],
+  selectedReply = "all",
+  selectedYears = [],
   availableYears,
-  showAuthor = true,
 }: MomentFeedFilterButtonProps) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [draftAuthor, setDraftAuthor] = useState(selectedAuthor);
-  const [draftCategory, setDraftCategory] = useState(selectedCategory);
-  const [draftYear, setDraftYear] = useState(selectedYear);
-
-  const href = useMemo(() => {
-    const params = new URLSearchParams();
-
-    if (showAuthor && draftAuthor !== "all") {
-      params.set("author", draftAuthor);
-    }
-
-    if (draftCategory !== "all") {
-      params.set("category", draftCategory);
-    }
-
-    if (draftYear) {
-      params.set("year", draftYear);
-    }
-
-    const query = params.toString();
-    return query ? `${basePath}?${query}` : basePath;
-  }, [basePath, draftAuthor, draftCategory, draftYear, showAuthor]);
-
-  const handleReset = () => {
-    setDraftAuthor("all");
-    setDraftCategory("all");
-    setDraftYear("");
-  };
-
-  const handleApply = () => {
-    router.push(href);
-    setOpen(false);
-  };
 
   return (
     <>
@@ -71,17 +45,15 @@ export default function MomentFeedFilterButton({
 
       <MomentFilterModal
         open={open}
-        selectedAuthor={draftAuthor}
-        selectedCategory={draftCategory}
-        selectedYear={draftYear}
-        availableYears={availableYears}
-        showAuthor={showAuthor}
-        onAuthorChange={setDraftAuthor}
-        onCategoryChange={setDraftCategory}
-        onYearChange={setDraftYear}
         onClose={() => setOpen(false)}
-        onApply={handleApply}
-        onReset={handleReset}
+        basePath={basePath}
+        showAuthor={showAuthor}
+        authorOptions={authorOptions}
+        selectedAuthor={selectedAuthor}
+        selectedCategories={selectedCategories}
+        selectedReply={selectedReply}
+        selectedYears={selectedYears}
+        availableYears={availableYears}
       />
     </>
   );

@@ -1,11 +1,14 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
+import MomentFeedFilterButton from "@/components/phone/moment/MomentFeedFilterButton";
+import MomentFeedPost, {
+  type MomentFeedItem,
+} from "@/components/phone/moment/MomentFeedPost";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
-import MomentChoiceTrigger from "@/components/phone/moment/MomentChoiceTrigger";
+import { normalizeMomentCategory } from "@/lib/phone/moment-filters";
 
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
   baiqi: "/profile/baiqi.png",
@@ -23,13 +26,18 @@ const DEFAULT_NAME_MAP: Record<string, string> = {
   zhouqiluo: "주기락",
   xumo: "허묵",
   lingxiao: "연시호",
-  mc: "나",
+  mc: "유연",
   other: "기타",
 };
 
 type PageProps = {
   params: Promise<{
     characterKey: string;
+  }>;
+  searchParams?: Promise<{
+    category?: string;
+    reply?: string;
+    year?: string;
   }>;
 };
 
@@ -44,30 +52,50 @@ type MomentRow = {
     authorKey?: string;
     authorName?: string;
     authorAvatarUrl?: string;
+    authorHasProfile?: boolean;
     momentCategory?: string;
-    momentCategoryLabel?: string;
     momentYear?: number | string;
     momentDateText?: string;
     momentBody?: string;
-    momentSummary?: string;
-    momentSource?: string;
-    isFavorite?: boolean;
-    isComplete?: boolean;
+    momentImageUrls?: string[];
+    momentReplyLines?: Array<{
+      speakerKey?: string;
+      speakerName?: string;
+      targetName?: string;
+      content?: string;
+      isReplyToMc?: boolean;
+    }>;
     momentChoiceOptions?: Array<{
       id?: string;
       label?: string;
       isHistory?: boolean;
+      replySpeakerKey?: string;
+      replySpeakerName?: string;
+      replyTargetName?: string;
+      replyContent?: string;
     }>;
     momentSelectedOptionId?: string;
+    isFavorite?: boolean;
   } | null;
 };
 
-function getPreview(row: MomentRow) {
-  const body = row.content_json?.momentBody?.trim();
-  const summary = row.content_json?.momentSummary?.trim();
-  const title = row.title?.trim();
+function parseCsvParam(value?: string) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
-  return body || summary || title || "내용 없음";
+function normalizeReplyFilter(value?: string): "all" | "replied" | "unreplied" {
+  if (value === "replied" || value === "unreplied") return value;
+  return "all";
+}
+
+function getYearText(row: MomentRow) {
+  const raw = row.content_json?.momentYear ?? row.release_year;
+  if (typeof raw === "number") return String(raw);
+  if (typeof raw === "string" && raw.trim()) return raw.trim();
+  return "";
 }
 
 function getDateText(row: MomentRow) {
@@ -80,50 +108,88 @@ function getDateText(row: MomentRow) {
   const date = new Date(createdAt);
   if (Number.isNaN(date.getTime())) return "";
 
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-    date.getDate()
-  ).padStart(2, "0")}`;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export default async function CharacterMomentsPage({ params }: PageProps) {
+export default async function CharacterMomentsPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { characterKey } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const selectedCategories = parseCsvParam(resolvedSearchParams?.category);
+  const selectedReply = normalizeReplyFilter(resolvedSearchParams?.reply);
+  const selectedYears = parseCsvParam(resolvedSearchParams?.year);
   const admin = await isAdmin();
 
   const { data, error } = await supabase
     .from("phone_items")
-    .select("id, title, slug, created_at, release_year, is_published, content_json")
+    .select(
+      "id, title, slug, created_at, release_year, is_published, content_json"
+    )
     .eq("subtype", "moment")
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 
-  if (error) notFound();
+  if (error) {
+    throw new Error("모멘트 데이터를 불러오지 못했습니다.");
+  }
 
   const rows = ((data as MomentRow[] | null) ?? []).filter((row) => {
     const authorKey = row.content_json?.authorKey?.trim() || "other";
     return authorKey === characterKey;
   });
 
-  if (!rows.length) notFound();
-
   const authorName =
     rows[0]?.content_json?.authorName?.trim() ||
     DEFAULT_NAME_MAP[characterKey] ||
     "이름 없음";
 
-  const authorAvatarUrl =
-    rows[0]?.content_json?.authorAvatarUrl?.trim() ||
-    DEFAULT_AVATAR_MAP[characterKey] ||
-    "/profile/npc.png";
-
-  const items = rows
+  const allItems: Array<
+    MomentFeedItem & {
+      categoryKey: string;
+      yearText: string;
+    }
+  > = rows
     .map((row) => {
       const slug = row.slug?.trim() || "";
       if (!slug) return null;
 
+      const imageUrls = Array.isArray(row.content_json?.momentImageUrls)
+        ? row.content_json!.momentImageUrls!.filter(Boolean)
+        : [];
+
+      const replyLines = Array.isArray(row.content_json?.momentReplyLines)
+        ? row.content_json!.momentReplyLines!.filter(
+            (line) => line && String(line.content ?? "").trim()
+          )
+        : [];
+
+      const choiceOptions = Array.isArray(row.content_json?.momentChoiceOptions)
+        ? row.content_json!.momentChoiceOptions!.map((option, index) => ({
+            id: option.id?.trim() || `option-${index + 1}`,
+            label: option.label?.trim() || `선택지 ${index + 1}`,
+            isHistory: Boolean(option.isHistory ?? false),
+            replySpeakerKey: option.replySpeakerKey?.trim() || "",
+            replySpeakerName: option.replySpeakerName?.trim() || "",
+            replyTargetName: option.replyTargetName?.trim() || "",
+            replyContent: option.replyContent?.trim() || "",
+          }))
+        : [];
+
+      const selectedOptionId =
+        row.content_json?.momentSelectedOptionId?.trim() || null;
+
+      const activeChoice =
+        choiceOptions.find((option) => option.id === selectedOptionId) || null;
+
       return {
         id: String(row.id),
         slug,
-        authorKey: row.content_json?.authorKey?.trim() || characterKey,
+        authorKey: characterKey,
         authorName:
           row.content_json?.authorName?.trim() ||
           DEFAULT_NAME_MAP[characterKey] ||
@@ -132,58 +198,66 @@ export default async function CharacterMomentsPage({ params }: PageProps) {
           row.content_json?.authorAvatarUrl?.trim() ||
           DEFAULT_AVATAR_MAP[characterKey] ||
           "/profile/npc.png",
-        title: row.title?.trim() || "제목 없음",
-        categoryLabel:
-          row.content_json?.momentCategoryLabel?.trim() ||
-          row.content_json?.momentCategory?.trim() ||
-          "일상",
+        authorHasProfile: Boolean(row.content_json?.authorHasProfile),
         dateText: getDateText(row),
-        summary: row.content_json?.momentSummary?.trim() || "",
-        source: row.content_json?.momentSource?.trim() || "",
-        preview: getPreview(row),
+        body: row.content_json?.momentBody?.trim() || "",
+        imageUrls,
+        replyLines,
+        activeChoice,
         isFavorite: Boolean(row.content_json?.isFavorite ?? false),
-        isComplete: Boolean(row.content_json?.isComplete ?? true),
-        choiceOptions: Array.isArray(row.content_json?.momentChoiceOptions)
-          ? row.content_json!.momentChoiceOptions!.map((option, index) => ({
-              id: option.id?.trim() || `option-${index + 1}`,
-              label: option.label?.trim() || `선택지 ${index + 1}`,
-              isHistory: Boolean(option.isHistory ?? false),
-            }))
-          : [],
-        selectedOptionId: row.content_json?.momentSelectedOptionId?.trim() || null,
+        categoryKey: normalizeMomentCategory(row.content_json?.momentCategory),
+        yearText: getYearText(row),
       };
     })
-    .filter(Boolean) as Array<{
-      id: string;
-      slug: string;
-      authorKey: string;
-      authorName: string;
-      authorAvatarUrl: string;
-      title: string;
-      categoryLabel: string;
-      dateText: string;
-      summary: string;
-      source: string;
-      preview: string;
-      isFavorite: boolean;
-      isComplete: boolean;
-      choiceOptions: Array<{
-        id: string;
-        label: string;
-        isHistory?: boolean;
-      }>;
-      selectedOptionId: string | null;
-    }>;
+    .filter(Boolean) as Array<
+    MomentFeedItem & {
+      categoryKey: string;
+      yearText: string;
+    }
+  >;
+
+  const availableYears = Array.from(
+    new Set(allItems.map((item) => item.yearText).filter(Boolean))
+  ).sort((a, b) => Number(b) - Number(a));
+
+  const filteredItems = allItems.filter((item) => {
+    const categoryMatched =
+      selectedCategories.length === 0
+        ? true
+        : selectedCategories.includes(item.categoryKey);
+
+    const hasReply = Boolean(item.activeChoice || item.replyLines.length);
+
+    const replyMatched =
+      selectedReply === "all"
+        ? true
+        : selectedReply === "replied"
+          ? hasReply
+          : !hasReply;
+
+    const yearMatched =
+      selectedYears.length === 0
+        ? true
+        : selectedYears.includes(item.yearText);
+
+    return categoryMatched && replyMatched && yearMatched;
+  });
 
   return (
     <main className="phone-page">
       <PhoneShell>
         <PhoneTopBar
           title={`${authorName} · 모멘트`}
-          subtitle={`${items.length}개`}
+          subtitle={`${filteredItems.length}개`}
           backHref={`/phone-items/me/${characterKey}`}
           rightSlot={
-            <div className="history-top-admin">
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
               {admin ? (
                 <>
                   <Link
@@ -208,110 +282,29 @@ export default async function CharacterMomentsPage({ params }: PageProps) {
 
               <Link
                 href={`/phone-items/moments/${characterKey}/history`}
-                className="history-top-admin-btn"
-                aria-label="히스토리"
-                title="히스토리"
+                className="phone-topbar-icon-button"
+                aria-label="모멘트 히스토리"
+                title="모멘트 히스토리"
               >
                 <span className="material-symbols-rounded">more_horiz</span>
               </Link>
 
-              <button
-                type="button"
-                className="phone-topbar-icon-button"
-                aria-label="필터"
-                title="필터"
-              >
-                <span className="material-symbols-rounded">search</span>
-              </button>
+              <MomentFeedFilterButton
+                basePath={`/phone-items/moments/${characterKey}`}
+                selectedCategories={selectedCategories}
+                selectedReply={selectedReply}
+                selectedYears={selectedYears}
+                availableYears={availableYears}
+              />
             </div>
           }
         />
 
         <div className="phone-content">
-          <div className="message-history-page">
-            <div className="message-history-grid">
-              {items.map((item) => (
-                <div
-                  key={item.id}
-                  className="message-history-card"
-                  style={{ position: "relative" }}
-                >
-                  <div className="message-history-card-top">
-                    <Link
-                      href={`/phone-items/me/${item.authorKey}`}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 8,
-                        textDecoration: "none",
-                        color: "inherit",
-                        minWidth: 0,
-                      }}
-                    >
-                      <img
-                        src={item.authorAvatarUrl}
-                        alt={item.authorName}
-                        style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: "999px",
-                          objectFit: "cover",
-                          flex: "0 0 auto",
-                        }}
-                      />
-                      <span className="message-history-badge">{item.authorName}</span>
-                    </Link>
-
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      {item.choiceOptions.length ? (
-                        <MomentChoiceTrigger
-                          title={item.title}
-                          options={item.choiceOptions}
-                          selectedOptionId={item.selectedOptionId}
-                        />
-                      ) : null}
-
-                      {item.isFavorite ? (
-                        <span className="message-history-heart">♡</span>
-                      ) : (
-                        <span className="message-history-steam">〰</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <Link
-                    href={`/phone-items/moments/${item.slug}`}
-                    style={{
-                      textDecoration: "none",
-                      color: "inherit",
-                      display: "contents",
-                    }}
-                  >
-                    <div className="message-history-title-row">
-                      <span className="message-history-title">{item.title}</span>
-                      {!item.isComplete ? (
-                        <span className="message-history-status">[미완료]</span>
-                      ) : null}
-                    </div>
-
-                    <div className="message-history-meta-summary">
-                      {item.categoryLabel}
-                      {item.dateText ? ` · ${item.dateText}` : ""}
-                    </div>
-
-                    {item.summary ? (
-                      <div className="message-history-meta-source">{item.summary}</div>
-                    ) : null}
-
-                    {item.source ? (
-                      <div className="message-history-meta-source">{item.source}</div>
-                    ) : null}
-
-                    <div className="message-history-preview">{item.preview}</div>
-                  </Link>
-                </div>
-              ))}
-            </div>
+          <div style={{ display: "grid", gap: 0 }}>
+            {filteredItems.map((item) => (
+              <MomentFeedPost key={item.id} item={item} />
+            ))}
           </div>
         </div>
 

@@ -162,7 +162,11 @@ function buildPhoneItemSlug(params: {
   return slug;
 }
 
-function revalidatePhoneItemPaths(rawSlug: string, phoneItemId?: string) {
+function revalidatePhoneItemPaths(
+  rawSlug: string,
+  phoneItemId?: string,
+  extraPaths: string[] = []
+) {
   const safeSlug = encodeURIComponent(rawSlug || "item");
 
   revalidatePath("/admin/phone-items");
@@ -177,8 +181,12 @@ function revalidatePhoneItemPaths(rawSlug: string, phoneItemId?: string) {
   }
 
   revalidatePath(`/phone-items/articles/${safeSlug}`);
-}
+  revalidatePath(`/phone-items/moments/${safeSlug}`);
 
+  for (const path of extraPaths) {
+    revalidatePath(path);
+  }
+}
 
 
 async function createArticlePhoneItem(params: {
@@ -459,26 +467,36 @@ async function createMomentPhoneItem(params: {
   const momentImageUrls = parseLineSeparatedUrls(momentImageUrlsText);
 
   const momentReplyLines = parseJsonFieldOptional<
-    Array<{
-      speakerKey?: string;
-      speakerName?: string;
-      content?: string;
-      isReplyToMc?: boolean;
-    }>
-  >(momentReplyLinesJson, "moment_reply_lines_json", []);
+  Array<{
+    speakerKey?: string;
+    speakerName?: string;
+    targetName?: string;
+    content?: string;
+    isReplyToMc?: boolean;
+  }>
+>(momentReplyLinesJson, "moment_reply_lines_json", []);
 
-  const momentChoiceOptions = parseJsonFieldOptional<
-    Array<{ id?: string; label?: string; isHistory?: boolean }>
-  >(momentChoiceOptionsJson, "moment_choice_options_json", []);
+const momentChoiceOptions = parseJsonFieldOptional<
+  Array<{
+    id?: string;
+    label?: string;
+    isHistory?: boolean;
+    replySpeakerKey?: string;
+    replySpeakerName?: string;
+    replyTargetName?: string;
+    replyContent?: string;
+  }>
+>(momentChoiceOptionsJson, "moment_choice_options_json", []);
 
-  const momentComments = parseJsonFieldOptional<
-    Array<{
-      avatarUrl?: string;
-      nickname?: string;
-      content?: string;
-      likeCount?: number;
-    }>
-  >(momentCommentsJson, "moment_comments_json", []);
+const momentComments = parseJsonFieldOptional<
+  Array<{
+    speakerKey?: string;
+    avatarUrl?: string;
+    nickname?: string;
+    content?: string;
+    likeCount?: number;
+  }>
+>(momentCommentsJson, "moment_comments_json", []);
 
   const momentCategoryLabelMap: Record<string, string> = {
     daily: "일상",
@@ -500,10 +518,16 @@ async function createMomentPhoneItem(params: {
     authorHasProfile && authorKey !== "mc" && authorKey !== "other" ? authorKey : ""
   );
 
-  const selectedOptionId =
-    momentChoiceOptions.length > 0
-      ? String(momentChoiceOptions[0]?.id || "").trim() || "option-1"
-      : null;
+const historyChoice = momentChoiceOptions.find((option) => {
+  const optionId = String(option?.id || "").trim();
+  return optionId && option.isHistory;
+});
+
+const selectedOptionId = historyChoice
+  ? String(historyChoice.id || "").trim()
+  : momentChoiceOptions.length > 0
+    ? String(momentChoiceOptions[0]?.id || "").trim() || "option-1"
+    : null;
 
   const { data, error } = await supabase
     .from("phone_items")
@@ -865,27 +889,37 @@ async function updateMomentPhoneItem(params: {
 
   const momentImageUrls = parseLineSeparatedUrls(momentImageUrlsText);
 
-  const momentReplyLines = parseJsonFieldOptional<
-    Array<{
-      speakerKey?: string;
-      speakerName?: string;
-      content?: string;
-      isReplyToMc?: boolean;
-    }>
-  >(momentReplyLinesJson, "moment_reply_lines_json", []);
+ const momentReplyLines = parseJsonFieldOptional<
+  Array<{
+    speakerKey?: string;
+    speakerName?: string;
+    targetName?: string;
+    content?: string;
+    isReplyToMc?: boolean;
+  }>
+>(momentReplyLinesJson, "moment_reply_lines_json", []);
 
-  const momentChoiceOptions = parseJsonFieldOptional<
-    Array<{ id?: string; label?: string; isHistory?: boolean }>
-  >(momentChoiceOptionsJson, "moment_choice_options_json", []);
+const momentChoiceOptions = parseJsonFieldOptional<
+  Array<{
+    id?: string;
+    label?: string;
+    isHistory?: boolean;
+    replySpeakerKey?: string;
+    replySpeakerName?: string;
+    replyTargetName?: string;
+    replyContent?: string;
+  }>
+>(momentChoiceOptionsJson, "moment_choice_options_json", []);
 
-  const momentComments = parseJsonFieldOptional<
-    Array<{
-      avatarUrl?: string;
-      nickname?: string;
-      content?: string;
-      likeCount?: number;
-    }>
-  >(momentCommentsJson, "moment_comments_json", []);
+const momentComments = parseJsonFieldOptional<
+  Array<{
+    speakerKey?: string;
+    avatarUrl?: string;
+    nickname?: string;
+    content?: string;
+    likeCount?: number;
+  }>
+>(momentCommentsJson, "moment_comments_json", []);
 
   const momentCategoryLabelMap: Record<string, string> = {
     daily: "일상",
@@ -902,11 +936,17 @@ async function updateMomentPhoneItem(params: {
       fallback: momentBody.slice(0, 30),
     });
 
-  const selectedOptionId =
-    momentChoiceOptions.length > 0
-      ? String(momentChoiceOptions[0]?.id || "").trim() || "option-1"
-      : null;
+const historyChoice = momentChoiceOptions.find((option) => {
+  const optionId = String(option?.id || "").trim();
+  return optionId && option.isHistory;
+});
 
+const selectedOptionId = historyChoice
+  ? String(historyChoice.id || "").trim()
+  : momentChoiceOptions.length > 0
+    ? String(momentChoiceOptions[0]?.id || "").trim() || "option-1"
+    : null;
+    
   const { error } = await supabase
     .from("phone_items")
     .update({

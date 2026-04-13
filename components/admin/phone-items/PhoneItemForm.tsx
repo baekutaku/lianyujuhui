@@ -14,6 +14,8 @@ import {
   CALL_HISTORY_CATEGORY_LABEL_MAP,
 } from "@/lib/phone/call-history";
 
+
+
 type Subtype = "message" | "moment" | "call" | "video_call" | "article";
 
 type PhoneItemFormProps = {
@@ -45,11 +47,11 @@ type PhoneItemFormProps = {
     body?: string;
 
     history_summary?: string;
-history_source?: string;
+    history_source?: string;
 
     message_bulk_raw?: string;
     moment_bulk_raw?: string;
-        editor_entries_json?: string;
+    editor_entries_json?: string;
 
     article_title?: string;
     article_slug?: string;
@@ -65,7 +67,7 @@ history_source?: string;
     article_related_story_slug?: string;
     article_related_story_label?: string;
     article_related_event_slug?: string;
-article_related_event_label?: string;
+    article_related_event_label?: string;
 
     article_comment_0_avatar_url?: string;
     article_comment_0_nickname?: string;
@@ -88,29 +90,31 @@ article_related_event_label?: string;
     article_comment_3_like_count?: number | string;
 
     call_translation_html?: string;
-call_memo_html?: string;
-moment_title?: string;
-moment_slug?: string;
-moment_author_key?: string;
-moment_author_name?: string;
-moment_author_avatar_url?: string;
+    call_memo_html?: string;
 
-moment_category?: string;
-moment_year?: number | string;
-moment_date_text?: string;
+    moment_title?: string;
+    moment_slug?: string;
+    moment_author_key?: string;
+    moment_author_name?: string;
+    moment_author_avatar_url?: string;
+    moment_author_has_profile?: boolean;
 
-moment_body?: string;
-moment_summary?: string;
-moment_source?: string;
+    moment_category?: string;
+    moment_year?: number | string;
+    moment_date_text?: string;
 
-moment_image_urls_text?: string;
-moment_choice_options_json?: string;
-moment_comments_json?: string;
+    moment_body?: string;
+    moment_summary?: string;
+    moment_source?: string;
+
+    moment_image_urls_text?: string;
+   
+    moment_reply_lines_json?: string;
+    moment_choice_options_json?: string;
+moment_reaction_lines_json?: string;
 
 moment_is_favorite?: boolean;
-moment_is_complete?: boolean;
-moment_author_has_profile?: boolean;
-moment_reply_lines_json?: string;
+    moment_is_complete?: boolean;
 
     input_mode?: "simple" | "bulk";
   };
@@ -168,6 +172,103 @@ const DEFAULT_CHARACTER_NAME_MAP: Record<string, string> = {
   lingxiao: "연시호",
 };
 
+type MomentChoiceFormItem = {
+  id: string;
+  label: string;
+  replySpeakerKey: string;
+  replySpeakerName: string;
+  replyTargetName: string;
+  replyContent: string;
+  isHistory: boolean;
+};
+
+type MomentReplyFormItem = {
+  id: string;
+  speakerKey: string;
+  speakerName: string;
+  targetName: string;
+  content: string;
+  isReplyToMc: boolean;
+};
+
+type MomentCommentFormItem = {
+  id: string;
+  speakerKey: string;
+  speakerName: string;
+  avatarUrl: string;
+  content: string;
+  likeCount: string;
+};
+
+const MOMENT_PARTICIPANT_OPTIONS = [
+  ...CHARACTER_OPTIONS,
+  { key: "mc", label: "유연" },
+  { key: "other", label: "기타/NPC" },
+] as const;
+
+const createMomentRowId = () => Math.random().toString(36).slice(2, 11);
+
+const getMomentDefaultName = (key: string) => {
+  if (key === "mc") return "유연";
+  if (key === "other") return "";
+  return DEFAULT_CHARACTER_NAME_MAP[key] ?? "";
+};
+
+function parseMomentChoiceFormItems(value?: string): MomentChoiceFormItem[] {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.map((item: any, index: number) => ({
+      id: item?.id ?? `choice-${index + 1}`,
+      label: String(item?.label ?? ""),
+      replySpeakerKey: String(item?.replySpeakerKey ?? item?.speakerKey ?? ""),
+      replySpeakerName: String(item?.replySpeakerName ?? item?.speakerName ?? ""),
+      replyTargetName: String(item?.replyTargetName ?? "유연"),
+      replyContent: String(item?.replyContent ?? ""),
+      isHistory: Boolean(item?.isHistory),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function parseMomentReplyFormItems(value?: string): MomentReplyFormItem[] {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.map((item: any, index: number) => ({
+      id: item?.id ?? `reply-${index + 1}`,
+      speakerKey: String(item?.speakerKey ?? ""),
+      speakerName: String(item?.speakerName ?? ""),
+      targetName: String(item?.targetName ?? ""),
+      content: String(item?.content ?? ""),
+      isReplyToMc: Boolean(item?.isReplyToMc),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function parseMomentCommentFormItems(value?: string): MomentCommentFormItem[] {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.map((item: any, index: number) => ({
+      id: item?.id ?? `comment-${index + 1}`,
+      speakerKey: String(item?.speakerKey ?? ""),
+      speakerName: String(item?.nickname ?? item?.speakerName ?? ""),
+      avatarUrl: String(item?.avatarUrl ?? ""),
+      content: String(item?.content ?? ""),
+      likeCount: String(item?.likeCount ?? "0"),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 const messagePlaceholder = `L: 글쎄, 내 관심사는 아닙니다.
 L: 확실한 건 위 실장이라면 빨대를 챙겼을 겁니다.
 R: 가져오는 길에 떨어뜨렸나... 아쉬운 대로 마셔 보시면 안... 될까요?
@@ -195,6 +296,116 @@ images:
 /images/moments/baiqi-1.jpg
 /images/moments/baiqi-2.jpg`;
 
+function formatMomentChoiceRaw(value?: string) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    if (!Array.isArray(parsed)) return "";
+    return parsed
+      .map((item) =>
+        `${item?.isHistory ? "[history] " : ""}${String(item?.label ?? "").trim()}`
+      )
+      .filter(Boolean)
+      .join("\n");
+  } catch {
+    return "";
+  }
+}
+
+function parseMomentChoiceRaw(raw: string) {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => {
+      const isHistory = line.startsWith("[history]");
+      const label = isHistory ? line.replace(/^\[history\]\s*/, "").trim() : line;
+      return {
+        id: `choice-${index + 1}`,
+        label,
+        ...(isHistory ? { isHistory: true } : {}),
+      };
+    })
+    .filter((item) => item.label);
+}
+
+function formatMomentReplyRaw(value?: string) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    if (!Array.isArray(parsed)) return "";
+    return parsed
+      .map((item) => {
+        const speakerKey = String(item?.speakerKey ?? "").trim();
+        const speakerName = String(item?.speakerName ?? "").trim();
+        const content = String(item?.content ?? "").trim();
+        const replyFlag = item?.isReplyToMc ? "|reply" : "";
+        if (!content) return "";
+        return `${speakerKey}|${speakerName}|${content}${replyFlag}`;
+      })
+      .filter(Boolean)
+      .join("\n");
+  } catch {
+    return "";
+  }
+}
+
+function parseMomentReplyRaw(raw: string) {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [speakerKey = "", speakerName = "", content = "", flag = ""] =
+        line.split("|").map((part) => part.trim());
+
+      return {
+        speakerKey,
+        speakerName,
+        content,
+        ...(flag === "reply" ? { isReplyToMc: true } : {}),
+      };
+    })
+    .filter((item) => item.content);
+}
+
+function formatMomentCommentsRaw(value?: string) {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    if (!Array.isArray(parsed)) return "";
+    return parsed
+      .map((item) => {
+        const nickname = String(item?.nickname ?? "").trim();
+        const avatarUrl = String(item?.avatarUrl ?? "").trim();
+        const content = String(item?.content ?? "").trim();
+        const likeCount = String(item?.likeCount ?? "").trim();
+        if (!nickname && !content) return "";
+        return `${nickname}|${avatarUrl}|${content}|${likeCount}`;
+      })
+      .filter(Boolean)
+      .join("\n");
+  } catch {
+    return "";
+  }
+}
+
+function parseMomentCommentsRaw(raw: string) {
+  return raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [nickname = "", avatarUrl = "", content = "", likeCount = "0"] =
+        line.split("|").map((part) => part.trim());
+
+      return {
+        nickname,
+        avatarUrl,
+        content,
+        likeCount: Number(likeCount || 0),
+      };
+    })
+    .filter((item) => item.nickname || item.content);
+}
+
 export default function PhoneItemForm({
   action,
   submitLabel = "저장",
@@ -202,52 +413,72 @@ export default function PhoneItemForm({
   initialValues,
 }: PhoneItemFormProps) {
   const values = {
-    
-    subtype: initialValues?.subtype ?? "call",
-    server_key: initialValues?.server_key ?? "kr",
-    is_published: initialValues?.is_published ?? true,
+  subtype: initialValues?.subtype ?? "call",
+  server_key: initialValues?.server_key ?? "kr",
+  is_published: initialValues?.is_published ?? true,
 
-    title: initialValues?.title ?? "",
-    slug: initialValues?.slug ?? "",
-    character_key: initialValues?.character_key ?? "baiqi",
-    character_name: initialValues?.character_name ?? "",
-    thread_key: initialValues?.thread_key ?? "",
-    history_category:
-  initialValues?.history_category ??
-  (initialValues?.subtype === "call" || initialValues?.subtype === "video_call"
-    ? "story"
-    : "daily"),
-    level: initialValues?.level?.toString?.() ?? "",
-    
+  title: initialValues?.title ?? "",
+  slug: initialValues?.slug ?? "",
+  character_key: initialValues?.character_key ?? "baiqi",
+  character_name: initialValues?.character_name ?? "",
+  thread_key: initialValues?.thread_key ?? "",
+  history_category:
+    initialValues?.history_category ??
+    (initialValues?.subtype === "call" || initialValues?.subtype === "video_call"
+      ? "story"
+      : "daily"),
+  level: initialValues?.level?.toString?.() ?? "",
 
-    avatar_url: initialValues?.avatar_url ?? "",
-    cover_image: initialValues?.cover_image ?? "",
-    youtube_url: initialValues?.youtube_url ?? "",
+  avatar_url: initialValues?.avatar_url ?? "",
+  cover_image: initialValues?.cover_image ?? "",
+  youtube_url: initialValues?.youtube_url ?? "",
 
-    preview: initialValues?.preview ?? "",
-    icon_url: initialValues?.icon_url ?? "",
-    image_url: initialValues?.image_url ?? "",
-    source_name: initialValues?.source_name ?? "",
-    author: initialValues?.author ?? "",
-    body: initialValues?.body ?? "",
+  preview: initialValues?.preview ?? "",
+  icon_url: initialValues?.icon_url ?? "",
+  image_url: initialValues?.image_url ?? "",
+  source_name: initialValues?.source_name ?? "",
+  author: initialValues?.author ?? "",
+  body: initialValues?.body ?? "",
 
-    history_summary: initialValues?.history_summary ?? "",
-history_source: initialValues?.history_source ?? "",
+  history_summary: initialValues?.history_summary ?? "",
+  history_source: initialValues?.history_source ?? "",
 
-    message_bulk_raw: initialValues?.message_bulk_raw ?? "",
-    moment_bulk_raw: initialValues?.moment_bulk_raw ?? "",
-    editor_entries_json: initialValues?.editor_entries_json ?? "",
-    input_mode: initialValues?.input_mode ?? "simple",
+  message_bulk_raw: initialValues?.message_bulk_raw ?? "",
+  moment_bulk_raw: initialValues?.moment_bulk_raw ?? "",
+  editor_entries_json: initialValues?.editor_entries_json ?? "",
+  input_mode: initialValues?.input_mode ?? "simple",
 
-    call_translation_html: initialValues?.call_translation_html ?? "",
-call_memo_html: initialValues?.call_memo_html ?? "",
+  call_translation_html: initialValues?.call_translation_html ?? "",
+  call_memo_html: initialValues?.call_memo_html ?? "",
 
+  moment_title: initialValues?.moment_title ?? "",
+  moment_slug: initialValues?.moment_slug ?? "",
+moment_author_key: initialValues?.moment_author_key ?? "baiqi",
+moment_author_name:
+  initialValues?.moment_author_name ??
+  DEFAULT_CHARACTER_NAME_MAP[initialValues?.moment_author_key ?? "baiqi"] ??
+  "백기",
+moment_author_avatar_url: initialValues?.moment_author_avatar_url ?? "",
 moment_author_has_profile: initialValues?.moment_author_has_profile ?? true,
-moment_reply_lines_json: initialValues?.moment_reply_lines_json ?? "",
-    
-  };
 
-  const [subtype, setSubtype] = useState<Subtype>(values.subtype);
+  moment_category: initialValues?.moment_category ?? "daily",
+  moment_year: initialValues?.moment_year?.toString?.() ?? "",
+  moment_date_text: initialValues?.moment_date_text ?? "",
+
+  moment_body: initialValues?.moment_body ?? "",
+  moment_summary: initialValues?.moment_summary ?? "",
+  moment_source: initialValues?.moment_source ?? "",
+
+  moment_image_urls_text: initialValues?.moment_image_urls_text ?? "",
+  moment_choice_options_json: initialValues?.moment_choice_options_json ?? "",
+  moment_reaction_lines_json: initialValues?.moment_reaction_lines_json ?? "",
+  moment_comments_json: initialValues?.moment_comments_json ?? "",
+
+  moment_is_favorite: initialValues?.moment_is_favorite ?? false,
+  moment_is_complete: initialValues?.moment_is_complete ?? true,
+};
+
+const [subtype, setSubtype] = useState<Subtype>(values.subtype);
 const [messageRaw, setMessageRaw] = useState(values.message_bulk_raw);
 
 const [characterKey, setCharacterKey] = useState(values.character_key);
@@ -271,19 +502,251 @@ const [articlePublisherSlug, setArticlePublisherSlug] = useState(
 );
 
 const [momentAuthorKey, setMomentAuthorKey] = useState(
-  values.moment_author_key || "other"
+  values.moment_author_key || "baiqi"
 );
+const DEFAULT_TARGET_NAME = "유연";
+
+type MomentReactionLineInput = {
+  speakerKey: string;
+  speakerName: string;
+  targetName: string;
+  isReplyToMc: boolean;
+  content: string;
+};
+
+function parseMomentReactionLines(raw: string): MomentReactionLineInput[] {
+  try {
+    const parsed = JSON.parse(raw || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((item) => ({
+      speakerKey: String(item?.speakerKey || "baiqi").trim() || "baiqi",
+      speakerName: String(item?.speakerName || "백기").trim() || "백기",
+      targetName: String(item?.targetName || DEFAULT_TARGET_NAME).trim() || DEFAULT_TARGET_NAME,
+      isReplyToMc: Boolean(item?.isReplyToMc ?? false),
+      content: String(item?.content || "").trim(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function createEmptyMomentReactionLine(
+  speakerKey: string,
+  speakerName: string
+): MomentReactionLineInput {
+  return {
+    speakerKey: speakerKey || "baiqi",
+    speakerName: speakerName || "백기",
+    targetName: DEFAULT_TARGET_NAME,
+    isReplyToMc: false,
+    content: "",
+  };
+}
+
+const [momentReactionLines, setMomentReactionLines] = useState<MomentReactionLineInput[]>(
+  values.moment_reaction_lines_json.trim()
+    ? parseMomentReactionLines(values.moment_reaction_lines_json)
+    : []
+); 
+useEffect(() => {
+  setMomentReactionLines((prev) =>
+    prev.map((line) => {
+      const currentSpeakerKey = (line.speakerKey || "").trim();
+      const currentSpeakerName = (line.speakerName || "").trim();
+
+      if (!currentSpeakerKey || !currentSpeakerName) {
+        return {
+          ...line,
+          speakerKey: momentAuthorKey || "baiqi",
+          speakerName: resolvedMomentAuthorName || "백기",
+        };
+      }
+
+      return line;
+    })
+  );
+}, [momentAuthorKey, resolvedMomentAuthorName]);
+
+const [momentAuthorName, setMomentAuthorName] = useState(
+  values.moment_author_name ||
+    DEFAULT_CHARACTER_NAME_MAP[values.moment_author_key || "other"] ||
+    ""
+);
+
 const [momentAuthorAvatarUrl, setMomentAuthorAvatarUrl] = useState(
   values.moment_author_avatar_url || ""
 );
 
-const resolvedMomentAuthorName = useMemo(() => {
-  return (
-    DEFAULT_CHARACTER_NAME_MAP[momentAuthorKey || "other"] ??
-    values.moment_author_name ??
-    ""
+
+const isMaleLeadMoment = CHARACTER_OPTIONS.some(
+  (item) => item.key === momentAuthorKey
+);
+const isMcMoment = momentAuthorKey === "mc";
+const isNpcMoment = !isMaleLeadMoment && !isMcMoment;
+
+const initialMomentChoiceItems = useMemo(() => {
+  const parsed = parseMomentChoiceFormItems(values.moment_choice_options_json);
+  const historyIndex = parsed.findIndex((item) => item.isHistory);
+
+  return Array.from({ length: 3 }, (_, index) => {
+    const base =
+      parsed[index] ?? {
+        id: `choice-${index + 1}`,
+        label: "",
+        replySpeakerKey: momentAuthorKey,
+        replySpeakerName:
+          values.moment_author_name || getMomentDefaultName(momentAuthorKey),
+        replyTargetName: "유연",
+        replyContent: "",
+        isHistory: false,
+      };
+
+    return {
+      ...base,
+      isHistory: historyIndex === -1 ? index === 0 : index === historyIndex,
+    };
+  });
+}, [
+  values.moment_choice_options_json,
+  values.moment_author_name,
+  momentAuthorKey,
+]);
+
+const [momentChoiceItems, setMomentChoiceItems] = useState<MomentChoiceFormItem[]>(
+  initialMomentChoiceItems
+);
+
+const [momentReplyItems, setMomentReplyItems] = useState<MomentReplyFormItem[]>(
+  parseMomentReplyFormItems(values.moment_reply_lines_json)
+);
+
+const [momentCommentItems, setMomentCommentItems] = useState<MomentCommentFormItem[]>(
+  parseMomentCommentFormItems(values.moment_comments_json)
+);
+
+const updateMomentChoiceItem = (
+  index: number,
+  patch: Partial<MomentChoiceFormItem>
+) => {
+  setMomentChoiceItems((prev) =>
+    prev.map((item, i) => (i === index ? { ...item, ...patch } : item))
   );
-}, [momentAuthorKey, values.moment_author_name]);
+};
+
+const setMomentHistoryChoice = (index: number) => {
+  setMomentChoiceItems((prev) =>
+    prev.map((item, i) => ({
+      ...item,
+      isHistory: i === index,
+    }))
+  );
+};
+const updateMomentReplyItem = (
+  id: string,
+  patch: Partial<MomentReplyFormItem>
+) => {
+  setMomentReplyItems((prev) =>
+    prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
+  );
+};
+
+const updateMomentCommentItem = (
+  id: string,
+  patch: Partial<MomentCommentFormItem>
+) => {
+  setMomentCommentItems((prev) =>
+    prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
+  );
+};
+
+const addMomentReplyItem = () => {
+  setMomentReplyItems((prev) => [
+    ...prev,
+    {
+      id: createMomentRowId(),
+      speakerKey: "other",
+      speakerName: "",
+      targetName: "",
+      content: "",
+      isReplyToMc: false,
+    },
+  ]);
+};
+
+const removeMomentReplyItem = (id: string) => {
+  setMomentReplyItems((prev) => prev.filter((item) => item.id !== id));
+};
+
+const addMomentCommentItem = () => {
+  setMomentCommentItems((prev) => [
+    ...prev,
+    {
+      id: createMomentRowId(),
+      speakerKey: "other",
+      speakerName: "",
+      avatarUrl: "",
+      content: "",
+      likeCount: "0",
+    },
+  ]);
+};
+
+const removeMomentCommentItem = (id: string) => {
+  setMomentCommentItems((prev) => prev.filter((item) => item.id !== id));
+};
+
+const momentChoicePayload = useMemo(() => {
+  if (!isMaleLeadMoment) return [];
+
+  return momentChoiceItems
+    .filter((item) => item.label.trim())
+    .map((item, index) => ({
+      id: item.id || `choice-${index + 1}`,
+      label: item.label.trim(),
+      isHistory: item.isHistory,
+      replySpeakerKey: item.replySpeakerKey,
+      replySpeakerName:
+        item.replySpeakerName.trim() ||
+        getMomentDefaultName(item.replySpeakerKey),
+      replyTargetName: item.replyTargetName.trim() || "유연",
+      replyContent: item.replyContent.trim(),
+    }));
+}, [isMaleLeadMoment, momentChoiceItems]);
+
+const momentReplyPayload = useMemo(() => {
+  return momentReplyItems
+    .filter((item) => item.content.trim())
+    .map((item) => ({
+      speakerKey: item.speakerKey,
+      speakerName: item.speakerName.trim(),
+      targetName: item.targetName.trim(),
+      content: item.content.trim(),
+      isReplyToMc: item.isReplyToMc,
+    }));
+}, [momentReplyItems]);
+
+const momentCommentPayload = useMemo(() => {
+  return momentCommentItems
+    .filter((item) => item.speakerName.trim() || item.content.trim())
+    .map((item) => ({
+      speakerKey: item.speakerKey,
+      nickname: item.speakerName.trim(),
+      avatarUrl: item.avatarUrl.trim(),
+      content: item.content.trim(),
+      likeCount: Number(item.likeCount || 0),
+    }));
+}, [momentCommentItems]);
+
+const handleMomentAuthorKeyChange = (nextKey: string) => {
+  const currentName = momentAuthorName.trim();
+  const defaultNames = Object.values(DEFAULT_CHARACTER_NAME_MAP);
+
+  setMomentAuthorKey(nextKey);
+
+  if (!currentName || defaultNames.includes(currentName)) {
+    setMomentAuthorName(DEFAULT_CHARACTER_NAME_MAP[nextKey] || "");
+  }
+};
 
 const resolvedMomentAvatarPreview = useMemo(() => {
   return (
@@ -624,48 +1087,64 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
         </>
       ) : null}
 
-     {subtype === "moment" ? (
+     {subtype === "moment" && (
   <>
+    {/* hidden input 연결 */}
+    <input
+      type="hidden"
+      name="moment_choice_options_json"
+      value={JSON.stringify(momentChoicePayload)}
+    />
+    <input
+      type="hidden"
+      name="moment_reply_lines_json"
+      value={JSON.stringify(momentReplyPayload)}
+    />
+
     <div className="form-grid">
+      {/* 작성자 */}
       <label className="form-field">
         <span>작성자</span>
         <select
           name="moment_author_key"
           value={momentAuthorKey}
-          onChange={(e) => setMomentAuthorKey(e.target.value)}
+          onChange={(e) => handleMomentAuthorKeyChange(e.target.value)}
         >
           {CHARACTER_OPTIONS.map((character) => (
             <option key={character.key} value={character.key}>
               {character.label}
             </option>
           ))}
-          <option value="mc">나</option>
-          <option value="other">기타/NPC</option>
+          <option value="mc">유연</option>
+          <option value="other">NPC/기타</option>
         </select>
       </label>
 
+      {/* 표시 이름 */}
       <label className="form-field">
         <span>표시 이름</span>
         <input
           name="moment_author_name"
-          defaultValue={values.moment_author_name || resolvedMomentAuthorName}
-          placeholder="예: 백기 / 나 / 점원"
+          value={momentAuthorName}
+          onChange={(e) => setMomentAuthorName(e.target.value)}
+          placeholder="예: 백기 / 유연"
         />
       </label>
 
+      {/* 작성자 프사 */}
       <label className="form-field form-field-full">
         <span>작성자 프사</span>
         <input
           name="moment_author_avatar_url"
           value={momentAuthorAvatarUrl}
           onChange={(e) => setMomentAuthorAvatarUrl(e.target.value)}
-          placeholder="비워두면 기본 프사 / NPC는 npc.png fallback"
+          placeholder="비워두면 기본 프사 / NPC는 직접 입력"
         />
-        {resolvedMomentAvatarPreview ? (
+        {resolvedMomentAvatarPreview && (
           <div style={{ marginTop: "10px" }}>
             <img
               src={resolvedMomentAvatarPreview}
-              alt="moment author avatar preview"
+              alt="avatar preview"
               style={{
                 width: "88px",
                 height: "88px",
@@ -676,9 +1155,10 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
               }}
             />
           </div>
-        ) : null}
+        )}
       </label>
 
+      {/* 제목 / slug / 카테고리 / 연도 / 날짜 / 본문 / 히스토리 요약 / 출처 */}
       <label className="form-field form-field-full">
         <span>제목</span>
         <input
@@ -721,7 +1201,7 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
         <input
           name="moment_date_text"
           defaultValue={values.moment_date_text}
-          placeholder="예: 2026-04-13 / 봄 어느 날"
+          placeholder="예: 2026년 4월 13일"
         />
       </label>
 
@@ -740,16 +1220,16 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
         <input
           name="moment_summary"
           defaultValue={values.moment_summary}
-          placeholder="예: 카드 [첫눈] 관련 / 메인 3장 이후"
+          placeholder="예: 화이트데이 / 메인 3장 이후"
         />
       </label>
 
       <label className="form-field form-field-full">
-        <span>출처 / 관련 모멘트 / 메모</span>
+        <span>출처 / 메모</span>
         <input
           name="moment_source"
           defaultValue={values.moment_source}
-          placeholder="예: KR 서버 · 2026 / 화이트데이 이벤트 / 관련 모멘트 A"
+          placeholder="예: KR 서버 / 카드 스토리 / 관련 모멘트"
         />
       </label>
 
@@ -763,65 +1243,211 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
           style={{ fontFamily: "monospace" }}
         />
       </label>
+    </div>
 
-      <label className="form-field form-field-full">
-        <span>선택지 JSON (선택)</span>
-        <textarea
-          name="moment_choice_options_json"
-          rows={6}
-          defaultValue={values.moment_choice_options_json}
-          placeholder={`[
-  { "id": "a", "label": "오늘은 조금 쉬어." },
-  { "id": "b", "label": "향이 정말 괜찮네." },
-  { "id": "c", "label": "이건 나중에 다시 이야기하자.", "isHistory": true }
-]`}
-          style={{ fontFamily: "monospace" }}
-        />
-      </label>
+    {/* 남주 모멘트 선택지 + 답장 */}
+    {isMaleLeadMoment && (
+      <div className="archive-card" style={{ display: "grid", gap: "16px" }}>
+        <strong>선택지 3개 + 남주 답장</strong>
 
-<label className="form-field form-field-full">
-  <span>답글 줄 JSON (선택)</span>
-  <textarea
-    name="moment_reply_lines_json"
-    rows={8}
-    defaultValue={values.moment_reply_lines_json}
-    placeholder={`[
-  {
-    "speakerKey": "mc",
-    "speakerName": "유연",
-    "content": "오호~ 어느 컵 말인가요?"
-  },
-  {
-    "speakerKey": "baiqi",
-    "speakerName": "백기",
-    "content": "지난번에 네가 나한테 준 그 따뜻한 물 많이 마시기 컵이야.",
-    "isReplyToMc": true
-  }
-]`}
-    style={{ fontFamily: "monospace" }}
-  />
-</label>
-      <label className="form-field">
-        <span>즐겨찾기</span>
-        <input
-          name="moment_is_favorite"
-          type="checkbox"
-          defaultChecked={values.moment_is_favorite}
-        />
-      </label>
+        {momentChoiceItems.map((item, index) => (
+          <div
+            key={item.id}
+            style={{
+              display: "grid",
+              gap: "12px",
+              padding: "16px",
+              borderRadius: "16px",
+              border: "1px solid #d7e0ec",
+              background: "rgba(255,255,255,0.75)",
+            }}
+          >
+            <div style={{ fontWeight: 700 }}>선택지 {index + 1}</div>
 
-      <label className="form-field">
-        <span>완료 상태</span>
-        <input
-          name="moment_is_complete"
-          type="checkbox"
-          defaultChecked={values.moment_is_complete}
-        />
-      </label>
+            <label className="form-field">
+              <span>선택지 문구</span>
+              <input
+                value={item.label}
+                onChange={(e) =>
+                  updateMomentChoiceItem(index, { label: e.target.value })
+                }
+                placeholder="예: 오늘은 조금 쉬어."
+              />
+            </label>
+
+            <div className="form-grid">
+              <label className="form-field">
+                <span>답장 화자</span>
+                <select
+                  value={item.replySpeakerKey}
+                  onChange={(e) =>
+                    updateMomentChoiceItem(index, {
+                      replySpeakerKey: e.target.value,
+                      replySpeakerName:
+                        item.replySpeakerName ||
+                        getMomentDefaultName(e.target.value),
+                    })
+                  }
+                >
+                  {MOMENT_PARTICIPANT_OPTIONS.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="form-field">
+                <span>답장 화자 이름</span>
+                <input
+                  value={item.replySpeakerName}
+                  onChange={(e) =>
+                    updateMomentChoiceItem(index, {
+                      replySpeakerName: e.target.value,
+                    })
+                  }
+                  placeholder="예: 백기"
+                />
+              </label>
+
+              <label className="form-field">
+                <span>대상 이름</span>
+                <input
+                  value={item.replyTargetName}
+                  onChange={(e) =>
+                    updateMomentChoiceItem(index, {
+                      replyTargetName: e.target.value,
+                    })
+                  }
+                  placeholder="예: 유연"
+                />
+              </label>
+            </div>
+
+            <label className="form-field">
+              <span>답장 내용</span>
+              <textarea
+                rows={4}
+                value={item.replyContent}
+                onChange={(e) =>
+                  updateMomentChoiceItem(index, {
+                    replyContent: e.target.value,
+                  })
+                }
+                placeholder="예: 네가 곁에 있다면, 난 아무거나 괜찮아."
+              />
+            </label>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {/* NPC / 남주 외 답글 섹션 */}
+    <div className="archive-card" style={{ display: "grid", gap: "16px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        <strong>{isMcMoment ? "남주/NPC 답글" : isNpcMoment ? "추가 답글 / 대화" : "추가 답글"}</strong>
+        <button type="button" className="nav-link" onClick={addMomentReplyItem}>
+          답글 추가
+        </button>
+      </div>
+
+      {momentReplyItems.length === 0 && <div style={{ color: "#7d8794" }}>아직 추가된 답글이 없음</div>}
+
+      {momentReplyItems.map((item) => (
+        <div
+          key={item.id}
+          style={{
+            display: "grid",
+            gap: "12px",
+            padding: "16px",
+            borderRadius: "16px",
+            border: "1px solid #d7e0ec",
+            background: "rgba(255,255,255,0.75)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center" }}>
+            <strong>답글</strong>
+            <button type="button" className="nav-link" onClick={() => removeMomentReplyItem(item.id)}>
+              삭제
+            </button>
+          </div>
+
+          <div className="form-grid">
+            <label className="form-field">
+              <span>화자</span>
+              <select
+                value={item.speakerKey}
+                onChange={(e) =>
+                  updateMomentReplyItem(item.id, {
+                    speakerKey: e.target.value,
+                    speakerName: item.speakerName || getMomentDefaultName(e.target.value),
+                  })
+                }
+              >
+                {MOMENT_PARTICIPANT_OPTIONS.map((option) => (
+                  <option key={option.key} value={option.key}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="form-field">
+              <span>화자 이름</span>
+              <input
+                value={item.speakerName}
+                onChange={(e) =>
+                  updateMomentReplyItem(item.id, {
+                    speakerName: e.target.value,
+                  })
+                }
+                placeholder="예: 백기 / 유연"
+              />
+            </label>
+
+            <label className="form-field">
+              <span>대상 이름</span>
+              <input
+                value={item.targetName}
+                onChange={(e) =>
+                  updateMomentReplyItem(item.id, {
+                    targetName: e.target.value,
+                  })
+                }
+                placeholder="예: 유연"
+              />
+            </label>
+
+            <label className="form-field">
+              <span>유연에게 답장</span>
+              <input
+                type="checkbox"
+                checked={item.isReplyToMc}
+                onChange={(e) =>
+                  updateMomentReplyItem(item.id, {
+                    isReplyToMc: e.target.checked,
+                  })
+                }
+              />
+            </label>
+          </div>
+
+          <label className="form-field">
+            <span>내용</span>
+            <textarea
+              rows={4}
+              value={item.content}
+              onChange={(e) =>
+                updateMomentReplyItem(item.id, {
+                  content: e.target.value,
+                })
+              }
+              placeholder="답글 내용"
+            />
+          </label>
+        </div>
+      ))}
     </div>
   </>
-) : null}
-
+)}
       {subtype === "call" || subtype === "video_call" ? (
         <div className="form-grid">
           <label className="form-field">

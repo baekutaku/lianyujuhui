@@ -1,203 +1,338 @@
 "use client";
 
-import { useEffect } from "react";
-import {
-  MOMENT_AUTHOR_KEYS,
-  MOMENT_AUTHOR_LABEL_MAP,
-  MOMENT_CATEGORY_KEYS,
-  MOMENT_CATEGORY_LABEL_MAP,
-} from "@/lib/phone/moment-filters";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+type AuthorOption = {
+  key: string;
+  label: string;
+};
 
 type MomentFilterModalProps = {
   open: boolean;
-  selectedAuthor: string;
-  selectedCategory: string;
-  selectedYear: string;
-  availableYears: string[];
-  showAuthor?: boolean;
-  onAuthorChange: (value: string) => void;
-  onCategoryChange: (value: string) => void;
-  onYearChange: (value: string) => void;
   onClose: () => void;
-  onApply: () => void;
-  onReset: () => void;
+  basePath: string;
+  showAuthor?: boolean;
+  authorOptions?: AuthorOption[];
+  selectedAuthor?: string;
+  selectedCategories?: string[];
+  selectedReply?: "all" | "replied" | "unreplied";
+  selectedYears?: string[];
+  availableYears: string[];
 };
+
+const CATEGORY_OPTIONS = [
+  { key: "daily", label: "일상" },
+  { key: "card", label: "카드" },
+  { key: "story", label: "스토리" },
+] as const;
+
+const REPLY_OPTIONS = [
+  { key: "replied", label: "답장 있음" },
+  { key: "unreplied", label: "답장 없음" },
+] as const;
+
+function toggleValue(list: string[], value: string) {
+  return list.includes(value)
+    ? list.filter((item) => item !== value)
+    : [...list, value];
+}
 
 export default function MomentFilterModal({
   open,
-  selectedAuthor,
-  selectedCategory,
-  selectedYear,
-  availableYears,
-  showAuthor = true,
-  onAuthorChange,
-  onCategoryChange,
-  onYearChange,
   onClose,
-  onApply,
-  onReset,
+  basePath,
+  showAuthor = false,
+  authorOptions = [],
+  selectedAuthor = "all",
+  selectedCategories = [],
+  selectedReply = "all",
+  selectedYears = [],
+  availableYears,
 }: MomentFilterModalProps) {
+  const router = useRouter();
+
+  const [author, setAuthor] = useState(selectedAuthor);
+  const [categories, setCategories] = useState<string[]>(selectedCategories);
+  const [reply, setReply] = useState<"all" | "replied" | "unreplied">(
+    selectedReply
+  );
+  const [years, setYears] = useState<string[]>(selectedYears);
+
   useEffect(() => {
-    if (!open) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+    setAuthor(selectedAuthor);
+    setCategories(selectedCategories);
+    setReply(selectedReply);
+    setYears(selectedYears);
+  }, [selectedAuthor, selectedCategories, selectedReply, selectedYears, open]);
 
   if (!open) return null;
 
+  const sortedYears = [...availableYears].sort((a, b) => Number(b) - Number(a));
+
+  const handleReset = () => {
+    setAuthor("all");
+    setCategories([]);
+    setReply("all");
+    setYears([]);
+  };
+
+  const handleConfirm = () => {
+    const params = new URLSearchParams();
+
+    if (showAuthor && author !== "all") params.set("author", author);
+    if (categories.length) params.set("category", categories.join(","));
+    if (reply !== "all") params.set("reply", reply);
+    if (years.length) params.set("year", years.join(","));
+
+    const query = params.toString();
+    router.push(query ? `${basePath}?${query}` : basePath, { scroll: false });
+    onClose();
+  };
+
+  const chipStyle = (active: boolean): React.CSSProperties => ({
+    minHeight: 40,
+    borderRadius: 10,
+    border: active ? "1px solid #ea7e9f" : "1px solid #efbfd0",
+    background: active ? "#ee8fb0" : "#f6b0c7",
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: 700,
+    cursor: "pointer",
+  });
+
   return (
     <div
-      className="moment-choice-modal-backdrop"
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="모멘트 필터"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 80,
+        background: "rgba(40, 34, 52, 0.36)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
     >
       <div
-        className="moment-choice-modal"
-        onClick={(event) => event.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "min(92vw, 560px)",
+          maxHeight: "82vh",
+          overflowY: "auto",
+          borderRadius: 18,
+          padding: "20px 18px 18px",
+          background: "rgba(255, 252, 255, 0.97)",
+          boxShadow: "0 24px 60px rgba(56, 42, 84, 0.18)",
+        }}
       >
-        <div className="moment-choice-modal-header">
-          <h3 className="moment-choice-modal-title">필터</h3>
-          <button
-            type="button"
-            className="moment-choice-modal-close"
-            onClick={onClose}
-            aria-label="닫기"
-          >
-            <span className="material-symbols-rounded">close</span>
-          </button>
-        </div>
-
-        <div style={{ display: "grid", gap: 18, marginTop: 14 }}>
-          {showAuthor ? (
-            <section>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 800,
-                  color: "#8e84a1",
-                  marginBottom: 10,
-                }}
-              >
-                발행자
-              </div>
-
-              <div className="message-history-filter-row">
-                {MOMENT_AUTHOR_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    className={`message-history-chip ${
-                      selectedAuthor === key ? "active" : ""
-                    }`}
-                    onClick={() => onAuthorChange(key)}
-                  >
-                    {MOMENT_AUTHOR_LABEL_MAP[key] || key}
-                  </button>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          <section>
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 800,
-                color: "#8e84a1",
-                marginBottom: 10,
-              }}
-            >
-              카테고리
-            </div>
-
-            <div className="message-history-filter-row">
-              {MOMENT_CATEGORY_KEYS.map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={`message-history-chip ${
-                    selectedCategory === key ? "active" : ""
-                  }`}
-                  onClick={() => onCategoryChange(key)}
-                >
-                  {MOMENT_CATEGORY_LABEL_MAP[key] || key}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <div
-              style={{
-                fontSize: 13,
-                fontWeight: 800,
-                color: "#8e84a1",
-                marginBottom: 10,
-              }}
-            >
-              연도
-            </div>
-
-            <div className="message-history-filter-row" style={{ flexWrap: "wrap" }}>
-              <button
-                type="button"
-                className={`message-history-chip ${selectedYear ? "" : "active"}`}
-                onClick={() => onYearChange("")}
-              >
-                전체연도
-              </button>
-
-              {availableYears.map((year) => (
-                <button
-                  key={year}
-                  type="button"
-                  className={`message-history-chip ${
-                    selectedYear === year ? "active" : ""
-                  }`}
-                  onClick={() => onYearChange(year)}
-                >
-                  {year}
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 10,
-            marginTop: 20,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            marginBottom: 12,
           }}
         >
+          <div
+            style={{
+              fontSize: 24,
+              fontWeight: 700,
+              color: "#7f6787",
+            }}
+          >
+            모멘트 필터
+          </div>
+
           <button
             type="button"
-            className="secondary-button"
-            onClick={onReset}
-            style={{ marginTop: 0 }}
+            onClick={handleReset}
+            style={{
+              border: 0,
+              background: "transparent",
+              color: "#ba94b3",
+              fontSize: 14,
+              cursor: "pointer",
+            }}
           >
             초기화
           </button>
-
-          <button
-            type="button"
-            className="primary-button"
-            onClick={onApply}
-            style={{ marginTop: 0 }}
-          >
-            적용
-          </button>
         </div>
+
+        {showAuthor ? (
+          <div style={{ marginTop: 18 }}>
+            <div
+              style={{
+                marginBottom: 10,
+                fontSize: 15,
+                fontWeight: 700,
+                color: "#8e798d",
+              }}
+            >
+              캐릭터
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                gap: 10,
+              }}
+            >
+              <button
+                type="button"
+                style={chipStyle(author === "all")}
+                onClick={() => setAuthor("all")}
+              >
+                전체
+              </button>
+
+              {authorOptions.map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  style={chipStyle(author === option.key)}
+                  onClick={() => setAuthor(option.key)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div style={{ marginTop: 18 }}>
+          <div
+            style={{
+              marginBottom: 10,
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#8e798d",
+            }}
+          >
+            모멘트 타입
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: 10,
+            }}
+          >
+            {CATEGORY_OPTIONS.map((option) => {
+              const active = categories.includes(option.key);
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  style={chipStyle(active)}
+                  onClick={() =>
+                    setCategories((prev) => toggleValue(prev, option.key))
+                  }
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <div
+            style={{
+              marginBottom: 10,
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#8e798d",
+            }}
+          >
+            답장 여부
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: 10,
+            }}
+          >
+            <button
+              type="button"
+              style={chipStyle(reply === "all")}
+              onClick={() => setReply("all")}
+            >
+              전체
+            </button>
+
+            {REPLY_OPTIONS.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                style={chipStyle(reply === option.key)}
+                onClick={() => setReply(option.key)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <div
+            style={{
+              marginBottom: 10,
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#8e798d",
+            }}
+          >
+            연도
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: 10,
+            }}
+          >
+            {sortedYears.map((year) => {
+              const active = years.includes(year);
+              return (
+                <button
+                  key={year}
+                  type="button"
+                  style={chipStyle(active)}
+                  onClick={() => setYears((prev) => toggleValue(prev, year))}
+                >
+                  {year}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleConfirm}
+          style={{
+            width: "100%",
+            marginTop: 22,
+            minHeight: 48,
+            border: 0,
+            borderRadius: 12,
+            background: "linear-gradient(180deg, #ef93ae, #ea7e9f)",
+            color: "#fff",
+            fontSize: 17,
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          적용
+        </button>
       </div>
     </div>
   );
