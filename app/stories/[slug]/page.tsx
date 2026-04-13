@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import Link from "next/link";
 
@@ -13,8 +13,17 @@ function looksLikeHtml(value: string) {
   return /<\/?[a-z][\s\S]*>/i.test(value);
 }
 
+function safeDecodeSlug(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 export default async function StoryDetailPage({ params }: StoryPageProps) {
-  const { slug } = await params;
+  const { slug: rawSlug } = await params;
+  const slug = safeDecodeSlug(rawSlug).trim();
   const admin = await isAdmin();
 
   const { data: story, error: storyError } = await supabase
@@ -37,7 +46,9 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
 
   const { data: translations, error: translationError } = await supabase
     .from("translations")
-    .select("id, title, body, translation_type, is_primary, is_published, created_at")
+    .select(
+      "id, title, body, translation_type, is_primary, is_published, created_at"
+    )
     .eq("parent_type", "story")
     .eq("parent_id", story.id)
     .order("is_primary", { ascending: false })
