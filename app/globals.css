@@ -3664,3 +3664,29 @@ button.secondary-button {
   position: relative;
   z-index: 1;
 }
+
+.moment-reaction-box {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: rgba(255, 241, 245, 0.92);
+  display: grid;
+  gap: 4px;
+}
+
+.moment-reaction-line {
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.moment-reaction-name {
+  color: #ef8fa2;
+  font-weight: 700;
+}
+
+.moment-reaction-mid {
+  color: #6f6870;
+}
+
+.moment-reaction-text {
+  color: #6f6870;
+}

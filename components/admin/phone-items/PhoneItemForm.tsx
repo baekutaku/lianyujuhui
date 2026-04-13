@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { parseMessageBulk } from "@/lib/admin/phoneBulkParsers";
 import MessageBlockEditor from "@/components/admin/phone-items/MessageBlockEditor";
 import {
@@ -13,7 +13,6 @@ import {
   CALL_HISTORY_CATEGORIES,
   CALL_HISTORY_CATEGORY_LABEL_MAP,
 } from "@/lib/phone/call-history";
-
 
 
 type Subtype = "message" | "moment" | "call" | "video_call" | "article";
@@ -170,6 +169,8 @@ const DEFAULT_CHARACTER_NAME_MAP: Record<string, string> = {
   zhouqiluo: "주기락",
   xumo: "허묵",
   lingxiao: "연시호",
+  mc: "유연",
+  other: "",
 };
 
 type MomentChoiceFormItem = {
@@ -182,14 +183,7 @@ type MomentChoiceFormItem = {
   isHistory: boolean;
 };
 
-type MomentReplyFormItem = {
-  id: string;
-  speakerKey: string;
-  speakerName: string;
-  targetName: string;
-  content: string;
-  isReplyToMc: boolean;
-};
+
 
 type MomentCommentFormItem = {
   id: string;
@@ -233,41 +227,7 @@ function parseMomentChoiceFormItems(value?: string): MomentChoiceFormItem[] {
   }
 }
 
-function parseMomentReplyFormItems(value?: string): MomentReplyFormItem[] {
-  try {
-    const parsed = JSON.parse(value || "[]");
-    if (!Array.isArray(parsed)) return [];
 
-    return parsed.map((item: any, index: number) => ({
-      id: item?.id ?? `reply-${index + 1}`,
-      speakerKey: String(item?.speakerKey ?? ""),
-      speakerName: String(item?.speakerName ?? ""),
-      targetName: String(item?.targetName ?? ""),
-      content: String(item?.content ?? ""),
-      isReplyToMc: Boolean(item?.isReplyToMc),
-    }));
-  } catch {
-    return [];
-  }
-}
-
-function parseMomentCommentFormItems(value?: string): MomentCommentFormItem[] {
-  try {
-    const parsed = JSON.parse(value || "[]");
-    if (!Array.isArray(parsed)) return [];
-
-    return parsed.map((item: any, index: number) => ({
-      id: item?.id ?? `comment-${index + 1}`,
-      speakerKey: String(item?.speakerKey ?? ""),
-      speakerName: String(item?.nickname ?? item?.speakerName ?? ""),
-      avatarUrl: String(item?.avatarUrl ?? ""),
-      content: String(item?.content ?? ""),
-      likeCount: String(item?.likeCount ?? "0"),
-    }));
-  } catch {
-    return [];
-  }
-}
 
 const messagePlaceholder = `L: 글쎄, 내 관심사는 아닙니다.
 L: 확실한 건 위 실장이라면 빨대를 챙겼을 겁니다.
@@ -328,83 +288,10 @@ function parseMomentChoiceRaw(raw: string) {
     .filter((item) => item.label);
 }
 
-function formatMomentReplyRaw(value?: string) {
-  try {
-    const parsed = JSON.parse(value || "[]");
-    if (!Array.isArray(parsed)) return "";
-    return parsed
-      .map((item) => {
-        const speakerKey = String(item?.speakerKey ?? "").trim();
-        const speakerName = String(item?.speakerName ?? "").trim();
-        const content = String(item?.content ?? "").trim();
-        const replyFlag = item?.isReplyToMc ? "|reply" : "";
-        if (!content) return "";
-        return `${speakerKey}|${speakerName}|${content}${replyFlag}`;
-      })
-      .filter(Boolean)
-      .join("\n");
-  } catch {
-    return "";
-  }
-}
 
-function parseMomentReplyRaw(raw: string) {
-  return raw
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [speakerKey = "", speakerName = "", content = "", flag = ""] =
-        line.split("|").map((part) => part.trim());
 
-      return {
-        speakerKey,
-        speakerName,
-        content,
-        ...(flag === "reply" ? { isReplyToMc: true } : {}),
-      };
-    })
-    .filter((item) => item.content);
-}
 
-function formatMomentCommentsRaw(value?: string) {
-  try {
-    const parsed = JSON.parse(value || "[]");
-    if (!Array.isArray(parsed)) return "";
-    return parsed
-      .map((item) => {
-        const nickname = String(item?.nickname ?? "").trim();
-        const avatarUrl = String(item?.avatarUrl ?? "").trim();
-        const content = String(item?.content ?? "").trim();
-        const likeCount = String(item?.likeCount ?? "").trim();
-        if (!nickname && !content) return "";
-        return `${nickname}|${avatarUrl}|${content}|${likeCount}`;
-      })
-      .filter(Boolean)
-      .join("\n");
-  } catch {
-    return "";
-  }
-}
 
-function parseMomentCommentsRaw(raw: string) {
-  return raw
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [nickname = "", avatarUrl = "", content = "", likeCount = "0"] =
-        line.split("|").map((part) => part.trim());
-
-      return {
-        nickname,
-        avatarUrl,
-        content,
-        likeCount: Number(likeCount || 0),
-      };
-    })
-    .filter((item) => item.nickname || item.content);
-}
 
 export default function PhoneItemForm({
   action,
@@ -471,8 +358,11 @@ moment_author_has_profile: initialValues?.moment_author_has_profile ?? true,
 
   moment_image_urls_text: initialValues?.moment_image_urls_text ?? "",
   moment_choice_options_json: initialValues?.moment_choice_options_json ?? "",
-  moment_reaction_lines_json: initialValues?.moment_reaction_lines_json ?? "",
-  moment_comments_json: initialValues?.moment_comments_json ?? "",
+moment_reaction_lines_json:
+  initialValues?.moment_reaction_lines_json ??
+  initialValues?.moment_reply_lines_json ??
+  "",
+
 
   moment_is_favorite: initialValues?.moment_is_favorite ?? false,
   moment_is_complete: initialValues?.moment_is_complete ?? true,
@@ -504,7 +394,38 @@ const [articlePublisherSlug, setArticlePublisherSlug] = useState(
 const [momentAuthorKey, setMomentAuthorKey] = useState(
   values.moment_author_key || "baiqi"
 );
+
+const [momentAuthorName, setMomentAuthorName] = useState(
+  values.moment_author_name?.trim() ||
+    getMomentDefaultName(values.moment_author_key || "baiqi")
+);
+
+
+const resolvedMomentAuthorName = useMemo(() => {
+  const rawName = momentAuthorName.trim();
+  if (rawName) return rawName;
+  return getMomentDefaultName(momentAuthorKey || "baiqi");
+}, [momentAuthorName, momentAuthorKey]);
 const DEFAULT_TARGET_NAME = "유연";
+
+useEffect(() => {
+  setMomentReactionLines((prev) =>
+    prev.map((line) => {
+      const currentSpeakerKey = String(line.speakerKey || "").trim();
+      const currentSpeakerName = String(line.speakerName || "").trim();
+
+      if (!currentSpeakerKey || !currentSpeakerName) {
+        return {
+          ...line,
+          speakerKey: momentAuthorKey || "baiqi",
+          speakerName: resolvedMomentAuthorName || "백기",
+        };
+      }
+
+      return line;
+    })
+  );
+}, [momentAuthorKey, resolvedMomentAuthorName]);
 
 type MomentReactionLineInput = {
   speakerKey: string;
@@ -548,30 +469,8 @@ const [momentReactionLines, setMomentReactionLines] = useState<MomentReactionLin
     ? parseMomentReactionLines(values.moment_reaction_lines_json)
     : []
 ); 
-useEffect(() => {
-  setMomentReactionLines((prev) =>
-    prev.map((line) => {
-      const currentSpeakerKey = (line.speakerKey || "").trim();
-      const currentSpeakerName = (line.speakerName || "").trim();
 
-      if (!currentSpeakerKey || !currentSpeakerName) {
-        return {
-          ...line,
-          speakerKey: momentAuthorKey || "baiqi",
-          speakerName: resolvedMomentAuthorName || "백기",
-        };
-      }
 
-      return line;
-    })
-  );
-}, [momentAuthorKey, resolvedMomentAuthorName]);
-
-const [momentAuthorName, setMomentAuthorName] = useState(
-  values.moment_author_name ||
-    DEFAULT_CHARACTER_NAME_MAP[values.moment_author_key || "other"] ||
-    ""
-);
 
 const [momentAuthorAvatarUrl, setMomentAuthorAvatarUrl] = useState(
   values.moment_author_avatar_url || ""
@@ -616,13 +515,7 @@ const [momentChoiceItems, setMomentChoiceItems] = useState<MomentChoiceFormItem[
   initialMomentChoiceItems
 );
 
-const [momentReplyItems, setMomentReplyItems] = useState<MomentReplyFormItem[]>(
-  parseMomentReplyFormItems(values.moment_reply_lines_json)
-);
 
-const [momentCommentItems, setMomentCommentItems] = useState<MomentCommentFormItem[]>(
-  parseMomentCommentFormItems(values.moment_comments_json)
-);
 
 const updateMomentChoiceItem = (
   index: number,
@@ -641,59 +534,8 @@ const setMomentHistoryChoice = (index: number) => {
     }))
   );
 };
-const updateMomentReplyItem = (
-  id: string,
-  patch: Partial<MomentReplyFormItem>
-) => {
-  setMomentReplyItems((prev) =>
-    prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
-  );
-};
 
-const updateMomentCommentItem = (
-  id: string,
-  patch: Partial<MomentCommentFormItem>
-) => {
-  setMomentCommentItems((prev) =>
-    prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
-  );
-};
 
-const addMomentReplyItem = () => {
-  setMomentReplyItems((prev) => [
-    ...prev,
-    {
-      id: createMomentRowId(),
-      speakerKey: "other",
-      speakerName: "",
-      targetName: "",
-      content: "",
-      isReplyToMc: false,
-    },
-  ]);
-};
-
-const removeMomentReplyItem = (id: string) => {
-  setMomentReplyItems((prev) => prev.filter((item) => item.id !== id));
-};
-
-const addMomentCommentItem = () => {
-  setMomentCommentItems((prev) => [
-    ...prev,
-    {
-      id: createMomentRowId(),
-      speakerKey: "other",
-      speakerName: "",
-      avatarUrl: "",
-      content: "",
-      likeCount: "0",
-    },
-  ]);
-};
-
-const removeMomentCommentItem = (id: string) => {
-  setMomentCommentItems((prev) => prev.filter((item) => item.id !== id));
-};
 
 const momentChoicePayload = useMemo(() => {
   if (!isMaleLeadMoment) return [];
@@ -713,29 +555,18 @@ const momentChoicePayload = useMemo(() => {
     }));
 }, [isMaleLeadMoment, momentChoiceItems]);
 
-const momentReplyPayload = useMemo(() => {
-  return momentReplyItems
-    .filter((item) => item.content.trim())
-    .map((item) => ({
-      speakerKey: item.speakerKey,
-      speakerName: item.speakerName.trim(),
-      targetName: item.targetName.trim(),
-      content: item.content.trim(),
-      isReplyToMc: item.isReplyToMc,
-    }));
-}, [momentReplyItems]);
+const momentReactionPayload = useMemo(() => {
+  return momentReactionLines
+    .map((line) => ({
+      speakerKey: String(line.speakerKey || "").trim(),
+      speakerName: String(line.speakerName || "").trim(),
+      targetName: String(line.targetName || "").trim() || "유연",
+      isReplyToMc: Boolean(line.isReplyToMc),
+      content: String(line.content || "").trim(),
+    }))
+    .filter((line) => line.content);
+}, [momentReactionLines]);
 
-const momentCommentPayload = useMemo(() => {
-  return momentCommentItems
-    .filter((item) => item.speakerName.trim() || item.content.trim())
-    .map((item) => ({
-      speakerKey: item.speakerKey,
-      nickname: item.speakerName.trim(),
-      avatarUrl: item.avatarUrl.trim(),
-      content: item.content.trim(),
-      likeCount: Number(item.likeCount || 0),
-    }));
-}, [momentCommentItems]);
 
 const handleMomentAuthorKeyChange = (nextKey: string) => {
   const currentName = momentAuthorName.trim();
@@ -744,10 +575,9 @@ const handleMomentAuthorKeyChange = (nextKey: string) => {
   setMomentAuthorKey(nextKey);
 
   if (!currentName || defaultNames.includes(currentName)) {
-    setMomentAuthorName(DEFAULT_CHARACTER_NAME_MAP[nextKey] || "");
+    setMomentAuthorName(getMomentDefaultName(nextKey));
   }
 };
-
 const resolvedMomentAvatarPreview = useMemo(() => {
   return (
     (momentAuthorAvatarUrl || "").trim() ||
@@ -1087,22 +917,27 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
         </>
       ) : null}
 
-     {subtype === "moment" && (
+    {subtype === "moment" && (
   <>
-    {/* hidden input 연결 */}
     <input
       type="hidden"
       name="moment_choice_options_json"
       value={JSON.stringify(momentChoicePayload)}
     />
+
+    <input
+      type="hidden"
+      name="moment_reaction_lines_json"
+      value={JSON.stringify(momentReactionPayload)}
+    />
+
     <input
       type="hidden"
       name="moment_reply_lines_json"
-      value={JSON.stringify(momentReplyPayload)}
+      value={JSON.stringify(momentReactionPayload)}
     />
 
     <div className="form-grid">
-      {/* 작성자 */}
       <label className="form-field">
         <span>작성자</span>
         <select
@@ -1120,7 +955,6 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
         </select>
       </label>
 
-      {/* 표시 이름 */}
       <label className="form-field">
         <span>표시 이름</span>
         <input
@@ -1131,7 +965,6 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
         />
       </label>
 
-      {/* 작성자 프사 */}
       <label className="form-field form-field-full">
         <span>작성자 프사</span>
         <input
@@ -1140,7 +973,7 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
           onChange={(e) => setMomentAuthorAvatarUrl(e.target.value)}
           placeholder="비워두면 기본 프사 / NPC는 직접 입력"
         />
-        {resolvedMomentAvatarPreview && (
+        {resolvedMomentAvatarPreview ? (
           <div style={{ marginTop: "10px" }}>
             <img
               src={resolvedMomentAvatarPreview}
@@ -1155,10 +988,9 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
               }}
             />
           </div>
-        )}
+        ) : null}
       </label>
 
-      {/* 제목 / slug / 카테고리 / 연도 / 날짜 / 본문 / 히스토리 요약 / 출처 */}
       <label className="form-field form-field-full">
         <span>제목</span>
         <input
@@ -1245,7 +1077,6 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
       </label>
     </div>
 
-    {/* 남주 모멘트 선택지 + 답장 */}
     {isMaleLeadMoment && (
       <div className="archive-card" style={{ display: "grid", gap: "16px" }}>
         <strong>선택지 3개 + 남주 답장</strong>
@@ -1313,7 +1144,7 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
               <label className="form-field">
                 <span>대상 이름</span>
                 <input
-                  value={item.replyTargetName}
+                  value={item.replyTargetName || "유연"}
                   onChange={(e) =>
                     updateMomentChoiceItem(index, {
                       replyTargetName: e.target.value,
@@ -1342,109 +1173,175 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
       </div>
     )}
 
-    {/* NPC / 남주 외 답글 섹션 */}
     <div className="archive-card" style={{ display: "grid", gap: "16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-        <strong>{isMcMoment ? "남주/NPC 답글" : isNpcMoment ? "추가 답글 / 대화" : "추가 답글"}</strong>
-        <button type="button" className="nav-link" onClick={addMomentReplyItem}>
-          답글 추가
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "12px",
+          flexWrap: "wrap",
+        }}
+      >
+        <strong>추가 반응</strong>
+
+        <button
+          type="button"
+          className="nav-link"
+          onClick={() =>
+            setMomentReactionLines((prev) => [
+              ...prev,
+              createEmptyMomentReactionLine(
+                momentAuthorKey || "baiqi",
+                resolvedMomentAuthorName || "백기"
+              ),
+            ])
+          }
+        >
+          반응 추가
         </button>
       </div>
 
-      {momentReplyItems.length === 0 && <div style={{ color: "#7d8794" }}>아직 추가된 답글이 없음</div>}
-
-      {momentReplyItems.map((item) => (
-        <div
-          key={item.id}
-          style={{
-            display: "grid",
-            gap: "12px",
-            padding: "16px",
-            borderRadius: "16px",
-            border: "1px solid #d7e0ec",
-            background: "rgba(255,255,255,0.75)",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center" }}>
-            <strong>답글</strong>
-            <button type="button" className="nav-link" onClick={() => removeMomentReplyItem(item.id)}>
-              삭제
-            </button>
-          </div>
-
-          <div className="form-grid">
-            <label className="form-field">
-              <span>화자</span>
-              <select
-                value={item.speakerKey}
-                onChange={(e) =>
-                  updateMomentReplyItem(item.id, {
-                    speakerKey: e.target.value,
-                    speakerName: item.speakerName || getMomentDefaultName(e.target.value),
-                  })
-                }
+      {momentReactionLines.length === 0 ? (
+        <div style={{ color: "#7d8794" }}>아직 추가된 반응이 없음</div>
+      ) : (
+        <div style={{ display: "grid", gap: "16px" }}>
+          {momentReactionLines.map((line, index) => (
+            <div
+              key={`reaction-${index}`}
+              style={{
+                display: "grid",
+                gap: "12px",
+                padding: "16px",
+                borderRadius: "16px",
+                border: "1px solid #d7e0ec",
+                background: "rgba(255,255,255,0.75)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                  alignItems: "center",
+                }}
               >
-                {MOMENT_PARTICIPANT_OPTIONS.map((option) => (
-                  <option key={option.key} value={option.key}>{option.label}</option>
-                ))}
-              </select>
-            </label>
+                <strong>반응</strong>
+                <button
+                  type="button"
+                  className="nav-link"
+                  onClick={() =>
+                    setMomentReactionLines((prev) =>
+                      prev.filter((_, i) => i !== index)
+                    )
+                  }
+                >
+                  삭제
+                </button>
+              </div>
 
-            <label className="form-field">
-              <span>화자 이름</span>
-              <input
-                value={item.speakerName}
-                onChange={(e) =>
-                  updateMomentReplyItem(item.id, {
-                    speakerName: e.target.value,
-                  })
-                }
-                placeholder="예: 백기 / 유연"
-              />
-            </label>
+              <div className="form-grid">
+                <label className="form-field">
+                  <span>화자</span>
+                  <select
+                    value={line.speakerKey}
+                    onChange={(e) => {
+                      const nextKey = e.target.value;
+                      const nextName =
+                        getMomentDefaultName(nextKey) || line.speakerName;
 
-            <label className="form-field">
-              <span>대상 이름</span>
-              <input
-                value={item.targetName}
-                onChange={(e) =>
-                  updateMomentReplyItem(item.id, {
-                    targetName: e.target.value,
-                  })
-                }
-                placeholder="예: 유연"
-              />
-            </label>
+                      setMomentReactionLines((prev) =>
+                        prev.map((item, i) =>
+                          i === index
+                            ? {
+                                ...item,
+                                speakerKey: nextKey,
+                                speakerName: nextName,
+                              }
+                            : item
+                        )
+                      );
+                    }}
+                  >
+                    {MOMENT_PARTICIPANT_OPTIONS.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-            <label className="form-field">
-              <span>유연에게 답장</span>
-              <input
-                type="checkbox"
-                checked={item.isReplyToMc}
-                onChange={(e) =>
-                  updateMomentReplyItem(item.id, {
-                    isReplyToMc: e.target.checked,
-                  })
-                }
-              />
-            </label>
-          </div>
+                <label className="form-field">
+                  <span>화자 이름</span>
+                  <input
+                    value={line.speakerName}
+                    onChange={(e) =>
+                      setMomentReactionLines((prev) =>
+                        prev.map((item, i) =>
+                          i === index
+                            ? { ...item, speakerName: e.target.value }
+                            : item
+                        )
+                      )
+                    }
+                    placeholder="예: 백기 / 유연 / NPC"
+                  />
+                </label>
 
-          <label className="form-field">
-            <span>내용</span>
-            <textarea
-              rows={4}
-              value={item.content}
-              onChange={(e) =>
-                updateMomentReplyItem(item.id, {
-                  content: e.target.value,
-                })
-              }
-              placeholder="답글 내용"
-            />
-          </label>
+                <label className="form-field">
+                  <span>대상 이름</span>
+                  <input
+                    value={line.targetName}
+                    onChange={(e) =>
+                      setMomentReactionLines((prev) =>
+                        prev.map((item, i) =>
+                          i === index
+                            ? { ...item, targetName: e.target.value }
+                            : item
+                        )
+                      )
+                    }
+                    placeholder="예: 유연"
+                  />
+                </label>
+
+                <label className="form-field">
+                  <span>유연에게 답장</span>
+                  <input
+                    type="checkbox"
+                    checked={line.isReplyToMc}
+                    onChange={(e) =>
+                      setMomentReactionLines((prev) =>
+                        prev.map((item, i) =>
+                          i === index
+                            ? { ...item, isReplyToMc: e.target.checked }
+                            : item
+                        )
+                      )
+                    }
+                  />
+                </label>
+              </div>
+
+              <label className="form-field">
+                <span>내용</span>
+                <textarea
+                  rows={4}
+                  value={line.content}
+                  onChange={(e) =>
+                    setMomentReactionLines((prev) =>
+                      prev.map((item, i) =>
+                        i === index ? { ...item, content: e.target.value } : item
+                      )
+                    )
+                  }
+                  placeholder="반응 내용"
+                />
+              </label>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   </>
 )}
