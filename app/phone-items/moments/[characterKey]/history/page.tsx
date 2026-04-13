@@ -3,14 +3,12 @@ import { notFound } from "next/navigation";
 import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
+import DeletePhoneItemButton from "@/components/admin/phone-items/DeletePhoneItemButton";
+import { deletePhoneItem } from "@/app/admin/actions";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
-import MomentChoiceTrigger from "@/components/phone/moment/MomentChoiceTrigger";
-import MomentFeedFilterButton from "@/components/phone/moment/MomentFeedFilterButton";
 import {
-  MOMENT_AUTHOR_LABEL_MAP,
   MOMENT_CATEGORY_LABEL_MAP,
-  normalizeMomentAuthor,
   normalizeMomentCategory,
 } from "@/lib/phone/moment-filters";
 
@@ -24,17 +22,21 @@ const DEFAULT_AVATAR_MAP: Record<string, string> = {
   other: "/profile/npc.png",
 };
 
-const MAIN_CHARACTER_ORDER = [
-  "baiqi",
-  "lizeyan",
-  "zhouqiluo",
-  "xumo",
-  "lingxiao",
-] as const;
+const DEFAULT_NAME_MAP: Record<string, string> = {
+  baiqi: "백기",
+  lizeyan: "이택언",
+  zhouqiluo: "주기락",
+  xumo: "허묵",
+  lingxiao: "연시호",
+  mc: "나",
+  other: "기타",
+};
 
 type PageProps = {
+  params: Promise<{
+    characterKey: string;
+  }>;
   searchParams?: Promise<{
-    author?: string;
     category?: string;
     year?: string;
   }>;
@@ -60,23 +62,19 @@ type MomentRow = {
     momentSource?: string;
     isFavorite?: boolean;
     isComplete?: boolean;
-    momentChoiceOptions?: Array<{
-      id?: string;
-      label?: string;
-      isHistory?: boolean;
-    }>;
-    momentSelectedOptionId?: string;
   } | null;
 };
 
-type MomentItem = {
+type CategoryKey = "all" | "daily" | "card" | "story";
+
+type MomentHistoryItem = {
   id: string;
   slug: string;
   authorKey: string;
   authorName: string;
   authorAvatarUrl: string;
   title: string;
-  categoryKey: string;
+  categoryKey: CategoryKey;
   categoryLabel: string;
   yearText: string;
   dateText: string;
@@ -85,19 +83,23 @@ type MomentItem = {
   preview: string;
   isFavorite: boolean;
   isComplete: boolean;
-  createdAt: string;
-  choiceOptions: Array<{
-    id: string;
-    label: string;
-    isHistory?: boolean;
-  }>;
-  selectedOptionId: string | null;
 };
+
+const CATEGORY_KEYS: CategoryKey[] = ["all", "daily", "card", "story"];
+
+function safeNormalizeCategory(value?: string): CategoryKey {
+  const normalized = normalizeMomentCategory(value);
+  if (normalized === "daily" || normalized === "card" || normalized === "story") {
+    return normalized;
+  }
+  return "all";
+}
 
 function getPreview(row: MomentRow) {
   const body = row.content_json?.momentBody?.trim();
   const summary = row.content_json?.momentSummary?.trim();
   const title = row.title?.trim();
+
   return body || summary || title || "내용 없음";
 }
 
@@ -123,24 +125,13 @@ function getDateText(row: MomentRow) {
   ).padStart(2, "0")}`;
 }
 
-function getAuthorPriority(authorKey: string) {
-  if (authorKey === "baiqi") return 0;
-  if (
-    authorKey === "lizeyan" ||
-    authorKey === "zhouqiluo" ||
-    authorKey === "xumo" ||
-    authorKey === "lingxiao"
-  ) {
-    return 1;
-  }
-  if (authorKey === "mc") return 2;
-  return 3;
-}
-
-export default async function MomentsPage({ searchParams }: PageProps) {
+export default async function CharacterMomentHistoryPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const { characterKey } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
-  const selectedAuthor = normalizeMomentAuthor(resolvedSearchParams?.author);
-  const selectedCategory = normalizeMomentCategory(resolvedSearchParams?.category);
+  const selectedCategory = safeNormalizeCategory(resolvedSearchParams?.category);
   const selectedYear = (resolvedSearchParams?.year || "").trim();
   const admin = await isAdmin();
 
@@ -151,31 +142,44 @@ export default async function MomentsPage({ searchParams }: PageProps) {
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 
-  if (error) notFound();
+  if (error) {
+    notFound();
+  }
 
-  const rows = (data as MomentRow[] | null) ?? [];
+  const rows = ((data as MomentRow[] | null) ?? []).filter((row) => {
+    const authorKey = row.content_json?.authorKey?.trim() || "other";
+    return authorKey === characterKey;
+  });
 
-  const allItems: MomentItem[] = rows
+  if (!rows.length) {
+    notFound();
+  }
+
+  const authorName =
+    rows[0]?.content_json?.authorName?.trim() ||
+    DEFAULT_NAME_MAP[characterKey] ||
+    "이름 없음";
+
+  const allItems: MomentHistoryItem[] = rows
     .map((row) => {
       const slug = row.slug?.trim() || "";
       if (!slug) return null;
 
-      const authorKey = row.content_json?.authorKey?.trim() || "other";
-      const categoryKey = normalizeMomentCategory(row.content_json?.momentCategory);
+      const categoryKey = safeNormalizeCategory(row.content_json?.momentCategory);
       const yearText = getYearText(row);
       const dateText = getDateText(row);
 
       return {
         id: String(row.id),
         slug,
-        authorKey,
+        authorKey: row.content_json?.authorKey?.trim() || characterKey,
         authorName:
           row.content_json?.authorName?.trim() ||
-          MOMENT_AUTHOR_LABEL_MAP[authorKey] ||
-          "기타",
+          DEFAULT_NAME_MAP[characterKey] ||
+          authorName,
         authorAvatarUrl:
           row.content_json?.authorAvatarUrl?.trim() ||
-          DEFAULT_AVATAR_MAP[authorKey] ||
+          DEFAULT_AVATAR_MAP[characterKey] ||
           "/profile/npc.png",
         title: row.title?.trim() || "제목 없음",
         categoryKey,
@@ -190,82 +194,125 @@ export default async function MomentsPage({ searchParams }: PageProps) {
         preview: getPreview(row),
         isFavorite: Boolean(row.content_json?.isFavorite ?? false),
         isComplete: Boolean(row.content_json?.isComplete ?? true),
-        createdAt: row.created_at,
-        choiceOptions: Array.isArray(row.content_json?.momentChoiceOptions)
-          ? row.content_json!.momentChoiceOptions!.map((option, index) => ({
-              id: option.id?.trim() || `option-${index + 1}`,
-              label: option.label?.trim() || `선택지 ${index + 1}`,
-              isHistory: Boolean(option.isHistory ?? false),
-            }))
-          : [],
-        selectedOptionId: row.content_json?.momentSelectedOptionId?.trim() || null,
       };
     })
-    .filter(Boolean) as MomentItem[];
+    .filter(Boolean) as MomentHistoryItem[];
 
   const availableYears = Array.from(
     new Set(allItems.map((item) => item.yearText).filter(Boolean))
   ).sort((a, b) => Number(b) - Number(a));
 
-  const filteredItems = allItems
-    .filter((item) => {
-      const authorMatched =
-        selectedAuthor === "all"
-          ? true
-          : selectedAuthor === "other"
-            ? !MAIN_CHARACTER_ORDER.includes(item.authorKey as (typeof MAIN_CHARACTER_ORDER)[number]) &&
-              item.authorKey !== "mc"
-            : item.authorKey === selectedAuthor;
+  const filteredItems = allItems.filter((item) => {
+    const categoryMatched =
+      selectedCategory === "all" ? true : item.categoryKey === selectedCategory;
 
-      const categoryMatched =
-        selectedCategory === "all" ? true : item.categoryKey === selectedCategory;
+    const yearMatched = selectedYear ? item.yearText === selectedYear : true;
 
-      const yearMatched = selectedYear ? item.yearText === selectedYear : true;
-
-      return authorMatched && categoryMatched && yearMatched;
-    })
-    .sort((a, b) => {
-      const priorityDiff = getAuthorPriority(a.authorKey) - getAuthorPriority(b.authorKey);
-      if (priorityDiff !== 0) return priorityDiff;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
+    return categoryMatched && yearMatched;
+  });
 
   return (
     <main className="phone-page">
       <PhoneShell>
         <PhoneTopBar
-          title="모멘트"
+          title={`${authorName} · 모멘트`}
           subtitle={`${filteredItems.length}개`}
-          backHref="/phone-items"
+          backHref={`/phone-items/moments/${characterKey}`}
           rightSlot={
-            <div className="history-top-admin">
-                            {admin ? (
+            admin ? (
+              <div className="history-top-admin">
                 <Link
-                  href="/admin/phone-items/new?subtype=moment"
+                  href={`/admin/phone-items/new?subtype=moment&authorKey=${characterKey}`}
                   className="history-top-admin-btn"
                   aria-label="모멘트 추가"
                   title="모멘트 추가"
                 >
                   <span className="material-symbols-rounded">add</span>
                 </Link>
-              ) : null}
-              <MomentFeedFilterButton
-                basePath="/phone-items/moments"
-                selectedAuthor={selectedAuthor}
-                selectedCategory={selectedCategory}
-                selectedYear={selectedYear}
-                availableYears={availableYears}
-                showAuthor
-              />
 
-
-            </div>
+                <Link
+                  href="/admin/phone-items"
+                  className="history-top-admin-btn"
+                  aria-label="휴대폰 관리"
+                  title="휴대폰 관리"
+                >
+                  <span className="material-symbols-rounded">settings</span>
+                </Link>
+              </div>
+            ) : null
           }
         />
 
         <div className="phone-content">
           <div className="message-history-page">
-            <div className="message-history-grid">
+            <div className="message-history-filter-row">
+              {CATEGORY_KEYS.map((categoryKey) => {
+                const label =
+                  categoryKey === "all"
+                    ? "전체"
+                    : MOMENT_CATEGORY_LABEL_MAP[categoryKey] || categoryKey;
+
+                const href =
+                  categoryKey === "all"
+                    ? selectedYear
+                      ? `/phone-items/moments/${characterKey}/history?year=${selectedYear}`
+                      : `/phone-items/moments/${characterKey}/history`
+                    : selectedYear
+                      ? `/phone-items/moments/${characterKey}/history?category=${categoryKey}&year=${selectedYear}`
+                      : `/phone-items/moments/${characterKey}/history?category=${categoryKey}`;
+
+                return (
+                  <Link
+                    key={categoryKey}
+                    href={href}
+                    className={`message-history-chip ${
+                      selectedCategory === categoryKey ? "active" : ""
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {availableYears.length ? (
+              <div
+                className="message-history-filter-row"
+                style={{ marginTop: 10, flexWrap: "wrap" }}
+              >
+                <Link
+                  href={
+                    selectedCategory === "all"
+                      ? `/phone-items/moments/${characterKey}/history`
+                      : `/phone-items/moments/${characterKey}/history?category=${selectedCategory}`
+                  }
+                  className={`message-history-chip ${selectedYear ? "" : "active"}`}
+                >
+                  전체연도
+                </Link>
+
+                {availableYears.map((year) => {
+                  const href =
+                    selectedCategory === "all"
+                      ? `/phone-items/moments/${characterKey}/history?year=${year}`
+                      : `/phone-items/moments/${characterKey}/history?category=${selectedCategory}&year=${year}`;
+
+                  return (
+                    <Link
+                      key={year}
+                      href={href}
+                      className={`message-history-chip ${
+                        selectedYear === year ? "active" : ""
+                      }`}
+                    >
+                      {year}
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            <div className="message-history-grid" style={{ marginTop: 16 }}>
               {filteredItems.map((item) => (
                 <div
                   key={item.id}
@@ -295,26 +342,35 @@ export default async function MomentsPage({ searchParams }: PageProps) {
                           flex: "0 0 auto",
                         }}
                       />
-                      <span className="message-history-badge">
-                        {item.authorName}
-                      </span>
+                      <span className="message-history-badge">{item.authorName}</span>
                     </Link>
 
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      {item.choiceOptions.length ? (
-                        <MomentChoiceTrigger
-                          title={item.title}
-                          options={item.choiceOptions}
-                          selectedOptionId={item.selectedOptionId}
-                        />
-                      ) : null}
+                    {admin ? (
+                      <div className="call-inline-admin">
+                        <Link
+                          href={`/admin/phone-items/${item.id}/edit`}
+                          className="call-inline-admin-btn"
+                          aria-label="수정"
+                          title="수정"
+                        >
+                          <span className="material-symbols-rounded">edit</span>
+                        </Link>
 
-                      {item.isFavorite ? (
-                        <span className="message-history-heart">♡</span>
-                      ) : (
-                        <span className="message-history-steam">〰</span>
-                      )}
-                    </div>
+                        <form action={deletePhoneItem}>
+                          <input type="hidden" name="phoneItemId" value={item.id} />
+                          <DeletePhoneItemButton
+                            label="삭제"
+                            confirmMessage="이 모멘트를 삭제할까요?"
+                            className="call-inline-admin-btn"
+                            icon="delete"
+                          />
+                        </form>
+                      </div>
+                    ) : item.isFavorite ? (
+                      <span className="message-history-heart">♡</span>
+                    ) : (
+                      <span className="message-history-steam">〰</span>
+                    )}
                   </div>
 
                   <Link

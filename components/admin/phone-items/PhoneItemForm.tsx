@@ -1,10 +1,7 @@
 "use client";
 
 import { type ReactNode, useMemo, useState } from "react";
-import {
-  parseMessageBulk,
-  parseMomentBulk,
-} from "@/lib/admin/phoneBulkParsers";
+import { parseMessageBulk } from "@/lib/admin/phoneBulkParsers";
 import MessageBlockEditor from "@/components/admin/phone-items/MessageBlockEditor";
 import {
   type MessageNode,
@@ -12,6 +9,10 @@ import {
   flattenMessageNodes,
 } from "@/lib/admin/messageEditorTypes";
 import SmartEditor from "@/components/editor/SmartEditor";
+import {
+  CALL_HISTORY_CATEGORIES,
+  CALL_HISTORY_CATEGORY_LABEL_MAP,
+} from "@/lib/phone/call-history";
 
 type Subtype = "message" | "moment" | "call" | "video_call" | "article";
 
@@ -88,6 +89,28 @@ article_related_event_label?: string;
 
     call_translation_html?: string;
 call_memo_html?: string;
+moment_title?: string;
+moment_slug?: string;
+moment_author_key?: string;
+moment_author_name?: string;
+moment_author_avatar_url?: string;
+
+moment_category?: string;
+moment_year?: number | string;
+moment_date_text?: string;
+
+moment_body?: string;
+moment_summary?: string;
+moment_source?: string;
+
+moment_image_urls_text?: string;
+moment_choice_options_json?: string;
+moment_comments_json?: string;
+
+moment_is_favorite?: boolean;
+moment_is_complete?: boolean;
+moment_author_has_profile?: boolean;
+moment_reply_lines_json?: string;
 
     input_mode?: "simple" | "bulk";
   };
@@ -179,6 +202,7 @@ export default function PhoneItemForm({
   initialValues,
 }: PhoneItemFormProps) {
   const values = {
+    
     subtype: initialValues?.subtype ?? "call",
     server_key: initialValues?.server_key ?? "kr",
     is_published: initialValues?.is_published ?? true,
@@ -188,7 +212,11 @@ export default function PhoneItemForm({
     character_key: initialValues?.character_key ?? "baiqi",
     character_name: initialValues?.character_name ?? "",
     thread_key: initialValues?.thread_key ?? "",
-    history_category: initialValues?.history_category ?? "daily",
+    history_category:
+  initialValues?.history_category ??
+  (initialValues?.subtype === "call" || initialValues?.subtype === "video_call"
+    ? "story"
+    : "daily"),
     level: initialValues?.level?.toString?.() ?? "",
     
 
@@ -214,58 +242,81 @@ history_source: initialValues?.history_source ?? "",
     call_translation_html: initialValues?.call_translation_html ?? "",
 call_memo_html: initialValues?.call_memo_html ?? "",
 
+moment_author_has_profile: initialValues?.moment_author_has_profile ?? true,
+moment_reply_lines_json: initialValues?.moment_reply_lines_json ?? "",
     
   };
 
   const [subtype, setSubtype] = useState<Subtype>(values.subtype);
-  const [messageRaw, setMessageRaw] = useState(values.message_bulk_raw);
-  const [momentRaw, setMomentRaw] = useState(values.moment_bulk_raw);
+const [messageRaw, setMessageRaw] = useState(values.message_bulk_raw);
 
-  const [characterKey, setCharacterKey] = useState(values.character_key);
-  const [avatarUrl, setAvatarUrl] = useState(values.avatar_url);
-  const [coverImage, setCoverImage] = useState(values.cover_image);
-  const [iconUrl, setIconUrl] = useState(values.icon_url);
-  const [imageUrl, setImageUrl] = useState(values.image_url);
+const [characterKey, setCharacterKey] = useState(values.character_key);
+const [avatarUrl, setAvatarUrl] = useState(values.avatar_url);
+const [coverImage, setCoverImage] = useState(values.cover_image);
 
-  const [messageCharacterKey, setMessageCharacterKey] = useState(
-    values.character_key
-  );
-  const [messageCharacterName, setMessageCharacterName] = useState(
-    values.character_name || DEFAULT_CHARACTER_NAME_MAP[values.character_key] || ""
-  );
-  const [messageAvatarUrl, setMessageAvatarUrl] = useState(values.avatar_url);
+const [messageCharacterKey, setMessageCharacterKey] = useState(
+  values.character_key
+);
+const [messageCharacterName, setMessageCharacterName] = useState(
+  values.character_name || DEFAULT_CHARACTER_NAME_MAP[values.character_key] || ""
+);
+const [messageAvatarUrl, setMessageAvatarUrl] = useState(values.avatar_url);
 
-    const [messageInputMode, setMessageInputMode] = useState<"simple" | "bulk">(
-    values.input_mode
-  );
+const [messageInputMode, setMessageInputMode] = useState<"simple" | "bulk">(
+  values.input_mode
+);
 
-  const [articlePublisherSlug, setArticlePublisherSlug] = useState(
+const [articlePublisherSlug, setArticlePublisherSlug] = useState(
   initialValues?.article_publisher_slug?.trim() || "news-preview"
 );
+
+const [momentAuthorKey, setMomentAuthorKey] = useState(
+  values.moment_author_key || "other"
+);
+const [momentAuthorAvatarUrl, setMomentAuthorAvatarUrl] = useState(
+  values.moment_author_avatar_url || ""
+);
+
+const resolvedMomentAuthorName = useMemo(() => {
+  return (
+    DEFAULT_CHARACTER_NAME_MAP[momentAuthorKey || "other"] ??
+    values.moment_author_name ??
+    ""
+  );
+}, [momentAuthorKey, values.moment_author_name]);
+
+const resolvedMomentAvatarPreview = useMemo(() => {
+  return (
+    (momentAuthorAvatarUrl || "").trim() ||
+    DEFAULT_AVATAR_MAP[momentAuthorKey] ||
+    "/profile/npc.png"
+  );
+}, [momentAuthorAvatarUrl, momentAuthorKey]);
 
 const selectedArticlePublisher =
   ARTICLE_PUBLISHERS.find((item) => item.slug === articlePublisherSlug) ||
   ARTICLE_PUBLISHERS[0];
 
-  const initialMessageEditorEntries = useMemo(() => {
-    try {
-      if (values.editor_entries_json.trim()) {
-        return buildEditorNodesFromStoredEntries(
-          JSON.parse(values.editor_entries_json)
-        );
-      }
-
+const initialMessageEditorEntries = useMemo(() => {
+  try {
+    if (values.editor_entries_json.trim()) {
       return buildEditorNodesFromStoredEntries(
-        values.message_bulk_raw ? parseMessageBulk(values.message_bulk_raw) : []
+        JSON.parse(values.editor_entries_json)
       );
-    } catch {
-      return [];
     }
-  }, [values.editor_entries_json, values.message_bulk_raw]);
 
-  const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
-    initialMessageEditorEntries
-  );
+    return buildEditorNodesFromStoredEntries(
+      values.message_bulk_raw ? parseMessageBulk(values.message_bulk_raw) : []
+    );
+  } catch {
+    return [];
+  }
+}, [values.editor_entries_json, values.message_bulk_raw]);
+
+const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
+  initialMessageEditorEntries
+);
+
 
   const bulkEntries = useMemo(() => {
     try {
@@ -286,13 +337,7 @@ const selectedArticlePublisher =
       ? messageEditorEntries
       : buildEditorNodesFromStoredEntries(bulkEntries);
   }, [messageInputMode, messageEditorEntries, bulkEntries]);
-  const momentPreview = useMemo(() => {
-    try {
-      return momentRaw ? parseMomentBulk(momentRaw) : [];
-    } catch {
-      return [];
-    }
-  }, [momentRaw]);
+
 
   const resolvedCharacterName = useMemo(() => {
     return DEFAULT_CHARACTER_NAME_MAP[characterKey] ?? "";
@@ -309,6 +354,9 @@ const selectedArticlePublisher =
       ""
     );
   }, [messageAvatarUrl, messageCharacterKey]);
+
+  
+
 
   return (
     <form
@@ -576,25 +624,203 @@ const selectedArticlePublisher =
         </>
       ) : null}
 
-      {subtype === "moment" ? (
-        <>
-          <label className="form-field form-field-full">
-            <span>모멘트 일괄 입력</span>
-            <textarea
-              name="moment_bulk_raw"
-              rows={22}
-              value={momentRaw}
-              onChange={(e) => setMomentRaw(e.target.value)}
-              placeholder={momentPlaceholder}
-              style={{ fontFamily: "monospace" }}
-            />
-          </label>
+     {subtype === "moment" ? (
+  <>
+    <div className="form-grid">
+      <label className="form-field">
+        <span>작성자</span>
+        <select
+          name="moment_author_key"
+          value={momentAuthorKey}
+          onChange={(e) => setMomentAuthorKey(e.target.value)}
+        >
+          {CHARACTER_OPTIONS.map((character) => (
+            <option key={character.key} value={character.key}>
+              {character.label}
+            </option>
+          ))}
+          <option value="mc">나</option>
+          <option value="other">기타/NPC</option>
+        </select>
+      </label>
 
-          <div className="archive-card">
-            <strong>posts: {momentPreview.length}</strong>
+      <label className="form-field">
+        <span>표시 이름</span>
+        <input
+          name="moment_author_name"
+          defaultValue={values.moment_author_name || resolvedMomentAuthorName}
+          placeholder="예: 백기 / 나 / 점원"
+        />
+      </label>
+
+      <label className="form-field form-field-full">
+        <span>작성자 프사</span>
+        <input
+          name="moment_author_avatar_url"
+          value={momentAuthorAvatarUrl}
+          onChange={(e) => setMomentAuthorAvatarUrl(e.target.value)}
+          placeholder="비워두면 기본 프사 / NPC는 npc.png fallback"
+        />
+        {resolvedMomentAvatarPreview ? (
+          <div style={{ marginTop: "10px" }}>
+            <img
+              src={resolvedMomentAvatarPreview}
+              alt="moment author avatar preview"
+              style={{
+                width: "88px",
+                height: "88px",
+                borderRadius: "999px",
+                objectFit: "cover",
+                border: "1px solid #d7e0ec",
+                background: "#fff",
+              }}
+            />
           </div>
-        </>
-      ) : null}
+        ) : null}
+      </label>
+
+      <label className="form-field form-field-full">
+        <span>제목</span>
+        <input
+          name="moment_title"
+          defaultValue={values.moment_title}
+          placeholder="예: 눈 내리는 밤"
+        />
+      </label>
+
+      <label className="form-field">
+        <span>slug</span>
+        <input
+          name="moment_slug"
+          defaultValue={values.moment_slug}
+          placeholder="예: baiqi-first-snow"
+        />
+      </label>
+
+      <label className="form-field">
+        <span>카테고리</span>
+        <select name="moment_category" defaultValue={values.moment_category}>
+          <option value="daily">일상</option>
+          <option value="card">카드</option>
+          <option value="story">스토리</option>
+        </select>
+      </label>
+
+      <label className="form-field">
+        <span>연도</span>
+        <input
+          name="moment_year"
+          type="number"
+          defaultValue={values.moment_year}
+          placeholder="예: 2026"
+        />
+      </label>
+
+      <label className="form-field">
+        <span>날짜 텍스트</span>
+        <input
+          name="moment_date_text"
+          defaultValue={values.moment_date_text}
+          placeholder="예: 2026-04-13 / 봄 어느 날"
+        />
+      </label>
+
+      <label className="form-field form-field-full">
+        <span>본문</span>
+        <textarea
+          name="moment_body"
+          rows={8}
+          defaultValue={values.moment_body}
+          placeholder="모멘트 본문"
+        />
+      </label>
+
+      <label className="form-field form-field-full">
+        <span>히스토리 요약</span>
+        <input
+          name="moment_summary"
+          defaultValue={values.moment_summary}
+          placeholder="예: 카드 [첫눈] 관련 / 메인 3장 이후"
+        />
+      </label>
+
+      <label className="form-field form-field-full">
+        <span>출처 / 관련 모멘트 / 메모</span>
+        <input
+          name="moment_source"
+          defaultValue={values.moment_source}
+          placeholder="예: KR 서버 · 2026 / 화이트데이 이벤트 / 관련 모멘트 A"
+        />
+      </label>
+
+      <label className="form-field form-field-full">
+        <span>이미지 URL 목록</span>
+        <textarea
+          name="moment_image_urls_text"
+          rows={5}
+          defaultValue={values.moment_image_urls_text}
+          placeholder={`/images/moments/baiqi-1.jpg\n/images/moments/baiqi-2.jpg`}
+          style={{ fontFamily: "monospace" }}
+        />
+      </label>
+
+      <label className="form-field form-field-full">
+        <span>선택지 JSON (선택)</span>
+        <textarea
+          name="moment_choice_options_json"
+          rows={6}
+          defaultValue={values.moment_choice_options_json}
+          placeholder={`[
+  { "id": "a", "label": "오늘은 조금 쉬어." },
+  { "id": "b", "label": "향이 정말 괜찮네." },
+  { "id": "c", "label": "이건 나중에 다시 이야기하자.", "isHistory": true }
+]`}
+          style={{ fontFamily: "monospace" }}
+        />
+      </label>
+
+<label className="form-field form-field-full">
+  <span>답글 줄 JSON (선택)</span>
+  <textarea
+    name="moment_reply_lines_json"
+    rows={8}
+    defaultValue={values.moment_reply_lines_json}
+    placeholder={`[
+  {
+    "speakerKey": "mc",
+    "speakerName": "유연",
+    "content": "오호~ 어느 컵 말인가요?"
+  },
+  {
+    "speakerKey": "baiqi",
+    "speakerName": "백기",
+    "content": "지난번에 네가 나한테 준 그 따뜻한 물 많이 마시기 컵이야.",
+    "isReplyToMc": true
+  }
+]`}
+    style={{ fontFamily: "monospace" }}
+  />
+</label>
+      <label className="form-field">
+        <span>즐겨찾기</span>
+        <input
+          name="moment_is_favorite"
+          type="checkbox"
+          defaultChecked={values.moment_is_favorite}
+        />
+      </label>
+
+      <label className="form-field">
+        <span>완료 상태</span>
+        <input
+          name="moment_is_complete"
+          type="checkbox"
+          defaultChecked={values.moment_is_complete}
+        />
+      </label>
+    </div>
+  </>
+) : null}
 
       {subtype === "call" || subtype === "video_call" ? (
         <div className="form-grid">
@@ -642,6 +868,8 @@ const selectedArticlePublisher =
             />
           </label>
 
+          
+
           <label className="form-field">
             <span>호감도/레벨</span>
             <input
@@ -651,6 +879,38 @@ const selectedArticlePublisher =
               placeholder="예: 45"
             />
           </label>
+
+          <label className="form-field">
+  <span>기록 카테고리</span>
+  <select
+    name="history_category"
+    defaultValue={values.history_category}
+  >
+    {CALL_HISTORY_CATEGORIES.filter((item) => item.value !== "all").map((item) => (
+      <option key={item.value} value={item.value}>
+        {item.label}
+      </option>
+    ))}
+  </select>
+</label>
+
+<label className="form-field form-field-full">
+  <span>기록 요약</span>
+  <input
+    name="history_summary"
+    defaultValue={values.history_summary}
+    placeholder="타이틀 아래 아주 작게 보일 설명"
+  />
+</label>
+
+<label className="form-field form-field-full">
+  <span>출처 / 메모</span>
+  <input
+    name="history_source"
+    defaultValue={values.history_source}
+    placeholder="예: 생일 통화 / 이벤트 / 카드 획득 후"
+  />
+</label>
 
           <label className="form-field form-field-full">
             <span>아바타 이미지</span>

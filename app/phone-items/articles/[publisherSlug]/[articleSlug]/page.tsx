@@ -346,7 +346,7 @@ lineHeight: 1.8,
                     }}
                   >
                     <img
-                      src={comment.avatarUrl || "/profile/mc.png"}
+                      src={comment.avatarUrl || "/profile/npc.png"}
                       alt={comment.nickname || "익명"}
                       style={{
                         width: 38,

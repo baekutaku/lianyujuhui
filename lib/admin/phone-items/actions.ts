@@ -7,6 +7,7 @@ import {
   parseMessageBulk,
   parseMomentBulk,
 } from "@/lib/admin/phoneBulkParsers";
+import { CALL_HISTORY_CATEGORY_LABEL_MAP } from "@/lib/phone/call-history";
 
 function slugify(input: string) {
   return (
@@ -55,8 +56,37 @@ function parseJsonField<T>(value: string, fieldName: string, fallback: T): T {
   }
 }
 
+
+
 function makeContentId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+function buildMomentSlug(params: {
+  authorKey: string;
+  title: string;
+  fallback?: string;
+}) {
+  const author = slugify(params.authorKey || "other");
+  const base = slugify(params.title || params.fallback || "moment");
+  return `${author}-${base}`;
+}
+
+function parseJsonFieldOptional<T>(value: string, fieldName: string, fallback: T): T {
+  const trimmed = value.trim();
+  if (!trimmed) return fallback;
+
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    throw new Error(`${fieldName} JSON이 올바르지 않습니다.`);
+  }
+}
+
+function parseLineSeparatedUrls(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 async function resolveServerAndCharacterIds(
@@ -291,12 +321,10 @@ async function createMessagePhoneItem(params: {
   const levelRaw = String(params.formData.get("level") || "").trim();
   const level = levelRaw ? Number(levelRaw) : null;
 
-  const historyCategory =
-    String(params.formData.get("history_category") || "").trim() || "daily";
-  const historySummary =
-    String(params.formData.get("history_summary") || "").trim();
-  const historySource =
-    String(params.formData.get("history_source") || "").trim();
+  const historySummary = String(params.formData.get("history_summary") || "").trim();
+const historySource = String(params.formData.get("history_source") || "").trim();
+const historyCategory =
+  String(params.formData.get("history_category") || "").trim() || "story";
 
   const raw = String(params.formData.get("message_bulk_raw") || "").trim();
   const entriesJson = String(params.formData.get("entries_json") || "").trim();
@@ -391,49 +419,125 @@ async function createMomentPhoneItem(params: {
   const serverKey = String(params.formData.get("server_key") || "kr").trim();
   const releaseYear = new Date().getFullYear();
 
-  const raw = String(params.formData.get("moment_bulk_raw") || "").trim();
-  const posts = parseMomentBulk(raw);
+  const authorKey = String(params.formData.get("moment_author_key") || "other").trim();
+  const authorName = String(params.formData.get("moment_author_name") || "").trim();
+  const authorAvatarUrl = String(
+    params.formData.get("moment_author_avatar_url") || ""
+  ).trim();
+  const authorHasProfile =
+    params.formData.get("moment_author_has_profile") === "on";
 
-  if (posts.length === 0) {
-    throw new Error("모멘트 내용이 없습니다.");
-  }
+  const momentTitle = String(params.formData.get("moment_title") || "").trim();
+  const momentSlugRaw = String(params.formData.get("moment_slug") || "").trim();
+  const momentCategory = String(params.formData.get("moment_category") || "daily").trim();
+  const momentYearRaw = String(params.formData.get("moment_year") || "").trim();
+  const momentDateText = String(params.formData.get("moment_date_text") || "").trim();
 
-  const first = posts[0];
+  const momentBody = String(params.formData.get("moment_body") || "").trim();
+  const momentSummary = String(params.formData.get("moment_summary") || "").trim();
+  const momentSource = String(params.formData.get("moment_source") || "").trim();
+
+  const momentImageUrlsText = String(
+    params.formData.get("moment_image_urls_text") || ""
+  ).trim();
+
+  const momentReplyLinesJson = String(
+    params.formData.get("moment_reply_lines_json") || ""
+  ).trim();
+
+  const momentChoiceOptionsJson = String(
+    params.formData.get("moment_choice_options_json") || ""
+  ).trim();
+
+  const momentCommentsJson = String(
+    params.formData.get("moment_comments_json") || ""
+  ).trim();
+
+  const momentIsFavorite = params.formData.get("moment_is_favorite") === "on";
+  const momentIsComplete = params.formData.get("moment_is_complete") === "on";
+
+  const momentImageUrls = parseLineSeparatedUrls(momentImageUrlsText);
+
+  const momentReplyLines = parseJsonFieldOptional<
+    Array<{
+      speakerKey?: string;
+      speakerName?: string;
+      content?: string;
+      isReplyToMc?: boolean;
+    }>
+  >(momentReplyLinesJson, "moment_reply_lines_json", []);
+
+  const momentChoiceOptions = parseJsonFieldOptional<
+    Array<{ id?: string; label?: string; isHistory?: boolean }>
+  >(momentChoiceOptionsJson, "moment_choice_options_json", []);
+
+  const momentComments = parseJsonFieldOptional<
+    Array<{
+      avatarUrl?: string;
+      nickname?: string;
+      content?: string;
+      likeCount?: number;
+    }>
+  >(momentCommentsJson, "moment_comments_json", []);
+
+  const momentCategoryLabelMap: Record<string, string> = {
+    daily: "일상",
+    card: "카드",
+    story: "스토리",
+  };
 
   const finalSlug =
+    momentSlugRaw ||
     params.rawSlug ||
-    buildPhoneItemSlug({
-      subtype: "moment",
-      characterKey: first.characterKey,
-      title: first.authorName,
-      fallback: first.body.slice(0, 30),
+    buildMomentSlug({
+      authorKey,
+      title: momentTitle,
+      fallback: momentBody.slice(0, 30),
     });
 
   const { serverId, characterId } = await resolveServerAndCharacterIds(
     serverKey,
-    first.characterKey
+    authorHasProfile && authorKey !== "mc" && authorKey !== "other" ? authorKey : ""
   );
+
+  const selectedOptionId =
+    momentChoiceOptions.length > 0
+      ? String(momentChoiceOptions[0]?.id || "").trim() || "option-1"
+      : null;
 
   const { data, error } = await supabase
     .from("phone_items")
     .insert({
       content_id: makeContentId("phone-moment"),
-      origin_key: `${first.characterKey}-${finalSlug}`,
+      origin_key: `${authorKey}-${finalSlug}`,
       server_id: serverId,
       primary_character_id: characterId,
-      title: `${first.authorName} 모멘트`,
+      title: momentTitle || `${authorName || authorKey} 모멘트`,
       slug: finalSlug,
       subtype: "moment",
-      release_year: releaseYear,
-      preview_text: first.body.slice(0, 60),
-      summary: first.body.slice(0, 60),
+      release_year: momentYearRaw ? Number(momentYearRaw) : releaseYear,
+      preview_text: momentSummary || momentBody.slice(0, 60),
+      summary: momentSummary || momentBody.slice(0, 60),
       is_published: params.isPublished,
       content_json: {
-        characterKey: first.characterKey,
-        authorName: first.authorName,
-        authorAvatar: first.authorAvatar,
-        authorLevel: first.authorLevel,
-        posts,
+        authorKey,
+        authorName,
+        authorAvatarUrl,
+        authorHasProfile,
+        momentCategory,
+        momentCategoryLabel: momentCategoryLabelMap[momentCategory] || "일상",
+        momentYear: momentYearRaw ? Number(momentYearRaw) : releaseYear,
+        momentDateText,
+        momentBody,
+        momentSummary,
+        momentSource,
+        momentImageUrls,
+        momentReplyLines,
+        momentChoiceOptions,
+        momentSelectedOptionId: selectedOptionId,
+        momentComments,
+        isFavorite: momentIsFavorite,
+        isComplete: momentIsComplete,
       },
     })
     .select("id, slug")
@@ -464,40 +568,57 @@ async function updateCallPhoneItem(params: {
   const body = String(params.formData.get("body") || "").trim();
   const levelRaw = String(params.formData.get("level") || "").trim();
   const level = levelRaw ? Number(levelRaw) : null;
-  const translationHtml = String(
-  params.formData.get("call_translation_html") || ""
-).trim();
 
-const memoHtml = String(
-  params.formData.get("call_memo_html") || ""
-).trim();
+  const translationHtml = String(
+    params.formData.get("call_translation_html") || ""
+  ).trim();
+
+  const memoHtml = String(
+    params.formData.get("call_memo_html") || ""
+  ).trim();
+
+  const historySummary = String(
+    params.formData.get("history_summary") || ""
+  ).trim();
+
+  const historySource = String(
+    params.formData.get("history_source") || ""
+  ).trim();
+
+  const historyCategory =
+    String(params.formData.get("history_category") || "").trim() || "story";
 
   const { error } = await supabase
     .from("phone_items")
     .update({
-      title: params.title,
-     slug:
-  params.rawSlug ||
-  buildPhoneItemSlug({
-    subtype: params.subtype,
-    characterKey,
-    title: params.title,
-    fallback: body.slice(0, 30),
-  }),
+      title: params.title || `${characterName || characterKey} 통화`,
+      slug:
+        params.rawSlug ||
+        buildPhoneItemSlug({
+          subtype: params.subtype,
+          characterKey,
+          title: params.title,
+          fallback: body.slice(0, 30),
+        }),
       subtype: params.subtype,
-      summary: params.summary || body.slice(0, 60),
+      summary: params.summary || historySummary || body.slice(0, 60),
       is_published: params.isPublished,
       embed_url: toEmbedUrl(youtubeUrl) || null,
-content_json: {
-  characterKey,
-  characterName,
-  avatarUrl,
-  level,
-  coverImage,
-  body,
-  translationHtml,
-  memoHtml,
-},
+      content_json: {
+        characterKey,
+        characterName,
+        avatarUrl,
+        level,
+        coverImage,
+        body,
+        translationHtml,
+        memoHtml,
+        historyCategory,
+        historyCategoryLabel:
+          CALL_HISTORY_CATEGORY_LABEL_MAP[historyCategory] || "스토리",
+        historySummary,
+        historySource,
+      },
     })
     .eq("id", params.phoneItemId);
 
@@ -705,30 +826,116 @@ async function updateMomentPhoneItem(params: {
   isPublished: boolean;
   formData: FormData;
 }) {
-  const raw = String(params.formData.get("moment_bulk_raw") || "").trim();
-  const posts = parseMomentBulk(raw);
+  const authorKey = String(params.formData.get("moment_author_key") || "other").trim();
+  const authorName = String(params.formData.get("moment_author_name") || "").trim();
+  const authorAvatarUrl = String(
+    params.formData.get("moment_author_avatar_url") || ""
+  ).trim();
+  const authorHasProfile =
+    params.formData.get("moment_author_has_profile") === "on";
 
-  if (posts.length === 0) {
-    throw new Error("모멘트 내용이 없습니다.");
-  }
+  const momentTitle = String(params.formData.get("moment_title") || "").trim();
+  const momentSlugRaw = String(params.formData.get("moment_slug") || "").trim();
+  const momentCategory = String(params.formData.get("moment_category") || "daily").trim();
+  const momentYearRaw = String(params.formData.get("moment_year") || "").trim();
+  const momentDateText = String(params.formData.get("moment_date_text") || "").trim();
 
-  const first = posts[0];
+  const momentBody = String(params.formData.get("moment_body") || "").trim();
+  const momentSummary = String(params.formData.get("moment_summary") || "").trim();
+  const momentSource = String(params.formData.get("moment_source") || "").trim();
+
+  const momentImageUrlsText = String(
+    params.formData.get("moment_image_urls_text") || ""
+  ).trim();
+
+  const momentReplyLinesJson = String(
+    params.formData.get("moment_reply_lines_json") || ""
+  ).trim();
+
+  const momentChoiceOptionsJson = String(
+    params.formData.get("moment_choice_options_json") || ""
+  ).trim();
+
+  const momentCommentsJson = String(
+    params.formData.get("moment_comments_json") || ""
+  ).trim();
+
+  const momentIsFavorite = params.formData.get("moment_is_favorite") === "on";
+  const momentIsComplete = params.formData.get("moment_is_complete") === "on";
+
+  const momentImageUrls = parseLineSeparatedUrls(momentImageUrlsText);
+
+  const momentReplyLines = parseJsonFieldOptional<
+    Array<{
+      speakerKey?: string;
+      speakerName?: string;
+      content?: string;
+      isReplyToMc?: boolean;
+    }>
+  >(momentReplyLinesJson, "moment_reply_lines_json", []);
+
+  const momentChoiceOptions = parseJsonFieldOptional<
+    Array<{ id?: string; label?: string; isHistory?: boolean }>
+  >(momentChoiceOptionsJson, "moment_choice_options_json", []);
+
+  const momentComments = parseJsonFieldOptional<
+    Array<{
+      avatarUrl?: string;
+      nickname?: string;
+      content?: string;
+      likeCount?: number;
+    }>
+  >(momentCommentsJson, "moment_comments_json", []);
+
+  const momentCategoryLabelMap: Record<string, string> = {
+    daily: "일상",
+    card: "카드",
+    story: "스토리",
+  };
+
+  const finalSlug =
+    momentSlugRaw ||
+    params.rawSlug ||
+    buildMomentSlug({
+      authorKey,
+      title: momentTitle,
+      fallback: momentBody.slice(0, 30),
+    });
+
+  const selectedOptionId =
+    momentChoiceOptions.length > 0
+      ? String(momentChoiceOptions[0]?.id || "").trim() || "option-1"
+      : null;
 
   const { error } = await supabase
     .from("phone_items")
     .update({
-      title: `${first.authorName} 모멘트`,
-      slug: params.rawSlug || null,
+      title: momentTitle || `${authorName || authorKey} 모멘트`,
+      slug: finalSlug,
       subtype: "moment",
-      preview_text: first.body.slice(0, 60),
-      summary: first.body.slice(0, 60),
+      release_year: momentYearRaw ? Number(momentYearRaw) : null,
+      preview_text: momentSummary || momentBody.slice(0, 60),
+      summary: momentSummary || momentBody.slice(0, 60),
       is_published: params.isPublished,
       content_json: {
-        characterKey: first.characterKey,
-        authorName: first.authorName,
-        authorAvatar: first.authorAvatar,
-        authorLevel: first.authorLevel,
-        posts,
+        authorKey,
+        authorName,
+        authorAvatarUrl,
+        authorHasProfile,
+        momentCategory,
+        momentCategoryLabel: momentCategoryLabelMap[momentCategory] || "일상",
+        momentYear: momentYearRaw ? Number(momentYearRaw) : null,
+        momentDateText,
+        momentBody,
+        momentSummary,
+        momentSource,
+        momentImageUrls,
+        momentReplyLines,
+        momentChoiceOptions,
+        momentSelectedOptionId: selectedOptionId,
+        momentComments,
+        isFavorite: momentIsFavorite,
+        isComplete: momentIsComplete,
       },
     })
     .eq("id", params.phoneItemId);
@@ -757,12 +964,23 @@ async function createCallPhoneItem(params: {
   const level = levelRaw ? Number(levelRaw) : null;
 
   const translationHtml = String(
-  params.formData.get("call_translation_html") || ""
-).trim();
+    params.formData.get("call_translation_html") || ""
+  ).trim();
 
-const memoHtml = String(
-  params.formData.get("call_memo_html") || ""
-).trim();
+  const memoHtml = String(
+    params.formData.get("call_memo_html") || ""
+  ).trim();
+
+  const historySummary = String(
+    params.formData.get("history_summary") || ""
+  ).trim();
+
+  const historySource = String(
+    params.formData.get("history_source") || ""
+  ).trim();
+
+  const historyCategory =
+    String(params.formData.get("history_category") || "").trim() || "story";
 
   const finalSlug =
     params.rawSlug ||
@@ -789,19 +1007,24 @@ const memoHtml = String(
       slug: finalSlug,
       subtype: params.subtype,
       release_year: releaseYear,
-      summary: params.summary || body.slice(0, 60),
+      summary: params.summary || historySummary || body.slice(0, 60),
       is_published: params.isPublished,
       embed_url: toEmbedUrl(youtubeUrl) || null,
-content_json: {
-  characterKey,
-  characterName,
-  avatarUrl,
-  level,
-  coverImage,
-  body,
-  translationHtml,
-  memoHtml,
-},
+      content_json: {
+        characterKey,
+        characterName,
+        avatarUrl,
+        level,
+        coverImage,
+        body,
+        translationHtml,
+        memoHtml,
+        historyCategory,
+        historyCategoryLabel:
+          CALL_HISTORY_CATEGORY_LABEL_MAP[historyCategory] || "스토리",
+        historySummary,
+        historySource,
+      },
     })
     .select("id, slug")
     .single();

@@ -3,6 +3,7 @@ import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import { supabase } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/utils/admin-auth";
 
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
   baiqi: "/profile/baiqi.png",
@@ -46,6 +47,8 @@ type CallItem = {
 };
 
 export default async function CallsPage() {
+  const admin = await isAdmin();
+
   const { data, error } = await supabase
     .from("phone_items")
     .select("id, title, slug, created_at, subtype, is_published, content_json")
@@ -66,21 +69,21 @@ export default async function CallsPage() {
       if (!slug) return null;
 
       return {
-  id: String(row.id),
-  slug,
-  subtype: row.subtype,
-  characterKey,
-  characterName:
-    row.content_json?.characterName?.trim() ||
-    DEFAULT_NAME_MAP[characterKey] ||
-    "이름 없음",
-  avatarUrl:
-    row.content_json?.avatarUrl?.trim() ||
-    DEFAULT_AVATAR_MAP[characterKey] ||
-    "/profile/baiqi.png",
-  title: row.title?.trim() || "제목 없음",
-  createdAt: row.created_at,
-};
+        id: String(row.id),
+        slug,
+        subtype: row.subtype,
+        characterKey,
+        characterName:
+          row.content_json?.characterName?.trim() ||
+          DEFAULT_NAME_MAP[characterKey] ||
+          "이름 없음",
+        avatarUrl:
+          row.content_json?.avatarUrl?.trim() ||
+          DEFAULT_AVATAR_MAP[characterKey] ||
+          "/profile/baiqi.png",
+        title: row.title?.trim() || "제목 없음",
+        createdAt: row.created_at,
+      };
     })
     .filter(Boolean) as CallItem[];
 
@@ -93,7 +96,34 @@ export default async function CallsPage() {
   return (
     <main className="phone-page">
       <PhoneShell>
-        <PhoneTopBar title="통화" subtitle="최근 통화" />
+        <PhoneTopBar
+          title="통화"
+          subtitle="최근 통화"
+          rightSlot={
+            admin ? (
+              <div className="history-top-admin">
+                <Link
+                  href="/admin/phone-items/new?subtype=call"
+                  className="history-top-admin-btn"
+                  aria-label="통화 추가"
+                  title="통화 추가"
+                >
+                  <span className="material-symbols-rounded">add</span>
+                </Link>
+
+                <Link
+                  href="/admin/phone-items"
+                  className="history-top-admin-btn"
+                  aria-label="휴대폰 관리"
+                  title="휴대폰 관리"
+                >
+                  <span className="material-symbols-rounded">settings</span>
+                </Link>
+              </div>
+            ) : null
+          }
+        />
+
         <div className="phone-content">
           <div className="call-history-list">
             {orderedItems.map((item) => (
@@ -113,15 +143,16 @@ export default async function CallsPage() {
                   <div className="call-title">{item.title}</div>
                 </div>
 
-<div className="call-action">
-  <span className="material-symbols-rounded">
-    {item.subtype === "video_call" ? "videocam" : "volume_up"}
-  </span>
-</div>
+                <div className="call-action">
+                  <span className="material-symbols-rounded">
+                    {item.subtype === "video_call" ? "videocam" : "volume_up"}
+                  </span>
+                </div>
               </Link>
             ))}
           </div>
         </div>
+
         <PhoneTabNav currentPath="/phone-items/calls" />
       </PhoneShell>
     </main>

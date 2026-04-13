@@ -4,9 +4,13 @@ import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import DeletePhoneItemButton from "@/components/admin/phone-items/DeletePhoneItemButton";
-import { deletePhoneItem } from "@/app/admin/actions";
 import { supabase } from "@/lib/supabase/server";
+import { deletePhoneItem } from "@/app/admin/actions";
 import { isAdmin } from "@/lib/utils/admin-auth";
+import {
+  CALL_HISTORY_CATEGORIES,
+  CALL_HISTORY_CATEGORY_LABEL_MAP,
+} from "@/lib/phone/call-history";
 
 const DEFAULT_NAME_MAP: Record<string, string> = {
   baiqi: "백기",
@@ -16,22 +20,21 @@ const DEFAULT_NAME_MAP: Record<string, string> = {
   lingxiao: "연시호",
 };
 
-const CATEGORY_KEYS = [
-  "all",
-  "daily",
-  "companion",
-  "card_story",
-  "main_story",
-] as const;
-
-const CATEGORY_LABEL_MAP: Record<string, string> = {
-  daily: "일상",
-  companion: "동반",
-  card_story: "카드",
-  main_story: "메인스토리",
+const CHARACTER_LABELS: Record<string, string> = {
+  baiqi: "백기",
+  lizeyan: "이택언",
+  zhouqiluo: "주기락",
+  xumo: "허묵",
+  lingxiao: "연시호",
 };
 
-type CategoryKey = (typeof CATEGORY_KEYS)[number];
+type CategoryKey =
+  | "all"
+  | "story"
+  | "card"
+  | "birthday"
+  | "event"
+  | "anniversary";
 
 type PageProps = {
   params: Promise<{
@@ -42,25 +45,24 @@ type PageProps = {
   }>;
 };
 
-type MessageHistoryRow = {
+type PhoneCallRow = {
   id: string;
   title: string | null;
   slug: string | null;
+  subtype: string;
   created_at: string;
   is_published?: boolean | null;
   content_json?: {
-    threadKey?: string;
     characterKey?: string;
     characterName?: string;
+    avatarUrl?: string;
     historyCategory?: string;
     historyCategoryLabel?: string;
     historySummary?: string;
     historySource?: string;
-    preview?: string;
-    entries?: unknown[];
-    editorEntries?: unknown[];
-    isComplete?: boolean;
+    body?: string;
     isFavorite?: boolean;
+    isComplete?: boolean;
   } | null;
 };
 
@@ -68,21 +70,24 @@ type HistoryItem = {
   id: string;
   title: string;
   slug: string;
-  preview: string;
+  categoryKey: CategoryKey;
   groupLabel: string;
-  categoryKey: string;
   metaSummary: string;
   metaSource: string;
-  isComplete: boolean;
+  preview: string;
   isFavorite: boolean;
+  isComplete: boolean;
+  characterKey: string;
+  isVideo: boolean;
 };
 
 function normalizeCategory(value?: string): CategoryKey {
   if (
-    value === "daily" ||
-    value === "companion" ||
-    value === "card_story" ||
-    value === "main_story"
+    value === "story" ||
+    value === "card" ||
+    value === "birthday" ||
+    value === "event" ||
+    value === "anniversary"
   ) {
     return value;
   }
@@ -90,61 +95,32 @@ function normalizeCategory(value?: string): CategoryKey {
   return "all";
 }
 
-function extractPreview(entries: unknown): string {
-  if (!Array.isArray(entries)) return "";
-
-  for (const entry of entries) {
-    if (!entry || typeof entry !== "object") continue;
-
-    const type = (entry as { type?: string }).type;
-
-    if (type === "text") {
-      const text = String((entry as { text?: string }).text ?? "").trim();
-      if (text) return text;
-    }
-
-    if (type === "choice") {
-      const options = (entry as { options?: unknown[] }).options;
-      if (!Array.isArray(options) || !options.length) continue;
-
-      const first = options[0];
-
-      if (typeof first === "string" && first.trim()) {
-        return first.trim();
-      }
-
-      if (
-        first &&
-        typeof first === "object" &&
-        "label" in first &&
-        typeof (first as { label?: string }).label === "string"
-      ) {
-        return (first as { label: string }).label.trim();
-      }
-    }
-
-    if (type === "system") {
-      const text = String((entry as { text?: string }).text ?? "").trim();
-      if (text) return text;
-    }
-  }
-
-  return "";
+function extractPreview(row: PhoneCallRow) {
+  return (
+    row.content_json?.body?.trim() ||
+    row.content_json?.historySummary?.trim() ||
+    row.title?.trim() ||
+    "미리보기가 없습니다."
+  );
 }
 
-export default async function MessageHistoryPage({
+export default async function CharacterCallArchivePage({
   params,
   searchParams,
 }: PageProps) {
   const { characterKey } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const selectedCategory = normalizeCategory(resolvedSearchParams?.category);
+
+  const characterLabel = CHARACTER_LABELS[characterKey];
+  if (!characterLabel) notFound();
+
   const admin = await isAdmin();
 
   const { data, error } = await supabase
     .from("phone_items")
-    .select("id, title, slug, created_at, content_json, is_published")
-    .eq("subtype", "message")
+    .select("id, title, slug, created_at, subtype, content_json, is_published")
+    .in("subtype", ["call", "video_call"])
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 
@@ -152,7 +128,7 @@ export default async function MessageHistoryPage({
     notFound();
   }
 
-  const rows = ((data as MessageHistoryRow[] | null) ?? []).filter((row) => {
+  const rows = ((data as PhoneCallRow[] | null) ?? []).filter((row) => {
     return (row.content_json?.characterKey ?? "baiqi") === characterKey;
   });
 
@@ -166,29 +142,25 @@ export default async function MessageHistoryPage({
     "이름 없음";
 
   const allItems: HistoryItem[] = rows.map((row) => {
-    const preview =
-      row.content_json?.preview?.trim() ||
-      extractPreview(row.content_json?.editorEntries) ||
-      extractPreview(row.content_json?.entries) ||
-      "미리보기가 없습니다.";
-
-    const categoryKey =
-      row.content_json?.historyCategory?.trim() || "daily";
+    const slug = row.slug?.trim() || "";
+    const categoryKey = normalizeCategory(row.content_json?.historyCategory);
 
     return {
       id: String(row.id),
       title: row.title?.trim() || "제목 없음",
-      slug: row.slug?.trim() || "",
-      preview,
+      slug,
       categoryKey,
       groupLabel:
         row.content_json?.historyCategoryLabel?.trim() ||
-        CATEGORY_LABEL_MAP[categoryKey] ||
-        "일상",
+        CALL_HISTORY_CATEGORY_LABEL_MAP[categoryKey] ||
+        "스토리",
       metaSummary: row.content_json?.historySummary?.trim() || "",
       metaSource: row.content_json?.historySource?.trim() || "",
-      isComplete: Boolean(row.content_json?.isComplete ?? true),
+      preview: extractPreview(row),
       isFavorite: Boolean(row.content_json?.isFavorite ?? false),
+      isComplete: Boolean(row.content_json?.isComplete ?? true),
+      characterKey,
+      isVideo: row.subtype === "video_call",
     };
   });
 
@@ -201,17 +173,17 @@ export default async function MessageHistoryPage({
     <main className="phone-page">
       <PhoneShell>
         <PhoneTopBar
-          title={`${characterName} · 대화기록`}
+          title={`${characterName} · 통화기록`}
           subtitle={`${items.length}개`}
-          backHref={`/phone-items/messages/${characterKey}`}
+          backHref={`/phone-items/calls/${characterKey}/history`}
           rightSlot={
             admin ? (
               <div className="history-top-admin">
                 <Link
-                  href={`/admin/phone-items/new?subtype=message&characterKey=${characterKey}`}
+                  href={`/admin/phone-items/new?subtype=call&characterKey=${characterKey}`}
                   className="history-top-admin-btn"
-                  aria-label="메시지 추가"
-                  title="메시지 추가"
+                  aria-label="통화 추가"
+                  title="통화 추가"
                 >
                   <span className="material-symbols-rounded">add</span>
                 </Link>
@@ -232,25 +204,20 @@ export default async function MessageHistoryPage({
         <div className="phone-content">
           <div className="message-history-page">
             <div className="message-history-filter-row">
-              {CATEGORY_KEYS.map((categoryKey) => {
-                const active = selectedCategory === categoryKey;
-                const label =
-                  categoryKey === "all"
-                    ? "전체"
-                    : CATEGORY_LABEL_MAP[categoryKey] || categoryKey;
-
+              {CALL_HISTORY_CATEGORIES.map((category) => {
+                const active = selectedCategory === category.value;
                 const href =
-                  categoryKey === "all"
-                    ? `/phone-items/messages/${characterKey}/history`
-                    : `/phone-items/messages/${characterKey}/history?category=${categoryKey}`;
+                  category.value === "all"
+                    ? `/phone-items/calls/${characterKey}/history/history`
+                    : `/phone-items/calls/${characterKey}/history/history?category=${category.value}`;
 
                 return (
                   <Link
-                    key={categoryKey}
+                    key={category.value}
                     href={href}
                     className={`message-history-chip ${active ? "active" : ""}`}
                   >
-                    {label}
+                    {category.label}
                   </Link>
                 );
               })}
@@ -264,40 +231,40 @@ export default async function MessageHistoryPage({
                   style={{ position: "relative" }}
                 >
                   <div className="message-history-card-top">
-                    <span className="message-history-badge">
-                      {item.groupLabel}
-                    </span>
+                    <span className="message-history-badge">{item.groupLabel}</span>
 
-                    {admin ? (
-                      <div className="call-inline-admin">
-                        <Link
-                          href={`/admin/phone-items/${item.id}/edit`}
-                          className="call-inline-admin-btn"
-                          aria-label="수정"
-                          title="수정"
-                        >
-                          <span className="material-symbols-rounded">edit</span>
-                        </Link>
-
-                        <form action={deletePhoneItem}>
-                          <input type="hidden" name="phoneItemId" value={item.id} />
-                          <DeletePhoneItemButton
-                            label="삭제"
-                            confirmMessage="이 메시지를 삭제할까요?"
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {admin ? (
+                        <>
+                          <Link
+                            href={`/admin/phone-items/${item.id}/edit`}
                             className="call-inline-admin-btn"
-                            icon="delete"
-                          />
-                        </form>
-                      </div>
-                    ) : item.isFavorite ? (
-                      <span className="message-history-heart">♡</span>
-                    ) : (
-                      <span className="message-history-steam">〰</span>
-                    )}
+                            aria-label="수정"
+                            title="수정"
+                          >
+                            <span className="material-symbols-rounded">edit</span>
+                          </Link>
+
+                          <form action={deletePhoneItem}>
+                            <input type="hidden" name="phoneItemId" value={item.id} />
+                            <DeletePhoneItemButton
+                              label="삭제"
+                              confirmMessage="이 통화를 삭제할까요?"
+                              className="call-inline-admin-btn"
+                              icon="delete"
+                            />
+                          </form>
+                        </>
+                      ) : item.isFavorite ? (
+                        <span className="message-history-heart">♡</span>
+                      ) : (
+                        <span className="message-history-steam">〰</span>
+                      )}
+                    </div>
                   </div>
 
                   <Link
-                    href={`/phone-items/messages/${characterKey}/${item.slug}`}
+                    href={`/phone-items/calls/${item.characterKey}/${item.slug}`}
                     style={{
                       textDecoration: "none",
                       color: "inherit",
@@ -331,7 +298,7 @@ export default async function MessageHistoryPage({
           </div>
         </div>
 
-        <PhoneTabNav currentPath="/phone-items/messages" />
+        <PhoneTabNav currentPath="/phone-items/calls" />
       </PhoneShell>
     </main>
   );

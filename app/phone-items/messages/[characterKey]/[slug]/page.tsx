@@ -5,6 +5,7 @@ import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import MessageThreadView from "@/components/phone/message/MessageThreadView";
 import { supabase } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/utils/admin-auth";
 
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
   baiqi: "/profile/baiqi.png",
@@ -29,6 +30,21 @@ type PageProps = {
   }>;
 };
 
+type MessageThreadRow = {
+  id: string;
+  title: string | null;
+  slug: string | null;
+  created_at: string;
+  is_published?: boolean | null;
+  content_json?: {
+    characterKey?: string;
+    characterName?: string;
+    avatarUrl?: string;
+    entries?: unknown[];
+    editorEntries?: unknown[];
+  } | null;
+};
+
 function safeDecode(value: string) {
   try {
     return decodeURIComponent(value);
@@ -42,6 +58,7 @@ export default async function CharacterMessageThreadPage({
 }: PageProps) {
   const { characterKey, slug: rawSlug } = await params;
   const slug = safeDecode(rawSlug).trim();
+  const admin = await isAdmin();
 
   const { data, error } = await supabase
     .from("phone_items")
@@ -53,9 +70,12 @@ export default async function CharacterMessageThreadPage({
 
   if (error || !data || data.length === 0) notFound();
 
+  const rows = (data as MessageThreadRow[] | null) ?? [];
+
   const item =
-    data.find((row) => (row.content_json?.characterKey ?? "baiqi") === characterKey) ??
-    null;
+    rows.find(
+      (row) => (row.content_json?.characterKey ?? "baiqi") === characterKey
+    ) ?? null;
 
   if (!item) notFound();
 
@@ -75,6 +95,21 @@ export default async function CharacterMessageThreadPage({
       ? item.content_json.entries
       : [];
 
+  const smallAdminIconStyle = {
+    width: 24,
+    height: 24,
+    borderRadius: "999px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    textDecoration: "none",
+    color: "#f7eef7",
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    opacity: 0.78,
+    flex: "0 0 auto",
+  } as const;
+
   return (
     <main className="phone-page">
       <PhoneShell>
@@ -83,14 +118,54 @@ export default async function CharacterMessageThreadPage({
           subtitle={characterName}
           backHref="/phone-items/messages"
           rightSlot={
-            <Link
-              href={`/phone-items/messages/${characterKey}/history`}
-              className="phone-topbar-icon-button"
-              aria-label="대화기록"
-              title="대화기록"
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
             >
-              <span className="material-symbols-rounded">history</span>
-            </Link>
+              {admin ? (
+                <>
+                  <Link
+                    href={`/admin/phone-items/${item.id}/edit`}
+                    aria-label="수정"
+                    title="수정"
+                    style={smallAdminIconStyle}
+                  >
+                    <span
+                      className="material-symbols-rounded"
+                      style={{ fontSize: 14, lineHeight: 1 }}
+                    >
+                      edit
+                    </span>
+                  </Link>
+
+                  <Link
+                    href="/admin/phone-items"
+                    aria-label="휴대폰 관리"
+                    title="휴대폰 관리"
+                    style={smallAdminIconStyle}
+                  >
+                    <span
+                      className="material-symbols-rounded"
+                      style={{ fontSize: 14, lineHeight: 1 }}
+                    >
+                      settings
+                    </span>
+                  </Link>
+                </>
+              ) : null}
+
+              <Link
+                href={`/phone-items/messages/${characterKey}/history`}
+                className="phone-topbar-icon-button"
+                aria-label="대화기록"
+                title="대화기록"
+              >
+                <span className="material-symbols-rounded">history</span>
+              </Link>
+            </div>
           }
         />
 

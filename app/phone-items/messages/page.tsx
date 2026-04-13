@@ -1,8 +1,10 @@
+import Link from "next/link";
 import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import MessageInboxList from "@/components/phone/message/MessageInboxList";
 import { supabase } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/utils/admin-auth";
 
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
   baiqi: "/profile/baiqi.png",
@@ -19,6 +21,14 @@ const DEFAULT_NAME_MAP: Record<string, string> = {
   xumo: "허묵",
   lingxiao: "연시호",
 };
+
+const MAIN_CHARACTER_ORDER = [
+  "baiqi",
+  "lizeyan",
+  "zhouqiluo",
+  "xumo",
+  "lingxiao",
+] as const;
 
 type PhoneItemRow = {
   id: string;
@@ -72,7 +82,42 @@ function getPreview(item: PhoneItemRow) {
   return "메시지 기록";
 }
 
+function isMainCharacter(characterKey: string) {
+  return MAIN_CHARACTER_ORDER.includes(
+    characterKey as (typeof MAIN_CHARACTER_ORDER)[number]
+  );
+}
+
+function getCharacterPriority(characterKey: string) {
+  if (characterKey === "baiqi") return 0;
+
+  if (
+    characterKey === "lizeyan" ||
+    characterKey === "zhouqiluo" ||
+    characterKey === "xumo" ||
+    characterKey === "lingxiao"
+  ) {
+    return 1;
+  }
+
+  return 2;
+}
+
+function getGroupingKey(item: PhoneItemRow) {
+  const characterKey = item.content_json?.characterKey?.trim() || "npc";
+  const slug = item.slug?.trim() || "";
+  const threadKey = item.content_json?.threadKey?.trim() || "";
+
+  if (isMainCharacter(characterKey)) {
+    return `main:${characterKey}`;
+  }
+
+  return `etc:${threadKey || slug || item.id}`;
+}
+
 export default async function MessagesPage() {
+  const admin = await isAdmin();
+
   const { data, error } = await supabase
     .from("phone_items")
     .select("id, title, slug, preview_text, created_at, content_json, is_published")
@@ -84,7 +129,33 @@ export default async function MessagesPage() {
     return (
       <main className="phone-page">
         <PhoneShell>
-          <PhoneTopBar title="메시지" subtitle="최근 대화" />
+          <PhoneTopBar
+            title="메시지"
+            subtitle="최근 대화"
+            rightSlot={
+              admin ? (
+                <div className="history-top-admin">
+                  <Link
+                    href="/admin/phone-items/new?subtype=message"
+                    className="history-top-admin-btn"
+                    aria-label="메시지 추가"
+                    title="메시지 추가"
+                  >
+                    <span className="material-symbols-rounded">add</span>
+                  </Link>
+
+                  <Link
+                    href="/admin/phone-items"
+                    className="history-top-admin-btn"
+                    aria-label="휴대폰 관리"
+                    title="휴대폰 관리"
+                  >
+                    <span className="material-symbols-rounded">settings</span>
+                  </Link>
+                </div>
+              ) : null
+            }
+          />
           <div className="phone-content">
             <pre className="error-box">{JSON.stringify(error, null, 2)}</pre>
           </div>
@@ -95,25 +166,26 @@ export default async function MessagesPage() {
   }
 
   const rows = (data as PhoneItemRow[] | null) ?? [];
-  const latestByCharacter = new Map<string, InboxItem>();
+  const latestByGroup = new Map<string, InboxItem>();
 
   for (const item of rows) {
-    const characterKey = item.content_json?.characterKey?.trim() || "baiqi";
+    const characterKey = item.content_json?.characterKey?.trim() || "npc";
     const slug = item.slug?.trim() || "";
-
-    if (latestByCharacter.has(characterKey)) continue;
     if (!slug) continue;
 
-    latestByCharacter.set(characterKey, {
+    const groupKey = getGroupingKey(item);
+    if (latestByGroup.has(groupKey)) continue;
+
+    latestByGroup.set(groupKey, {
       characterKey,
       characterName:
         item.content_json?.characterName?.trim() ||
         DEFAULT_NAME_MAP[characterKey] ||
-        "이름 없음",
+        "기타",
       avatarUrl:
         item.content_json?.avatarUrl?.trim() ||
         DEFAULT_AVATAR_MAP[characterKey] ||
-        "/profile/baiqi.png",
+        "/profile/npc.png",
       level:
         typeof item.content_json?.level === "number"
           ? item.content_json.level
@@ -124,16 +196,47 @@ export default async function MessagesPage() {
     });
   }
 
-  const items = Array.from(latestByCharacter.values()).sort((a, b) => {
-    if (a.characterKey === "baiqi" && b.characterKey !== "baiqi") return -1;
-    if (a.characterKey !== "baiqi" && b.characterKey === "baiqi") return 1;
+  const items = Array.from(latestByGroup.values()).sort((a, b) => {
+    const priorityDiff =
+      getCharacterPriority(a.characterKey) - getCharacterPriority(b.characterKey);
+
+    if (priorityDiff !== 0) {
+      return priorityDiff;
+    }
+
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   return (
     <main className="phone-page">
       <PhoneShell>
-        <PhoneTopBar title="메시지" subtitle="최근 대화" />
+        <PhoneTopBar
+          title="메시지"
+          subtitle="최근 대화"
+          rightSlot={
+            admin ? (
+              <div className="history-top-admin">
+                <Link
+                  href="/admin/phone-items/new?subtype=message"
+                  className="history-top-admin-btn"
+                  aria-label="메시지 추가"
+                  title="메시지 추가"
+                >
+                  <span className="material-symbols-rounded">add</span>
+                </Link>
+
+                <Link
+                  href="/admin/phone-items"
+                  className="history-top-admin-btn"
+                  aria-label="휴대폰 관리"
+                  title="휴대폰 관리"
+                >
+                  <span className="material-symbols-rounded">settings</span>
+                </Link>
+              </div>
+            ) : null
+          }
+        />
         <div className="phone-content">
           <MessageInboxList items={items} />
         </div>

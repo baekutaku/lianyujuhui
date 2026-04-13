@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export async function adminLogin(formData: FormData) {
-  const password = String(formData.get("password") || "");
+  const password = String(formData.get("password") || "").trim();
   const adminPassword = process.env.ADMIN_PASSWORD;
 
   if (!adminPassword) {

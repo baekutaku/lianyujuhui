@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 
 type PhoneAdminLayoutProps = {
   phone: ReactNode;
-  panel: ReactNode;
+  panel?: ReactNode;
 };
 
 export default function PhoneAdminLayout({
@@ -10,9 +10,9 @@ export default function PhoneAdminLayout({
   panel,
 }: PhoneAdminLayoutProps) {
   return (
-    <div className="phone-admin-layout">
+    <div className={`phone-admin-layout${panel ? "" : " phone-admin-layout-single"}`}>
       <div className="phone-admin-phone">{phone}</div>
-      <aside className="phone-admin-panel">{panel}</aside>
+      {panel ? <aside className="phone-admin-panel">{panel}</aside> : null}
     </div>
   );
 }

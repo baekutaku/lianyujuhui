@@ -60,33 +60,7 @@ export default function CallDetail({
       ) : (
         <div className="call-fullscreen-empty">영상 링크가 없습니다.</div>
         
-      )}{translationHtml || memoHtml ? (
-  <div
-    style={{
-      marginTop: 24,
-      display: "grid",
-      gap: 20,
-    }}
-  >
-    {translationHtml ? (
-      <section className="content-card">
-        <h3 style={{ marginBottom: 12 }}>번역</h3>
-        <div
-          dangerouslySetInnerHTML={{ __html: translationHtml }}
-        />
-      </section>
-    ) : null}
-
-    {memoHtml ? (
-      <section className="content-card">
-        <h3 style={{ marginBottom: 12 }}>메모</h3>
-        <div
-          dangerouslySetInnerHTML={{ __html: memoHtml }}
-        />
-      </section>
-    ) : null}
-  </div>
-) : null}
+      )}
 
       <div className="call-top-only">
         <Link href="/phone-items/calls" className="call-back-button">

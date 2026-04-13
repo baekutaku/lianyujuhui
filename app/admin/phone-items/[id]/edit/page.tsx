@@ -46,7 +46,9 @@ export default async function EditPhoneItemPage({ params }: PageProps) {
           character_key: item.content_json?.characterKey ?? "baiqi",
           character_name: item.content_json?.characterName ?? "",
           thread_key: item.content_json?.threadKey ?? item.slug ?? "",
-          history_category: item.content_json?.historyCategory ?? "daily",
+          history_category:
+  item.content_json?.historyCategory ??
+  (item.subtype === "call" || item.subtype === "video_call" ? "story" : "daily"),
           history_summary: item.content_json?.historySummary ?? "",
           history_source: item.content_json?.historySource ?? "",
           level: item.content_json?.level ?? "",
@@ -65,6 +67,39 @@ export default async function EditPhoneItemPage({ params }: PageProps) {
           author: item.content_json?.author ?? "",
           body: item.content_json?.body ?? "",
 
+moment_title: item.title ?? "",
+moment_slug: item.slug ?? "",
+moment_author_key: item.content_json?.authorKey ?? "other",
+moment_author_name: item.content_json?.authorName ?? "",
+moment_author_avatar_url: item.content_json?.authorAvatarUrl ?? "",
+moment_author_has_profile: Boolean(item.content_json?.authorHasProfile ?? true),
+
+moment_category: item.content_json?.momentCategory ?? "daily",
+moment_year: item.content_json?.momentYear ?? item.release_year ?? "",
+moment_date_text: item.content_json?.momentDateText ?? "",
+
+moment_body: item.content_json?.momentBody ?? "",
+moment_summary: item.content_json?.momentSummary ?? "",
+moment_source: item.content_json?.momentSource ?? "",
+
+moment_image_urls_text: Array.isArray(item.content_json?.momentImageUrls)
+  ? item.content_json.momentImageUrls.join("\n")
+  : "",
+
+moment_reply_lines_json: Array.isArray(item.content_json?.momentReplyLines)
+  ? JSON.stringify(item.content_json.momentReplyLines, null, 2)
+  : "",
+
+moment_choice_options_json: Array.isArray(item.content_json?.momentChoiceOptions)
+  ? JSON.stringify(item.content_json.momentChoiceOptions, null, 2)
+  : "",
+
+moment_comments_json: Array.isArray(item.content_json?.momentComments)
+  ? JSON.stringify(item.content_json.momentComments, null, 2)
+  : "",
+
+moment_is_favorite: Boolean(item.content_json?.isFavorite ?? false),
+moment_is_complete: Boolean(item.content_json?.isComplete ?? true),
           article_title: item.title ?? "",
           article_slug: item.slug ?? "",
           article_publisher:

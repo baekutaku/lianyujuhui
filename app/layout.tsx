@@ -4,6 +4,7 @@ import "./globals.css";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import FloatingMobileMenu from "@/components/FloatingMobileMenu";
 import ScrollToTopButton from "@/components/ScrollToTopButton";
+import { adminLogout } from "@/app/admin/auth-actions";
 
 export const metadata: Metadata = {
   title: "연모고 동창회 아카이브",
@@ -30,45 +31,38 @@ export default async function RootLayout({
               </Link>
 
               <nav className="sidebar-nav">
-                <Link href="/" className="nav-link">
-                  홈
-                </Link>
-                <Link href="/me" className="nav-link">
-  나
-</Link>
-                <Link href="/cards" className="nav-link">
-                  카드
-                </Link>
-                <Link href="/stories" className="nav-link">
-                  데이트·스토리
-                </Link>
-                <Link href="/phone-items" className="nav-link">
-                  휴대폰
-                </Link>
-                <Link href="/events" className="nav-link">
-                  이벤트
-                </Link>
-<Link href="/characters" className="nav-link">
-  캐릭터 허브
-</Link>
-
-
-                {admin && (
-                  <>
-                    <Link href="/admin" className="nav-link">
-                      관리자
-                    </Link>
-                    <Link href="/admin/phone-items" className="nav-link">
-                      휴대폰 관리
-                    </Link>
-                  </>
-                )}
+                <Link href="/" className="nav-link">홈</Link>
+                <Link href="/cards" className="nav-link">카드</Link>
+                <Link href="/stories" className="nav-link">데이트·스토리</Link>
+                <Link href="/phone-items" className="nav-link">휴대폰</Link>
+                <Link href="/events" className="nav-link">이벤트</Link>
               </nav>
 
+              {admin && (
+                <nav className="sidebar-nav sidebar-admin-nav">
+                  <Link href="/characters" className="nav-link">캐릭터 허브</Link>
+                  <Link href="/admin" className="nav-link">관리자</Link>
+                </nav>
+              )}
+
+              <div className="sidebar-auth">
+                {!admin ? (
+                  <Link href="/admin/login" className="secondary-button sidebar-auth-button">
+                    관리자 로그인
+                  </Link>
+                ) : (
+                  <form action={adminLogout}>
+                    <button type="submit" className="secondary-button sidebar-auth-button">
+                      로그아웃
+                    </button>
+                  </form>
+                )}
+              </div>
+
               <div className="sidebar-box">
-                <p className="sidebar-box-title">인게임 축</p>
+                <p className="sidebar-box-title">CP 백업</p>
                 <p className="sidebar-box-text">
-                  카드 · 데이트 · 휴대폰 · 이벤트
+                  백기유연
                 </p>
               </div>
             </div>
@@ -79,9 +73,8 @@ export default async function RootLayout({
           </main>
         </div>
 
-
         <FloatingMobileMenu />
-<ScrollToTopButton />
+        <ScrollToTopButton />
       </body>
     </html>
   );

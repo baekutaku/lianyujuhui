@@ -1,6 +1,31 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import PhoneShell from "@/components/phone/PhoneShell";
+import PhoneTopBar from "@/components/phone/PhoneTopBar";
+import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import { supabase } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/utils/admin-auth";
+import MomentChoiceTrigger from "@/components/phone/moment/MomentChoiceTrigger";
+
+const DEFAULT_AVATAR_MAP: Record<string, string> = {
+  baiqi: "/profile/baiqi.png",
+  lizeyan: "/profile/lizeyan.png",
+  zhouqiluo: "/profile/zhouqiluo.png",
+  xumo: "/profile/xumo.png",
+  lingxiao: "/profile/lingxiao.png",
+  mc: "/profile/mc.png",
+  other: "/profile/npc.png",
+};
+
+const DEFAULT_NAME_MAP: Record<string, string> = {
+  baiqi: "백기",
+  lizeyan: "이택언",
+  zhouqiluo: "주기락",
+  xumo: "허묵",
+  lingxiao: "연시호",
+  mc: "나",
+  other: "기타",
+};
 
 type PageProps = {
   params: Promise<{
@@ -8,247 +33,290 @@ type PageProps = {
   }>;
 };
 
-type MomentPost = {
-  body?: string;
-  imageUrl?: string;
-  imageUrls?: string[];
-  images?: string[];
-  quoteText?: string;
-  createdAt?: string;
-};
-
-type MomentItem = {
+type MomentRow = {
   id: string;
-  title: string;
-  slug: string;
-  subtype: string;
-  summary: string | null;
-  is_published: boolean | null;
+  title: string | null;
+  slug: string | null;
+  created_at: string;
+  release_year?: number | null;
+  is_published?: boolean | null;
   content_json?: {
-    characterKey?: string;
+    authorKey?: string;
     authorName?: string;
-    authorAvatar?: string;
-    authorLevel?: number;
-    posts?: MomentPost[];
+    authorAvatarUrl?: string;
+    momentCategory?: string;
+    momentCategoryLabel?: string;
+    momentYear?: number | string;
+    momentDateText?: string;
+    momentBody?: string;
+    momentSummary?: string;
+    momentSource?: string;
+    isFavorite?: boolean;
+    isComplete?: boolean;
+    momentChoiceOptions?: Array<{
+      id?: string;
+      label?: string;
+      isHistory?: boolean;
+    }>;
+    momentSelectedOptionId?: string;
   } | null;
 };
 
-const CHARACTER_LABELS: Record<string, string> = {
-  baiqi: "백기",
-  lizeyan: "이택언",
-  zhouqiluo: "주기락",
-  xumo: "허묵",
-  lingxiao: "연시호",
-};
+function getPreview(row: MomentRow) {
+  const body = row.content_json?.momentBody?.trim();
+  const summary = row.content_json?.momentSummary?.trim();
+  const title = row.title?.trim();
 
-function getPostImages(post: MomentPost) {
-  if (Array.isArray(post.images)) return post.images.filter(Boolean);
-  if (Array.isArray(post.imageUrls)) return post.imageUrls.filter(Boolean);
-  if (post.imageUrl) return [post.imageUrl];
-  return [];
+  return body || summary || title || "내용 없음";
+}
+
+function getDateText(row: MomentRow) {
+  const raw = row.content_json?.momentDateText?.trim();
+  if (raw) return raw;
+
+  const createdAt = row.created_at?.trim();
+  if (!createdAt) return "";
+
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate()
+  ).padStart(2, "0")}`;
 }
 
 export default async function CharacterMomentsPage({ params }: PageProps) {
   const { characterKey } = await params;
-  const characterLabel = CHARACTER_LABELS[characterKey];
-
-  if (!characterLabel) notFound();
+  const admin = await isAdmin();
 
   const { data, error } = await supabase
     .from("phone_items")
-    .select("id, title, slug, subtype, summary, is_published, content_json")
-    .eq("is_published", true)
+    .select("id, title, slug, created_at, release_year, is_published, content_json")
     .eq("subtype", "moment")
+    .eq("is_published", true)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) notFound();
 
-  const items =
-    ((data as MomentItem[] | null) ?? []).filter(
-      (item) => item.content_json?.characterKey === characterKey
-    );
+  const rows = ((data as MomentRow[] | null) ?? []).filter((row) => {
+    const authorKey = row.content_json?.authorKey?.trim() || "other";
+    return authorKey === characterKey;
+  });
+
+  if (!rows.length) notFound();
+
+  const authorName =
+    rows[0]?.content_json?.authorName?.trim() ||
+    DEFAULT_NAME_MAP[characterKey] ||
+    "이름 없음";
+
+  const authorAvatarUrl =
+    rows[0]?.content_json?.authorAvatarUrl?.trim() ||
+    DEFAULT_AVATAR_MAP[characterKey] ||
+    "/profile/npc.png";
+
+  const items = rows
+    .map((row) => {
+      const slug = row.slug?.trim() || "";
+      if (!slug) return null;
+
+      return {
+        id: String(row.id),
+        slug,
+        authorKey: row.content_json?.authorKey?.trim() || characterKey,
+        authorName:
+          row.content_json?.authorName?.trim() ||
+          DEFAULT_NAME_MAP[characterKey] ||
+          authorName,
+        authorAvatarUrl:
+          row.content_json?.authorAvatarUrl?.trim() ||
+          DEFAULT_AVATAR_MAP[characterKey] ||
+          "/profile/npc.png",
+        title: row.title?.trim() || "제목 없음",
+        categoryLabel:
+          row.content_json?.momentCategoryLabel?.trim() ||
+          row.content_json?.momentCategory?.trim() ||
+          "일상",
+        dateText: getDateText(row),
+        summary: row.content_json?.momentSummary?.trim() || "",
+        source: row.content_json?.momentSource?.trim() || "",
+        preview: getPreview(row),
+        isFavorite: Boolean(row.content_json?.isFavorite ?? false),
+        isComplete: Boolean(row.content_json?.isComplete ?? true),
+        choiceOptions: Array.isArray(row.content_json?.momentChoiceOptions)
+          ? row.content_json!.momentChoiceOptions!.map((option, index) => ({
+              id: option.id?.trim() || `option-${index + 1}`,
+              label: option.label?.trim() || `선택지 ${index + 1}`,
+              isHistory: Boolean(option.isHistory ?? false),
+            }))
+          : [],
+        selectedOptionId: row.content_json?.momentSelectedOptionId?.trim() || null,
+      };
+    })
+    .filter(Boolean) as Array<{
+      id: string;
+      slug: string;
+      authorKey: string;
+      authorName: string;
+      authorAvatarUrl: string;
+      title: string;
+      categoryLabel: string;
+      dateText: string;
+      summary: string;
+      source: string;
+      preview: string;
+      isFavorite: boolean;
+      isComplete: boolean;
+      choiceOptions: Array<{
+        id: string;
+        label: string;
+        isHistory?: boolean;
+      }>;
+      selectedOptionId: string | null;
+    }>;
 
   return (
-    <main>
-      <header className="page-header">
-        <div className="page-eyebrow">Phone / Moments</div>
-        <h1 className="page-title">{characterLabel} 모멘트</h1>
-        <p className="page-desc">
-          {characterLabel} 관련 모멘트 피드를 캐릭터 기준으로 모아봅니다.
-        </p>
-      </header>
+    <main className="phone-page">
+      <PhoneShell>
+        <PhoneTopBar
+          title={`${authorName} · 모멘트`}
+          subtitle={`${items.length}개`}
+          backHref={`/phone-items/me/${characterKey}`}
+          rightSlot={
+            <div className="history-top-admin">
+              {admin ? (
+                <>
+                  <Link
+                    href={`/admin/phone-items/new?subtype=moment&authorKey=${characterKey}`}
+                    className="history-top-admin-btn"
+                    aria-label="모멘트 추가"
+                    title="모멘트 추가"
+                  >
+                    <span className="material-symbols-rounded">add</span>
+                  </Link>
 
-      <div
-        style={{
-          marginBottom: "24px",
-          display: "flex",
-          gap: "12px",
-          flexWrap: "wrap",
-        }}
-      >
-        <Link href={`/characters/${characterKey}/phone`} className="nav-link">
-          캐릭터 휴대폰 허브로
-        </Link>
+                  <Link
+                    href="/admin/phone-items"
+                    className="history-top-admin-btn"
+                    aria-label="휴대폰 관리"
+                    title="휴대폰 관리"
+                  >
+                    <span className="material-symbols-rounded">settings</span>
+                  </Link>
+                </>
+              ) : null}
 
-        <Link href={`/characters/${characterKey}`} className="nav-link">
-          캐릭터 허브로
-        </Link>
-      </div>
+              <Link
+                href={`/phone-items/moments/${characterKey}/history`}
+                className="history-top-admin-btn"
+                aria-label="히스토리"
+                title="히스토리"
+              >
+                <span className="material-symbols-rounded">more_horiz</span>
+              </Link>
 
-      {items.length === 0 ? (
-        <div className="empty-box">등록된 모멘트가 없습니다.</div>
-      ) : (
-        <div style={{ display: "grid", gap: "18px" }}>
-          {items.map((item) => {
-            const authorName = item.content_json?.authorName || characterLabel;
-            const authorAvatar = item.content_json?.authorAvatar || "";
-            const authorLevel = item.content_json?.authorLevel;
-            const posts = item.content_json?.posts ?? [];
+              <button
+                type="button"
+                className="phone-topbar-icon-button"
+                aria-label="필터"
+                title="필터"
+              >
+                <span className="material-symbols-rounded">search</span>
+              </button>
+            </div>
+          }
+        />
 
-            return (
-              <article key={item.id} className="detail-panel">
+        <div className="phone-content">
+          <div className="message-history-page">
+            <div className="message-history-grid">
+              {items.map((item) => (
                 <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    marginBottom: "16px",
-                  }}
+                  key={item.id}
+                  className="message-history-card"
+                  style={{ position: "relative" }}
                 >
-                  {authorAvatar ? (
-                    <img
-                      src={authorAvatar}
-                      alt={authorName}
+                  <div className="message-history-card-top">
+                    <Link
+                      href={`/phone-items/me/${item.authorKey}`}
                       style={{
-                        width: "52px",
-                        height: "52px",
-                        borderRadius: "999px",
-                        objectFit: "cover",
-                        border: "1px solid rgba(167, 194, 215, 0.35)",
-                        background: "rgba(255,255,255,0.7)",
-                      }}
-                    />
-                  ) : null}
-
-                  <div style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: "13px",
-                        color: "var(--text-sub)",
-                        marginBottom: "4px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                        textDecoration: "none",
+                        color: "inherit",
+                        minWidth: 0,
                       }}
                     >
-                      모멘트
-                      {typeof authorLevel === "number"
-                        ? ` · 호감도 ${authorLevel}`
-                        : ""}
+                      <img
+                        src={item.authorAvatarUrl}
+                        alt={item.authorName}
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: "999px",
+                          objectFit: "cover",
+                          flex: "0 0 auto",
+                        }}
+                      />
+                      <span className="message-history-badge">{item.authorName}</span>
+                    </Link>
+
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      {item.choiceOptions.length ? (
+                        <MomentChoiceTrigger
+                          title={item.title}
+                          options={item.choiceOptions}
+                          selectedOptionId={item.selectedOptionId}
+                        />
+                      ) : null}
+
+                      {item.isFavorite ? (
+                        <span className="message-history-heart">♡</span>
+                      ) : (
+                        <span className="message-history-steam">〰</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <Link
+                    href={`/phone-items/moments/${item.slug}`}
+                    style={{
+                      textDecoration: "none",
+                      color: "inherit",
+                      display: "contents",
+                    }}
+                  >
+                    <div className="message-history-title-row">
+                      <span className="message-history-title">{item.title}</span>
+                      {!item.isComplete ? (
+                        <span className="message-history-status">[미완료]</span>
+                      ) : null}
                     </div>
 
-                    <h2
-                      className="archive-card-title"
-                      style={{ margin: 0, fontSize: "22px" }}
-                    >
-                      {authorName}
-                    </h2>
-                  </div>
+                    <div className="message-history-meta-summary">
+                      {item.categoryLabel}
+                      {item.dateText ? ` · ${item.dateText}` : ""}
+                    </div>
+
+                    {item.summary ? (
+                      <div className="message-history-meta-source">{item.summary}</div>
+                    ) : null}
+
+                    {item.source ? (
+                      <div className="message-history-meta-source">{item.source}</div>
+                    ) : null}
+
+                    <div className="message-history-preview">{item.preview}</div>
+                  </Link>
                 </div>
-
-                <div className="meta-row" style={{ marginBottom: "16px" }}>
-                  <span className="meta-pill">posts: {posts.length}</span>
-                  <span className="meta-pill">slug: {item.slug}</span>
-                </div>
-
-                <div style={{ display: "grid", gap: "20px" }}>
-                  {posts.map((post, index) => {
-                    const images = getPostImages(post);
-
-                    return (
-                      <section
-                        key={`${item.id}-${index}`}
-                        style={{
-                          padding: "18px",
-                          borderRadius: "20px",
-                          background: "rgba(255,255,255,0.58)",
-                          border: "1px solid rgba(167, 194, 215, 0.25)",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "var(--text-soft)",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          Post {index + 1}
-                        </div>
-
-                        {post.body ? (
-                          <p
-                            className="detail-text"
-                            style={{
-                              marginTop: 0,
-                              marginBottom: images.length ? "14px" : "0",
-                              whiteSpace: "pre-wrap",
-                              fontSize: "15px",
-                              lineHeight: 1.8,
-                              color: "var(--text-main)",
-                            }}
-                          >
-                            {post.body}
-                          </p>
-                        ) : null}
-
-                        {post.quoteText ? (
-                          <blockquote
-                            style={{
-                              margin: "0 0 14px",
-                              padding: "12px 14px",
-                              borderRadius: "14px",
-                              background: "rgba(240, 247, 253, 0.9)",
-                              border: "1px solid rgba(176, 203, 224, 0.3)",
-                              color: "var(--text-sub)",
-                            }}
-                          >
-                            {post.quoteText}
-                          </blockquote>
-                        ) : null}
-
-                        {images.length > 0 ? (
-                          <div
-                            style={{
-                              display: "grid",
-                              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                              gap: "12px",
-                            }}
-                          >
-                            {images.map((src, imageIndex) => (
-                              <img
-                                key={`${item.id}-${index}-${imageIndex}`}
-                                src={src}
-                                alt={`${authorName} moment ${index + 1}`}
-                                style={{
-                                  width: "100%",
-                                  aspectRatio: "1 / 1",
-                                  objectFit: "cover",
-                                  borderRadius: "18px",
-                                  border: "1px solid rgba(167, 194, 215, 0.25)",
-                                  background: "rgba(255,255,255,0.7)",
-                                }}
-                              />
-                            ))}
-                          </div>
-                        ) : null}
-                      </section>
-                    );
-                  })}
-                </div>
-              </article>
-            );
-          })}
+              ))}
+            </div>
+          </div>
         </div>
-      )}
+
+        <PhoneTabNav currentPath="/phone-items/moments" />
+      </PhoneShell>
     </main>
   );
 }
