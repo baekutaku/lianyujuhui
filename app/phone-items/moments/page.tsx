@@ -170,7 +170,7 @@ export default async function MomentsPage({ searchParams }: PageProps) {
 
   const rows = (data as MomentRow[] | null) ?? [];
 
-  const allItems: MomentFeedListItem[] = rows
+ const allItems = rows
   .map((row) => {
     const slug = row.slug?.trim() || "";
     if (!slug) return null;
