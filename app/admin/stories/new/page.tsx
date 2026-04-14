@@ -1,6 +1,16 @@
 import { createStoryBundle } from "@/app/admin/actions";
 import SmartEditor from "@/components/editor/SmartEditor";
 
+const STORY_SUBTYPE_OPTIONS = [
+  { value: "card_story", label: "카드 스토리" },
+  { value: "main_story", label: "메인스토리" },
+  { value: "side_story", label: "외전" },
+  { value: "asmr", label: "너의 곁에" },
+  { value: "behind_story", label: "막후의 장" },
+  { value: "xiyue_story", label: "서월국" },
+  { value: "myhome_story", label: "마이홈 스토리" },
+  { value: "company_project", label: "회사 프로젝트" },
+] as const;
 function safeDecode(value: string) {
   try {
     return decodeURIComponent(value);
@@ -46,26 +56,23 @@ export default async function NewStoryPage({
       <form action={createStoryBundle} className="form-panel">
         <div className="form-grid">
           <label className="form-field form-field-full">
-            <span>title</span>
+            <span>제목</span>
             <input name="title" required />
           </label>
 
           <label className="form-field">
-            <span>subtype</span>
+            <span>카테고리</span>
             <select name="subtype" defaultValue="card_story">
-              <option value="card_story">card_story</option>
-              <option value="asmr">asmr</option>
-              <option value="side_story">side_story</option>
-              <option value="main_story">main_story</option>
-              <option value="behind_story">behind_story</option>
-              <option value="xiyue_story">xiyue_story</option>
-              <option value="myhome_story">myhome_story</option>
-              <option value="company_project">company_project</option>
+              {STORY_SUBTYPE_OPTIONS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
             </select>
           </label>
 
           <label className="form-field">
-            <span>release_year</span>
+            <span>연도</span>
             <input
               name="releaseYear"
               type="number"
@@ -75,36 +82,36 @@ export default async function NewStoryPage({
           </label>
 
           <label className="form-field">
-            <span>release_date</span>
+            <span>출시일</span>
             <input name="releaseDate" type="date" />
           </label>
 
           <label className="form-field">
-            <span>server</span>
+            <span>서버</span>
             <select name="serverKey" defaultValue="kr">
-              <option value="kr">kr</option>
-              <option value="cn">cn</option>
+              <option value="kr">한국</option>
+              <option value="cn">중국</option>
             </select>
           </label>
 
           <label className="form-field">
-            <span>character</span>
+            <span>캐릭터</span>
             <select name="characterKey" defaultValue="baiqi">
-              <option value="baiqi">baiqi</option>
-              <option value="lizeyan">lizeyan</option>
-              <option value="zhouqiluo">zhouqiluo</option>
-              <option value="lingxiao">lingxiao</option>
-              <option value="xumo">xumo</option>
+              <option value="baiqi">백기</option>
+              <option value="lizeyan">이택언</option>
+              <option value="zhouqiluo">주기락</option>
+              <option value="lingxiao">연시호</option>
+              <option value="xumo">허묵</option>
             </select>
           </label>
 
           <label className="form-field form-field-full">
-            <span>summary</span>
+            <span>요약</span>
             <textarea name="summary" rows={4} />
           </label>
 
           <label className="form-field form-field-full">
-            <span>youtube url</span>
+            <span>유튜브 링크</span>
             <input
               name="youtubeUrl"
               placeholder="https://www.youtube.com/watch?v=..."
@@ -112,7 +119,7 @@ export default async function NewStoryPage({
           </label>
 
           <label className="form-field form-field-full">
-            <span>cover image url</span>
+            <span>커버 이미지 URL</span>
             <input
               name="coverImageUrl"
               placeholder="https://..."
@@ -120,19 +127,19 @@ export default async function NewStoryPage({
           </label>
 
           <label className="form-field form-field-full">
-            <span>translation title</span>
+            <span>번역 제목</span>
             <input name="translationTitle" />
           </label>
 
-<SmartEditor
-  name="translationBody"
-  label="translation body"
-  initialValue=""
-  height={700}
-/>
+          <SmartEditor
+            name="translationBody"
+            label="번역 본문"
+            initialValue=""
+            height={700}
+          />
 
           <label className="form-field form-field-full">
-            <span>linked card slug (optional)</span>
+            <span>연결 카드 slug (선택)</span>
             <input
               name="cardSlug"
               placeholder="예: baiqi-ssr-some-card"

@@ -91,9 +91,11 @@ export default async function CharacterMessageThreadPage({
     DEFAULT_AVATAR_MAP[characterKey] ||
     "/profile/baiqi.png";
 
-const entries: ThreadEntries = Array.isArray(item.content_json?.entries)
-  ? (item.content_json.entries as ThreadEntries)
-  : [];
+const entries: ThreadEntries = Array.isArray(item.content_json?.editorEntries)
+  ? (item.content_json.editorEntries as ThreadEntries)
+  : Array.isArray(item.content_json?.entries)
+    ? (item.content_json.entries as ThreadEntries)
+    : [];
   const smallAdminIconStyle = {
     width: 24,
     height: 24,

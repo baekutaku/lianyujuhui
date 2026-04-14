@@ -63,7 +63,7 @@ export default async function RootLayout({
               <div className="sidebar-auth">
                 {!admin ? (
                   <Link href="/admin/login" className="secondary-button sidebar-auth-button">
-                    관리자 로그인
+                    로그인
                   </Link>
                 ) : (
                   <form action={adminLogout}>
