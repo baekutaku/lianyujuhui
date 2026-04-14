@@ -5786,3 +5786,9 @@ body {
     font-size: 13px;
   }
 }
+
+.thread-mini-avatar-link {
+  display: block;
+  flex: 0 0 auto;
+  line-height: 0;
+}

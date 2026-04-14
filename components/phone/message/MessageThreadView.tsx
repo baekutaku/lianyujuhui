@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 type TextEntry = {
@@ -52,6 +53,8 @@ type MessageEntry =
 type MessageThreadViewProps = {
   avatarUrl: string;
   entries: MessageEntry[];
+  otherProfileHref: string;
+  myProfileHref: string;
 };
 
 const MY_AVATAR_STORAGE_KEY = "mlqc_phone_me_avatar_url";
@@ -98,10 +101,14 @@ function SafeAvatar({
 function ThreadEntries({
   otherAvatarUrl,
   myAvatarUrl,
+  otherProfileHref,
+  myProfileHref,
   entries,
 }: {
   otherAvatarUrl: string;
   myAvatarUrl: string;
+  otherProfileHref: string;
+  myProfileHref: string;
   entries: MessageEntry[];
 }) {
   return (
@@ -121,6 +128,8 @@ function ThreadEntries({
               key={index}
               otherAvatarUrl={otherAvatarUrl}
               myAvatarUrl={myAvatarUrl}
+              otherProfileHref={otherProfileHref}
+              myProfileHref={myProfileHref}
               entry={entry}
             />
           );
@@ -130,10 +139,12 @@ function ThreadEntries({
           if (entry.side === "left") {
             return (
               <div key={index} className="thread-row left">
-                <SafeAvatar
-                  src={otherAvatarUrl}
-                  fallbackSrc={DEFAULT_OTHER_AVATAR}
-                />
+                <Link href={otherProfileHref} className="thread-mini-avatar-link">
+                  <SafeAvatar
+                    src={otherAvatarUrl}
+                    fallbackSrc={DEFAULT_OTHER_AVATAR}
+                  />
+                </Link>
                 <div className="thread-bubble thread-image-bubble">
                   <img
                     src={entry.url}
@@ -160,7 +171,9 @@ function ThreadEntries({
                   <div className="thread-image-caption">{entry.caption}</div>
                 ) : null}
               </div>
-              <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
+              <Link href={myProfileHref} className="thread-mini-avatar-link">
+                <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
+              </Link>
             </div>
           );
         }
@@ -169,10 +182,12 @@ function ThreadEntries({
           if (entry.side === "left") {
             return (
               <div key={index} className="thread-row left">
-                <SafeAvatar
-                  src={otherAvatarUrl}
-                  fallbackSrc={DEFAULT_OTHER_AVATAR}
-                />
+                <Link href={otherProfileHref} className="thread-mini-avatar-link">
+                  <SafeAvatar
+                    src={otherAvatarUrl}
+                    fallbackSrc={DEFAULT_OTHER_AVATAR}
+                  />
+                </Link>
                 <div className="thread-bubble thread-audio-bubble">
                   <audio controls src={entry.url} className="thread-audio" />
                   {entry.duration ? (
@@ -201,7 +216,9 @@ function ThreadEntries({
                   </div>
                 ) : null}
               </div>
-              <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
+              <Link href={myProfileHref} className="thread-mini-avatar-link">
+                <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
+              </Link>
             </div>
           );
         }
@@ -209,10 +226,12 @@ function ThreadEntries({
         if (entry.side === "left") {
           return (
             <div key={index} className="thread-row left">
-              <SafeAvatar
-                src={otherAvatarUrl}
-                fallbackSrc={DEFAULT_OTHER_AVATAR}
-              />
+              <Link href={otherProfileHref} className="thread-mini-avatar-link">
+                <SafeAvatar
+                  src={otherAvatarUrl}
+                  fallbackSrc={DEFAULT_OTHER_AVATAR}
+                />
+              </Link>
               <div className="thread-bubble">{entry.text}</div>
             </div>
           );
@@ -221,7 +240,9 @@ function ThreadEntries({
         return (
           <div key={index} className="thread-row right">
             <div className="thread-bubble">{entry.text}</div>
-            <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
+            <Link href={myProfileHref} className="thread-mini-avatar-link">
+              <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
+            </Link>
           </div>
         );
       })}
@@ -232,10 +253,14 @@ function ThreadEntries({
 function ChoiceBlock({
   otherAvatarUrl,
   myAvatarUrl,
+  otherProfileHref,
+  myProfileHref,
   entry,
 }: {
   otherAvatarUrl: string;
   myAvatarUrl: string;
+  otherProfileHref: string;
+  myProfileHref: string;
   entry: ChoiceEntry;
 }) {
   const options = (entry.options || []).map(normalizeChoiceOption);
@@ -262,7 +287,9 @@ function ChoiceBlock({
           <div className="thread-bubble thread-choice-selected">
             {selected.label}
           </div>
-          <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
+          <Link href={myProfileHref} className="thread-mini-avatar-link">
+            <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
+          </Link>
         </div>
       ) : null}
 
@@ -271,6 +298,8 @@ function ChoiceBlock({
           <ThreadEntries
             otherAvatarUrl={otherAvatarUrl}
             myAvatarUrl={myAvatarUrl}
+            otherProfileHref={otherProfileHref}
+            myProfileHref={myProfileHref}
             entries={selected.result}
           />
         </div>
@@ -326,6 +355,8 @@ function ChoiceBlock({
 export default function MessageThreadView({
   avatarUrl,
   entries,
+  otherProfileHref,
+  myProfileHref,
 }: MessageThreadViewProps) {
   const [myAvatarUrl, setMyAvatarUrl] = useState(DEFAULT_MY_AVATAR);
 
@@ -343,6 +374,8 @@ export default function MessageThreadView({
           <ThreadEntries
             otherAvatarUrl={avatarUrl}
             myAvatarUrl={myAvatarUrl}
+            otherProfileHref={otherProfileHref}
+            myProfileHref={myProfileHref}
             entries={entries}
           />
         </div>

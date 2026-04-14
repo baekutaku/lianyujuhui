@@ -149,6 +149,11 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
       ? "/phone-items/me"
       : `/phone-items/me/${item.authorKey}`;
 
+      const canOpenProfile =
+  item.authorHasProfile ||
+  item.authorKey === "mc" ||
+  ["baiqi", "lizeyan", "zhouqiluo", "xumo", "lingxiao"].includes(item.authorKey);
+
   return (
     <div
       style={{
@@ -166,35 +171,61 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
           alignItems: "start",
         }}
       >
-        <div>
-          {item.authorHasProfile ? (
-            <Link href={profileHref}>
-              <img
-                src={item.authorAvatarUrl}
-                alt={item.authorName}
-                style={{
-                  width: 58,
-                  height: 58,
-                  borderRadius: "999px",
-                  objectFit: "cover",
-                }}
-              />
-            </Link>
-          ) : (
-            <img
-              src={item.authorAvatarUrl}
-              alt={item.authorName}
-              style={{
-                width: 58,
-                height: 58,
-                borderRadius: "999px",
-                objectFit: "cover",
-              }}
-            />
-          )}
-        </div>
+        <div
+  style={{
+    position: "relative",
+    zIndex: 3,
+  }}
+>
+ {canOpenProfile ? (
+  <Link
+    href={profileHref}
+    style={{
+      display: "block",
+      width: 58,
+      height: 58,
+      borderRadius: "999px",
+      overflow: "hidden",
+      position: "relative",
+      zIndex: 3,
+    }}
+    aria-label={`${item.authorName} 개인창`}
+    title={`${item.authorName} 개인창`}
+  >
+    <img
+      src={item.authorAvatarUrl}
+      alt={item.authorName}
+      style={{
+        display: "block",
+        width: 58,
+        height: 58,
+        borderRadius: "999px",
+        objectFit: "cover",
+      }}
+    />
+  </Link>
+) : (
+  <img
+    src={item.authorAvatarUrl}
+    alt={item.authorName}
+    style={{
+      display: "block",
+      width: 58,
+      height: 58,
+      borderRadius: "999px",
+      objectFit: "cover",
+    }}
+  />
+)}
+</div>
 
-        <div style={{ minWidth: 0 }}>
+        <div
+  style={{
+    minWidth: 0,
+    position: "relative",
+    zIndex: 1,
+  }}
+>
           <div
             style={{
               display: "flex",

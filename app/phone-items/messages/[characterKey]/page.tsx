@@ -55,16 +55,19 @@ export default async function CharacterMessagePage({ params }: PageProps) {
     DEFAULT_NAME_MAP[characterKey] ||
     "이름 없음";
 
-const avatarUrl =
-  DEFAULT_AVATAR_MAP[characterKey] ||
-  item.content_json?.avatarUrl?.trim() ||
-  "/profile/baiqi.png";
+  const avatarUrl =
+    item.content_json?.avatarUrl?.trim() ||
+    DEFAULT_AVATAR_MAP[characterKey] ||
+    "/profile/baiqi.png";
 
   const entries = Array.isArray(item.content_json?.editorEntries)
     ? item.content_json.editorEntries
     : Array.isArray(item.content_json?.entries)
       ? item.content_json.entries
       : [];
+
+  const otherProfileHref = `/phone-items/me/${characterKey}`;
+  const myProfileHref = "/phone-items/me";
 
   return (
     <main className="phone-page">
@@ -86,7 +89,12 @@ const avatarUrl =
         />
 
         <div className="phone-content">
-          <MessageThreadView avatarUrl={avatarUrl} entries={entries} />
+          <MessageThreadView
+            avatarUrl={avatarUrl}
+            entries={entries}
+            otherProfileHref={otherProfileHref}
+            myProfileHref={myProfileHref}
+          />
         </div>
 
         <PhoneTabNav currentPath="/phone-items/messages" />

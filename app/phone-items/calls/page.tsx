@@ -4,6 +4,7 @@ import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
+import CallHistoryList from "@/components/phone/call/CallHistoryList";
 
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
   baiqi: "/profile/baiqi.png",
@@ -28,11 +29,12 @@ type CallRow = {
   created_at: string;
   subtype: string;
   is_published: boolean | null;
-  content_json?: {
-    characterKey?: string;
-    characterName?: string;
-    avatarUrl?: string;
-  } | null;
+content_json?: {
+  characterKey?: string;
+  characterName?: string;
+  avatarUrl?: string;
+  level?: number;
+} | null;
 };
 
 type CallItem = {
@@ -42,8 +44,10 @@ type CallItem = {
   characterKey: string;
   characterName: string;
   avatarUrl: string;
+  level?: number;
   title: string;
   createdAt: string;
+  isVideo?: boolean;
 };
 
 export default async function CallsPage() {
@@ -78,11 +82,16 @@ export default async function CallsPage() {
           DEFAULT_NAME_MAP[characterKey] ||
           "이름 없음",
         avatarUrl:
-          row.content_json?.avatarUrl?.trim() ||
-          DEFAULT_AVATAR_MAP[characterKey] ||
-          "/profile/baiqi.png",
-        title: row.title?.trim() || "제목 없음",
-        createdAt: row.created_at,
+  row.content_json?.avatarUrl?.trim() ||
+  DEFAULT_AVATAR_MAP[characterKey] ||
+  "/profile/baiqi.png",
+level:
+  typeof row.content_json?.level === "number"
+    ? row.content_json.level
+    : undefined,
+title: row.title?.trim() || "제목 없음",
+createdAt: row.created_at,
+isVideo: row.subtype === "video_call",
       };
     })
     .filter(Boolean) as CallItem[];
@@ -125,32 +134,7 @@ export default async function CallsPage() {
         />
 
         <div className="phone-content">
-          <div className="call-history-list">
-            {orderedItems.map((item) => (
-              <Link
-                key={item.id}
-                href={`/phone-items/calls/${item.characterKey}/${item.slug}`}
-                className="call-history-item"
-              >
-                <img
-                  src={item.avatarUrl}
-                  alt={item.characterName}
-                  className="phone-avatar"
-                />
-
-                <div className="call-main">
-                  <div className="call-name">{item.characterName}</div>
-                  <div className="call-title">{item.title}</div>
-                </div>
-
-                <div className="call-action">
-                  <span className="material-symbols-rounded">
-                    {item.subtype === "video_call" ? "videocam" : "volume_up"}
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <CallHistoryList items={orderedItems} />
         </div>
 
         <PhoneTabNav currentPath="/phone-items/calls" />
