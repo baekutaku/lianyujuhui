@@ -16,6 +16,12 @@ import {
   normalizeMomentCategory,
 } from "@/lib/phone/moment-filters";
 
+type MomentFeedListItem = MomentFeedItem & {
+  categoryKey: string;
+  yearText: string;
+  createdAt: string;
+};
+
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
   baiqi: "/profile/baiqi.png",
   lizeyan: "/profile/lizeyan.png",
@@ -164,79 +170,69 @@ export default async function MomentsPage({ searchParams }: PageProps) {
 
   const rows = (data as MomentRow[] | null) ?? [];
 
-  const allItems: MomentFeedItem[] = rows
-    .map((row) => {
-      const slug = row.slug?.trim() || "";
-      if (!slug) return null;
+  const allItems: MomentFeedListItem[] = rows
+  .map((row) => {
+    const slug = row.slug?.trim() || "";
+    if (!slug) return null;
 
-      const authorKey = row.content_json?.authorKey?.trim() || "other";
-      const categoryKey = normalizeMomentCategory(
-        row.content_json?.momentCategory
-      );
+    const authorKey = row.content_json?.authorKey?.trim() || "other";
+    const categoryKey = normalizeMomentCategory(
+      row.content_json?.momentCategory
+    );
 
-      const imageUrls = Array.isArray(row.content_json?.momentImageUrls)
-        ? row.content_json!.momentImageUrls!.filter(Boolean)
-        : [];
+    const imageUrls = Array.isArray(row.content_json?.momentImageUrls)
+      ? row.content_json!.momentImageUrls!.filter(Boolean)
+      : [];
 
-      const replyLines = Array.isArray(row.content_json?.momentReplyLines)
-        ? row.content_json!.momentReplyLines!.filter(
-            (line) => line && String(line.content ?? "").trim()
-          )
-        : [];
+    const replyLines = Array.isArray(row.content_json?.momentReplyLines)
+      ? row.content_json!.momentReplyLines!.filter(
+          (line) => line && String(line.content ?? "").trim()
+        )
+      : [];
 
-      const choiceOptions = Array.isArray(row.content_json?.momentChoiceOptions)
-        ? row.content_json!.momentChoiceOptions!.map((option, index) => ({
-            id: option.id?.trim() || `option-${index + 1}`,
-            label: option.label?.trim() || `선택지 ${index + 1}`,
-            isHistory: Boolean(option.isHistory ?? false),
-            replySpeakerKey: option.replySpeakerKey?.trim() || "",
-            replySpeakerName: option.replySpeakerName?.trim() || "",
-            replyTargetName: option.replyTargetName?.trim() || "",
-            replyContent: option.replyContent?.trim() || "",
-          }))
-        : [];
+    const choiceOptions = Array.isArray(row.content_json?.momentChoiceOptions)
+      ? row.content_json!.momentChoiceOptions!.map((option, index) => ({
+          id: option.id?.trim() || `option-${index + 1}`,
+          label: option.label?.trim() || `선택지 ${index + 1}`,
+          isHistory: Boolean(option.isHistory ?? false),
+          replySpeakerKey: option.replySpeakerKey?.trim() || "",
+          replySpeakerName: option.replySpeakerName?.trim() || "",
+          replyTargetName: option.replyTargetName?.trim() || "",
+          replyContent: option.replyContent?.trim() || "",
+        }))
+      : [];
 
-      const selectedOptionId =
-        row.content_json?.momentSelectedOptionId?.trim() || null;
+    const selectedOptionId =
+      row.content_json?.momentSelectedOptionId?.trim() || null;
 
-      const activeChoice =
-        choiceOptions.find((option) => option.id === selectedOptionId) || null;
+    const activeChoice =
+      choiceOptions.find((option) => option.id === selectedOptionId) || null;
 
-      return {
-        id: String(row.id),
-        slug,
-        authorKey,
-        authorName:
-          row.content_json?.authorName?.trim() ||
-          MOMENT_AUTHOR_LABEL_MAP[authorKey] ||
-          "기타",
-        authorAvatarUrl:
-          row.content_json?.authorAvatarUrl?.trim() ||
-          DEFAULT_AVATAR_MAP[authorKey] ||
-          "/profile/npc.png",
-        authorHasProfile: Boolean(row.content_json?.authorHasProfile),
-        dateText: getDateText(row),
-        body: row.content_json?.momentBody?.trim() || "",
-        imageUrls,
-        replyLines,
-        activeChoice,
-        isFavorite: Boolean(row.content_json?.isFavorite ?? false),
-        categoryKey,
-        yearText: getYearText(row),
-        createdAt: row.created_at,
-      } as MomentFeedItem & {
-        categoryKey: string;
-        yearText: string;
-        createdAt: string;
-      };
-    })
-    .filter(Boolean) as Array<
-    MomentFeedItem & {
-      categoryKey: string;
-      yearText: string;
-      createdAt: string;
-    }
-  >;
+    return {
+      id: String(row.id),
+      slug,
+      authorKey,
+      authorName:
+        row.content_json?.authorName?.trim() ||
+        MOMENT_AUTHOR_LABEL_MAP[authorKey] ||
+        "기타",
+      authorAvatarUrl:
+        row.content_json?.authorAvatarUrl?.trim() ||
+        DEFAULT_AVATAR_MAP[authorKey] ||
+        "/profile/npc.png",
+      authorHasProfile: Boolean(row.content_json?.authorHasProfile),
+      dateText: getDateText(row),
+      body: row.content_json?.momentBody?.trim() || "",
+      imageUrls,
+      replyLines,
+      activeChoice,
+      isFavorite: Boolean(row.content_json?.isFavorite ?? false),
+      categoryKey,
+      yearText: getYearText(row),
+      createdAt: row.created_at,
+    };
+  })
+  .filter((item): item is MomentFeedListItem => item !== null);
 
   const availableYears = Array.from(
     new Set(allItems.map((item) => item.yearText).filter(Boolean))
