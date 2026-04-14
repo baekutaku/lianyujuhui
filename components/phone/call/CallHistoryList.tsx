@@ -1,4 +1,4 @@
-import CallHistoryItem from "./CallHistoryItem";
+import CallHistoryItem from "@/components/phone/call/CallHistoryItem";
 
 type CallItem = {
   characterKey: string;
