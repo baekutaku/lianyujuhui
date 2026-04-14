@@ -1,118 +1,59 @@
 import Link from "next/link";
 
-type CallDetailProps = {
+type CallHistoryItemProps = {
+  characterKey: string;
   characterName: string;
-  title: string | null;
-  coverImage: string;
-  youtubeEmbedUrl: string;
-  body: string;
-  translationHtml?: string;
-  memoHtml?: string;
+  avatarUrl: string;
+  level?: number;
+  slug: string;
+  title: string;
+  isVideo?: boolean;
 };
 
-function normalizeYoutubeEmbedUrl(raw?: string) {
-  const value = (raw || "").trim();
-  if (!value) return "";
-
-  if (value.includes("/embed/")) return value;
-
-  const watchMatch = value.match(/[?&]v=([^&]+)/);
-  if (watchMatch?.[1]) {
-    return `https://www.youtube.com/embed/${watchMatch[1]}`;
-  }
-
-  const shortMatch = value.match(/youtu\.be\/([^?&/]+)/);
-  if (shortMatch?.[1]) {
-    return `https://www.youtube.com/embed/${shortMatch[1]}`;
-  }
-
-  const shortsMatch = value.match(/youtube\.com\/shorts\/([^?&/]+)/);
-  if (shortsMatch?.[1]) {
-    return `https://www.youtube.com/embed/${shortsMatch[1]}`;
-  }
-
-  return value;
-}
-
-export default function CallDetail({
+export default function CallHistoryItem({
+  characterKey,
   characterName,
+  avatarUrl,
+  level,
+  slug,
   title,
-  coverImage,
-  youtubeEmbedUrl,
-  body,
-  translationHtml = "",
-  memoHtml = "",
-}: CallDetailProps) {
-  const embedUrl = normalizeYoutubeEmbedUrl(youtubeEmbedUrl);
-  const safeTitle = title?.trim() || `${characterName} 통화`;
+  isVideo = false,
+}: CallHistoryItemProps) {
+  const detailHref = `/phone-items/calls/${characterKey}/${slug}`;
+  const profileHref =
+    characterKey === "mc"
+      ? "/phone-items/me"
+      : `/phone-items/me/${characterKey}`;
 
   return (
-    <div className="call-fullscreen">
-      {embedUrl ? (
-        <div className="call-fullscreen-media">
-          <iframe
-            src={`${embedUrl}${embedUrl.includes("?") ? "&" : "?"}autoplay=1&playsinline=1&rel=0`}
-            title={safeTitle}
-            allow="autoplay; encrypted-media; picture-in-picture"
-            allowFullScreen
-            referrerPolicy="strict-origin-when-cross-origin"
-          />
-        </div>
-      ) : coverImage ? (
-        <div className="call-fullscreen-empty">
+    <div className="call-history-item">
+      <Link href={profileHref} aria-label={`${characterName} 프로필`}>
+        <div className="phone-avatar-wrap">
           <img
-            src={coverImage}
-            alt={safeTitle}
-            style={{
-              width: "100%",
-              maxHeight: 360,
-              objectFit: "cover",
-              borderRadius: 16,
-              display: "block",
-            }}
+            src={avatarUrl}
+            alt={characterName}
+            className="phone-avatar"
           />
-          {body ? (
-            <p style={{ marginTop: 16, whiteSpace: "pre-wrap" }}>{body}</p>
+          {typeof level === "number" ? (
+            <span className="phone-level-badge">{level}</span>
           ) : null}
         </div>
-      ) : (
-        <div className="call-fullscreen-empty">
-          <p>영상 링크가 없습니다.</p>
-          {body ? (
-            <p style={{ marginTop: 12, whiteSpace: "pre-wrap" }}>{body}</p>
-          ) : null}
-        </div>
-      )}
+      </Link>
 
-      {translationHtml || memoHtml ? (
-        <div
-          style={{
-            marginTop: 24,
-            display: "grid",
-            gap: 20,
-          }}
-        >
-          {translationHtml ? (
-            <section className="content-card">
-              <h3 style={{ marginBottom: 12 }}>번역</h3>
-              <div dangerouslySetInnerHTML={{ __html: translationHtml }} />
-            </section>
-          ) : null}
+      <Link href={detailHref} className="call-main">
+        <div className="call-name">{characterName}</div>
+        <div className="call-title">{title}</div>
+      </Link>
 
-          {memoHtml ? (
-            <section className="content-card">
-              <h3 style={{ marginBottom: 12 }}>메모</h3>
-              <div dangerouslySetInnerHTML={{ __html: memoHtml }} />
-            </section>
-          ) : null}
-        </div>
-      ) : null}
-
-      <div className="call-top-only">
-        <Link href="/phone-items/calls" className="call-back-button">
-          ←
-        </Link>
-      </div>
+      <Link
+        href={detailHref}
+        className="call-action"
+        aria-label={isVideo ? "영상통화 보기" : "통화 보기"}
+      >
+        <span className="material-symbols-rounded">
+          {isVideo ? "videocam" : "call"}
+        </span>
+      </Link>
     </div>
   );
 }
