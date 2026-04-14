@@ -243,6 +243,13 @@ export default async function MomentDetailPage({
     "/profile/npc.png";
 
   const authorHasProfile = Boolean(item.content_json?.authorHasProfile);
+  const profileHref =
+    authorKey === "mc" ? "/phone-items/me" : `/phone-items/me/${authorKey}`;
+  const canOpenProfile =
+    authorHasProfile ||
+    authorKey === "mc" ||
+    ["baiqi", "lizeyan", "zhouqiluo", "xumo", "lingxiao"].includes(authorKey);
+
   const dateText = getDateText(item);
   const body = item.content_json?.momentBody?.trim() || "";
   const summary = item.content_json?.momentSummary?.trim() || "";
@@ -286,8 +293,7 @@ export default async function MomentDetailPage({
     choiceOptions.find((option) => option.id === selectedOptionId) || null;
 
   const renderLines = buildRenderLines(activeChoice, replyLines);
-const profileHref =
-  authorKey === "mc" ? "/phone-items/me" : `/phone-items/me/${authorKey}`;
+
   return (
     <main className="phone-page">
       <PhoneShell>
@@ -345,31 +351,44 @@ const profileHref =
                 }}
               >
                 <div>
-                  {authorHasProfile ? (
-  <Link href={profileHref}>
-    <img
-      src={authorAvatarUrl}
-      alt={authorName}
-      style={{
-        width: 58,
-        height: 58,
-        borderRadius: "999px",
-        objectFit: "cover",
-      }}
-    />
-  </Link>
-) : (
-  <img
-    src={authorAvatarUrl}
-    alt={authorName}
-    style={{
-      width: 58,
-      height: 58,
-      borderRadius: "999px",
-      objectFit: "cover",
-    }}
-  />
-)}
+                  {canOpenProfile ? (
+                    <Link
+                      href={profileHref}
+                      style={{
+                        display: "block",
+                        width: 58,
+                        height: 58,
+                        borderRadius: "999px",
+                        overflow: "hidden",
+                      }}
+                      aria-label={`${authorName} 개인창`}
+                      title={`${authorName} 개인창`}
+                    >
+                      <img
+                        src={authorAvatarUrl}
+                        alt={authorName}
+                        style={{
+                          display: "block",
+                          width: 58,
+                          height: 58,
+                          borderRadius: "999px",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </Link>
+                  ) : (
+                    <img
+                      src={authorAvatarUrl}
+                      alt={authorName}
+                      style={{
+                        display: "block",
+                        width: 58,
+                        height: 58,
+                        borderRadius: "999px",
+                        objectFit: "cover",
+                      }}
+                    />
+                  )}
                 </div>
 
                 <div style={{ minWidth: 0 }}>
