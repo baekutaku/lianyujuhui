@@ -7,6 +7,8 @@ import MessageThreadView from "@/components/phone/message/MessageThreadView";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 
+
+type ThreadEntries = Parameters<typeof MessageThreadView>[0]["entries"];
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
   baiqi: "/profile/baiqi.png",
   lizeyan: "/profile/lizeyan.png",
@@ -89,12 +91,9 @@ export default async function CharacterMessageThreadPage({
     DEFAULT_AVATAR_MAP[characterKey] ||
     "/profile/baiqi.png";
 
-  const entries = Array.isArray(item.content_json?.editorEntries)
-    ? item.content_json.editorEntries
-    : Array.isArray(item.content_json?.entries)
-      ? item.content_json.entries
-      : [];
-
+const entries: ThreadEntries = Array.isArray(item.content_json?.entries)
+  ? (item.content_json.entries as ThreadEntries)
+  : [];
   const smallAdminIconStyle = {
     width: 24,
     height: 24,
