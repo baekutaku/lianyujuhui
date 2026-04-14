@@ -7,8 +7,8 @@ import ScrollToTopButton from "@/components/ScrollToTopButton";
 import { adminLogout } from "@/app/admin/auth-actions";
 
 export const metadata: Metadata = {
-  title: "연모고 동창회 아카이브",
-  description: "백기유연 중심 번역 아카이브",
+  title: "연모고 동창회 / Baiqi Archive",
+  description: "Love and Producer memory archive styled as an in-game record system",
 };
 
 export default async function RootLayout({
@@ -21,29 +21,44 @@ export default async function RootLayout({
   return (
     <html lang="ko">
       <body>
-        <div className="site-shell">
+        <div className="site-shell memory-shell">
+          <div className="memory-bg" aria-hidden="true">
+            <span className="memory-orb orb-a" />
+            <span className="memory-orb orb-b" />
+            <span className="memory-orb orb-c" />
+            <span className="memory-noise" />
+          </div>
+
           <aside className="sidebar">
             <div className="sidebar-inner">
               <Link href="/" className="brand">
-                <span className="brand-sub">LOVE AND PRODUCER ARCHIVE</span>
-                <strong className="brand-title">연모고 동창회</strong>
-                <span className="brand-desc">Baiqi Archive / KR · CN</span>
+                <span className="brand-sub">LOVE AND PRODUCER</span>
+                <strong className="brand-title">아카이브</strong>
+                <span className="brand-desc">Baiqi Archive · KR / CN</span>
               </Link>
+
+              <div className="archive-record-box">
+                <div className="archive-record-label">Archive Record</div>
+                <div className="archive-record-title">백기유연 CP</div>
+                <p className="archive-record-text">
+                  개인 백업 공간
+                </p>
+              </div>
 
               <nav className="sidebar-nav">
                 <Link href="/" className="nav-link">홈</Link>
                 <Link href="/cards" className="nav-link">카드</Link>
-                <Link href="/stories" className="nav-link">데이트·스토리</Link>
+                <Link href="/stories" className="nav-link">스토리</Link>
                 <Link href="/phone-items" className="nav-link">휴대폰</Link>
                 <Link href="/events" className="nav-link">이벤트</Link>
               </nav>
 
-              {admin && (
+              {admin ? (
                 <nav className="sidebar-nav sidebar-admin-nav">
                   <Link href="/characters" className="nav-link">캐릭터 허브</Link>
                   <Link href="/admin" className="nav-link">관리자</Link>
                 </nav>
-              )}
+              ) : null}
 
               <div className="sidebar-auth">
                 {!admin ? (
@@ -58,18 +73,11 @@ export default async function RootLayout({
                   </form>
                 )}
               </div>
-
-              <div className="sidebar-box">
-                <p className="sidebar-box-title">CP 백업</p>
-                <p className="sidebar-box-text">
-                  백기유연
-                </p>
-              </div>
             </div>
           </aside>
 
           <main className="content-area">
-            <div className="content-inner">{children}</div>
+            <div className="content-inner memory-content">{children}</div>
           </main>
         </div>
 

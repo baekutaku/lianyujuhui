@@ -1,4 +1,4 @@
-export type CharacterKey = "baiqi" | "xumo" | "lizeyan" | "yanxihao" | "mc";
+export type CharacterKey = "baiqi" | "xumo" | "lizeyan" | "lingxiao" | "mc";
 
 export const MOMENT_CHARACTER_MAP = {
   baiqi: {
@@ -28,19 +28,20 @@ export const MOMENT_CHARACTER_MAP = {
       },
     ],
   },
-  yanxihao: {
-    name: "시호",
+  lingxiao
+  : {
+    name: "연시호",
     items: [
       {
-        id: "yanxihao-1",
-        characterKey: "yanxihao",
-        authorName: "시호",
+        id: "lingxiao-1",
+        characterKey: "lingxiao",
+        authorName: "연시호",
         authorAvatar:
           "https://images.unsplash.com/photo-1517841905240-472988babdf9?q=80&w=400&auto=format&fit=crop",
         authorLevel: 16,
         body: "단번에 클리어할 수 있는 게임이 뭐가 재미 있다는 거지?",
         quoteText:
-          "유연 : 몰입형 게임은 클리어만이 목표가 아니에요.\n시호답장유연 : 어떤 고건이 있는지 말해봐요.",
+          "유연 : 몰입형 게임은 클리어만이 목표가 아니에요.\n연시호답장유연 : 어떤 고건이 있는지 말해봐요.",
       },
     ],
   },
@@ -55,7 +56,7 @@ export const MOMENT_CHARACTER_MAP = {
           "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=400&auto=format&fit=crop",
         body: "무조건 믿을 수 있는 사람을 만났다는 건 정말 행운인 것 같다.",
         quoteText:
-          "기락 : 내 얘기네!!\n백기 : 누구?\n택언 : 바보.",
+          "주기락 : 내 얘기네!!\n백기 : 누구?\n이택언 : 바보.",
       },
       {
         id: "mc-2",

@@ -5,12 +5,10 @@ import { useState } from "react";
 
 const MENU_ITEMS = [
   { href: "/", label: "홈" },
-  { href: "/me", label: "나" },
   { href: "/cards", label: "카드" },
   { href: "/stories", label: "데이트·스토리" },
   { href: "/phone-items", label: "휴대폰" },
   { href: "/events", label: "이벤트" },
-  { href: "/characters", label: "캐릭터 허브" },
   { href: "/admin", label: "관리자" },
 ];
 

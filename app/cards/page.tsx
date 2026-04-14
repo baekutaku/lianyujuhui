@@ -27,6 +27,7 @@ function getAttributeClass(attribute?: string | null) {
       return "";
   }
 }
+
 export default async function CardsPage() {
   const { data: cards, error } = await supabase
     .from("cards")
@@ -60,9 +61,7 @@ export default async function CardsPage() {
       <header className="page-header">
         <div className="page-eyebrow">Archive / Cards</div>
         <h1 className="page-title">카드 아카이브</h1>
-        <p className="page-desc">
-          카드 메타 정보와 연결된 콘텐츠로 이동할 수 있는 카드 목록입니다.
-        </p>
+        <p className="page-desc">카드와 연결된 컨텐츠 아카이브</p>
       </header>
 
       {error && (
@@ -79,12 +78,13 @@ export default async function CardsPage() {
             const beforeImageUrl =
               card.thumbnail_url || card.cover_image_url || "";
             const afterImageUrl = afterThumbMap.get(card.id) || "";
+            const attrClass = getAttributeClass(card.attribute);
 
             return (
               <li key={card.id} className="card-thumb-card">
                 <Link
                   href={`/cards/${card.slug}`}
-                  className={`card-thumb-link ${getAttributeClass(card.attribute)}`.trim()}
+                  className={`card-thumb-link ${attrClass}`.trim()}
                 >
                   <div
                     className={`card-thumb-media${
@@ -109,20 +109,18 @@ export default async function CardsPage() {
                     ) : (
                       <div className="story-thumb-empty">NO IMAGE</div>
                     )}
+
+                    <div className="card-thumb-overlay">
+                      <div className="card-thumb-overlay-inner">
+                        <h2 className="card-thumb-overlay-title">
+                          {card.title}
+                        </h2>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="card-thumb-body">
-                    <h2 className="card-thumb-title">{card.title}</h2>
-
-                    <div className="meta-row" style={{ marginBottom: "10px" }}>
-                      <span className="meta-pill">rarity: {card.rarity}</span>
-                      <span className="meta-pill">attribute: {card.attribute}</span>
-                      <span className="meta-pill">year: {card.release_year}</span>
-                    </div>
-
-                    <div className="story-list-footer">
-                      <span className="mini-button">상세 보기</span>
-                    </div>
+                  <div className="card-thumb-body card-thumb-body-minimal">
+                    <span className="mini-button">상세 보기</span>
                   </div>
                 </Link>
               </li>
