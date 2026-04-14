@@ -51,7 +51,7 @@ export default function CallDetail({
         <div className="call-fullscreen-media">
           <iframe
             src={`${embedUrl}${embedUrl.includes("?") ? "&" : "?"}autoplay=1&playsinline=1&rel=0`}
-            title={title}
+            title={title ?? `${characterName} 통화`}
             allow="autoplay; encrypted-media; picture-in-picture"
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
