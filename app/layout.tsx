@@ -41,7 +41,7 @@ export default async function RootLayout({
                 <div className="archive-record-label">Archive Record</div>
                 <div className="archive-record-title">백기유연 CP</div>
                 <p className="archive-record-text">
-                  개인 백업 공간
+                  PC 전용
                 </p>
               </div>
 
