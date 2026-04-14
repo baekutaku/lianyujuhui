@@ -94,9 +94,7 @@ moment_choice_options_json: Array.isArray(item.content_json?.momentChoiceOptions
   ? JSON.stringify(item.content_json.momentChoiceOptions, null, 2)
   : "",
 
-moment_comments_json: Array.isArray(item.content_json?.momentComments)
-  ? JSON.stringify(item.content_json.momentComments, null, 2)
-  : "",
+
 
 moment_is_favorite: Boolean(item.content_json?.isFavorite ?? false),
 moment_is_complete: Boolean(item.content_json?.isComplete ?? true),
