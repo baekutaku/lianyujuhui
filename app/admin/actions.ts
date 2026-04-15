@@ -629,6 +629,8 @@ export async function createStoryBundle(formData: FormData) {
   let createdStoryId: string | null = null;
   let targetSlug = "";
 
+  const intent = String(formData.get("intent") || "edit").trim();
+
   try {
     const title = String(formData.get("title") || "").trim();
     const subtype = String(formData.get("subtype") || "card_story").trim();
@@ -653,7 +655,11 @@ export async function createStoryBundle(formData: FormData) {
       throw new Error("releaseYear가 올바르지 않습니다.");
     }
 
-    const { slug, originKey, contentId } = buildStoryKeys({
+    const {
+      slug: builtSlug,
+      originKey,
+      contentId,
+    } = buildStoryKeys({
       subtype,
       characterKey,
       title,
@@ -661,7 +667,7 @@ export async function createStoryBundle(formData: FormData) {
       serverKey,
     });
 
-    targetSlug = slug;
+    targetSlug = builtSlug;
 
     const { data: server, error: serverError } = await supabase
       .from("servers")
@@ -693,7 +699,7 @@ export async function createStoryBundle(formData: FormData) {
         server_id: server.id,
         primary_character_id: character.id,
         title,
-        slug,
+        slug: builtSlug,
         subtype,
         release_year: releaseYear,
         release_date: releaseDate || null,
@@ -808,6 +814,7 @@ export async function createStoryBundle(formData: FormData) {
 
     revalidatePath("/admin/stories");
     revalidatePath("/stories");
+    revalidatePath(`/stories/${builtSlug}`);
   } catch (error) {
     console.error("[createStoryBundle] fatal error:", error);
 
@@ -826,10 +833,16 @@ export async function createStoryBundle(formData: FormData) {
     redirect(`/admin/stories/new?error=${encodeURIComponent(message)}`);
   }
 
-  redirect(`/admin/stories/${encodeURIComponent(targetSlug)}/edit`);
+  if (intent === "view") {
+    redirect(`/stories/${encodeURIComponent(targetSlug)}`);
+  }
+
+  redirect(`/admin/stories/${encodeURIComponent(targetSlug)}/edit?saved=1`);
 }
 
 export async function updateStoryBundle(formData: FormData) {
+  const slug = String(formData.get("slug") || "").trim();
+const intent = String(formData.get("intent") || "edit").trim();
   const storyId = String(formData.get("storyId") || "");
   const title = String(formData.get("title") || "");
   const subtype = String(formData.get("subtype") || "card_story");
@@ -1007,9 +1020,15 @@ export async function updateStoryBundle(formData: FormData) {
     }
   }
 
-  revalidatePath("/admin/stories");
-  revalidatePath("/stories");
-  redirect("/admin/stories");
+revalidatePath("/admin/stories");
+revalidatePath("/stories");
+revalidatePath(`/stories/${slug}`);
+
+if (intent === "view" && slug) {
+  redirect(`/stories/${encodeURIComponent(slug)}`);
+}
+
+redirect(`/admin/stories/${encodeURIComponent(slug)}/edit?saved=1`);
 }
 
 export async function deleteStoryBundle(formData: FormData) {

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { updateStoryBundle, deleteStoryBundle } from "@/app/admin/actions";
 import SmartEditor from "@/components/editor/SmartEditor";
+import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
+import DeletePhoneItemButton from "@/components/admin/phone-items/DeletePhoneItemButton";
 
 const STORY_SUBTYPE_OPTIONS = [
   { value: "card_story", label: "카드 스토리" },
@@ -19,7 +21,7 @@ type EditStoryPageProps = {
   params: Promise<{
     slug: string;
   }>;
-  searchParams?: Promise<{ error?: string }>;
+  searchParams?: Promise<{ error?: string; saved?: string }>;
 };
 
 function safeDecode(value: string) {
@@ -46,6 +48,7 @@ export default async function EditStoryPage({
   const slug = safeDecodeSlug(rawSlug);
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const error = resolvedSearchParams?.error ?? "";
+  const saved = resolvedSearchParams?.saved === "1";
 
   const { data: story, error: storyError } = await supabase
     .from("stories")
@@ -125,6 +128,20 @@ export default async function EditStoryPage({
           }}
         >
           {safeDecode(error)}
+        </p>
+      ) : null}
+       {saved ? (
+        <p
+          style={{
+            marginBottom: "16px",
+            padding: "12px 14px",
+            borderRadius: "10px",
+            background: "#1f3529",
+            color: "#b6f5cb",
+            border: "1px solid #2f6b46",
+          }}
+        >
+          저장되었습니다.
         </p>
       ) : null}
 
@@ -207,12 +224,13 @@ export default async function EditStoryPage({
             />
           </label>
 
-          <SmartEditor
-            name="translationBody"
-            label="번역 본문"
-            initialValue={translation?.body ?? ""}
-            height="700px"
-          />
+         <SmartEditor
+  name="translationBody"
+  label="번역 본문"
+  initialValue={translation?.body ?? ""}
+  height="700px"
+  autosyncMs={1500}
+/>
 
           <label className="form-field form-field-full">
             <span>연결 카드</span>
@@ -224,9 +242,7 @@ export default async function EditStoryPage({
           </label>
         </div>
 
-        <button type="submit" className="primary-button">
-          스토리 통합 저장
-        </button>
+        <StoryFormEnhancer storageKey={`story-draft:${story.slug}`} />
       </form>
 
       <div
@@ -246,19 +262,14 @@ export default async function EditStoryPage({
         </Link>
 
         <form action={deleteStoryBundle}>
-          <input type="hidden" name="storyId" value={story.id} />
-          <button
-            type="submit"
-            className="nav-link"
-            style={{
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-            }}
-          >
-            삭제
-          </button>
-        </form>
+  <input type="hidden" name="storyId" value={story.id} />
+  <DeletePhoneItemButton
+    label="삭제"
+    confirmMessage={`정말 삭제할까요?\n\n${story.title}`}
+    className="nav-link"
+    icon="delete"
+  />
+</form>
       </div>
     </main>
   );

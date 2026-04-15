@@ -1,5 +1,6 @@
 import { createStoryBundle } from "@/app/admin/actions";
 import SmartEditor from "@/components/editor/SmartEditor";
+import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 
 const STORY_SUBTYPE_OPTIONS = [
   { value: "card_story", label: "카드 스토리" },
@@ -132,11 +133,12 @@ export default async function NewStoryPage({
           </label>
 
           <SmartEditor
-            name="translationBody"
-            label="번역 본문"
-            initialValue=""
-            height={700}
-          />
+  name="translationBody"
+  label="번역 본문"
+  initialValue=""
+  height={700}
+  autosyncMs={1500}
+/>
 
           <label className="form-field form-field-full">
             <span>연결 카드 slug (선택)</span>
@@ -147,9 +149,7 @@ export default async function NewStoryPage({
           </label>
         </div>
 
-        <button type="submit" className="primary-button">
-          스토리 통합 등록
-        </button>
+        <StoryFormEnhancer storageKey="story-draft:new" />
       </form>
     </main>
   );

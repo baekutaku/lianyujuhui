@@ -14,8 +14,8 @@ type SmartEditorProps = {
   initialValue?: string;
   label?: string;
   height?: number | string;
+  autosyncMs?: number;
 };
-
 function normalizeHeight(height: number | string) {
   return typeof height === "number" ? `${height}px` : height;
 }
@@ -67,6 +67,7 @@ export default function SmartEditor({
   initialValue = "",
   label,
   height = 700,
+  autosyncMs = 2000,
 }: SmartEditorProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -113,10 +114,12 @@ export default function SmartEditor({
             if (!editor) return;
 
             try {
-              if (initialValue) {
-                editor.exec("PASTE_HTML", [initialValue]);
-                editor.exec("UPDATE_CONTENTS_FIELD", []);
-              }
+              const seedHtml = textareaRef.current?.value || initialValue;
+
+if (seedHtml) {
+  editor.exec("PASTE_HTML", [seedHtml]);
+  editor.exec("UPDATE_CONTENTS_FIELD", []);
+}
             } catch (e) {
               console.error("[SmartEditor] initial sync failed", e);
             }
@@ -163,6 +166,53 @@ export default function SmartEditor({
 
     form.addEventListener("submit", handleSubmit);
     return () => form.removeEventListener("submit", handleSubmit);
+  }, []);
+
+
+  useEffect(() => {
+    if (!ready || failed) return;
+
+    const intervalId = window.setInterval(() => {
+      const editor = editorObjRef.current?.[0];
+      if (!editor) return;
+
+      try {
+        editor.exec("UPDATE_CONTENTS_FIELD", []);
+      } catch (error) {
+        console.error("[SmartEditor] autosync failed", error);
+      }
+    }, autosyncMs);
+
+    return () => window.clearInterval(intervalId);
+  }, [ready, failed, autosyncMs]);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const handleRestore = () => {
+      const editor = editorObjRef.current?.[0];
+      if (!editor) return;
+
+      try {
+        editor.exec("SET_IR", [textarea.value || ""]);
+        editor.exec("UPDATE_CONTENTS_FIELD", []);
+      } catch (error) {
+        console.error("[SmartEditor] draft restore sync failed", error);
+      }
+    };
+
+    textarea.addEventListener(
+      "story-draft-restore",
+      handleRestore as EventListener
+    );
+
+    return () => {
+      textarea.removeEventListener(
+        "story-draft-restore",
+        handleRestore as EventListener
+      );
+    };
   }, []);
 
   return (
