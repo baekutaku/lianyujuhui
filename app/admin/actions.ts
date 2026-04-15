@@ -9,6 +9,7 @@ import {
   updatePhoneItemAction,
   deletePhoneItemAction,
 } from "@/lib/admin/phone-items/actions";
+import { isAdmin } from "@/lib/utils/admin-auth";
 
 import {
   parseMessageBulk,
@@ -1820,4 +1821,106 @@ export async function updatePhoneItem(formData: FormData) {
 
 export async function deletePhoneItem(formData: FormData) {
   return deletePhoneItemAction(formData);
+}
+
+export async function createCalendarEntry(formData: FormData) {
+  const admin = await isAdmin();
+
+  if (!admin) {
+    throw new Error("관리자만 등록할 수 있습니다.");
+  }
+
+  const title = String(formData.get("title") || "").trim();
+  const scheduleDate = String(formData.get("scheduleDate") || "").trim();
+  const note = String(formData.get("note") || "").trim();
+  const kind = String(formData.get("kind") || "event").trim();
+
+  if (!title) {
+    throw new Error("제목이 비어 있습니다.");
+  }
+
+  if (!scheduleDate) {
+    throw new Error("날짜를 선택해 주세요.");
+  }
+
+  const { error } = await supabase.from("calendar_entries").insert({
+    title,
+    schedule_date: scheduleDate,
+    note: note || null,
+    kind,
+    is_published: true,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/");
+}
+
+export async function updateCalendarEntry(formData: FormData) {
+  const admin = await isAdmin();
+
+  if (!admin) {
+    throw new Error("관리자만 수정할 수 있습니다.");
+  }
+
+  const id = String(formData.get("id") || "").trim();
+  const title = String(formData.get("title") || "").trim();
+  const scheduleDate = String(formData.get("scheduleDate") || "").trim();
+  const note = String(formData.get("note") || "").trim();
+  const kind = String(formData.get("kind") || "event").trim();
+
+  if (!id) {
+    throw new Error("수정할 일정 id가 없습니다.");
+  }
+
+  if (!title) {
+    throw new Error("제목이 비어 있습니다.");
+  }
+
+  if (!scheduleDate) {
+    throw new Error("날짜를 선택해 주세요.");
+  }
+
+  const { error } = await supabase
+    .from("calendar_entries")
+    .update({
+      title,
+      schedule_date: scheduleDate,
+      note: note || null,
+      kind,
+    })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/");
+}
+
+export async function deleteCalendarEntry(formData: FormData) {
+  const admin = await isAdmin();
+
+  if (!admin) {
+    throw new Error("관리자만 삭제할 수 있습니다.");
+  }
+
+  const id = String(formData.get("id") || "").trim();
+
+  if (!id) {
+    throw new Error("삭제할 일정 id가 없습니다.");
+  }
+
+  const { error } = await supabase
+    .from("calendar_entries")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/");
 }

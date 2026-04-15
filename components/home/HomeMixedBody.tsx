@@ -2,6 +2,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase/server";
 import HomeSectionCarousel from "@/components/home/HomeSectionCarousel";
 import MiniMusicPlayer from "@/components/home/MiniMusicPlayer";
+import { isAdmin } from "@/lib/utils/admin-auth";
+import HomeCalendarWidget from "@/components/home/HomeCalendarWidget";
 
 type StoryRow = {
   id: string;
@@ -64,6 +66,16 @@ type HomeSection = {
   href: string;
   items: HomeCard[];
 };
+
+type CalendarEntryRow = {
+  id: string;
+  title: string;
+  schedule_date: string;
+  note: string | null;
+  kind: string;
+};
+
+
 
 function pickMediaThumb(items: MediaRow[]) {
   const coverImage = items.find(
@@ -293,15 +305,40 @@ async function getLatestEventSection(): Promise<HomeSection> {
   };
 }
 
+
+async function getCalendarEntries(): Promise<CalendarEntryRow[]> {
+  const { data, error } = await supabase
+    .from("calendar_entries")
+    .select("id, title, schedule_date, note, kind")
+    .eq("is_published", true)
+    .order("schedule_date", { ascending: true })
+    .limit(120);
+
+  if (error) {
+    console.error("[HomeMixedBody] calendar_entries fetch error:", error);
+    return [];
+  }
+
+  return (data as CalendarEntryRow[] | null) ?? [];
+}
 export default async function HomeMixedBody() {
-  const [mainStory, sideStory, dateStory, phoneSection, eventSection] =
-    await Promise.all([
-      getLatestStoriesBySubtype("메인스토리", "/stories?subtype=main_story", "main_story"),
-      getLatestStoriesBySubtype("외전", "/stories?subtype=side_story", "side_story"),
-      getLatestStoriesBySubtype("데이트", "/stories?subtype=card_story", "card_story"),
-      getLatestPhoneSection(),
-      getLatestEventSection(),
-    ]);
+  const [
+    mainStory,
+    sideStory,
+    dateStory,
+    phoneSection,
+    eventSection,
+    calendarEntries,
+    admin,
+  ] = await Promise.all([
+    getLatestStoriesBySubtype("메인스토리", "/stories?subtype=main_story", "main_story"),
+    getLatestStoriesBySubtype("외전", "/stories?subtype=side_story", "side_story"),
+    getLatestStoriesBySubtype("데이트", "/stories?subtype=card_story", "card_story"),
+    getLatestPhoneSection(),
+    getLatestEventSection(),
+    getCalendarEntries(),
+    isAdmin(),
+  ]);
 
   const sections = [mainStory, sideStory, dateStory, eventSection, phoneSection];
 
@@ -322,7 +359,7 @@ export default async function HomeMixedBody() {
       <aside className="home-classic-side">
         <section className="home-widget-panel">
           <p className="home-widget-eyebrow">NOTICE</p>
-          <h3 className="home-widget-title">공지</h3>
+      
           <ul className="home-mixed-list">
             <li>KR 콘텐츠는 2023년 1월 종료 시점 기준으로 기록.</li>
             <li>1부는 전반 자료, 2부 이후는 선택적 정리.</li>
@@ -332,7 +369,7 @@ export default async function HomeMixedBody() {
 
         <section className="home-widget-panel">
           <p className="home-widget-eyebrow">RECENT</p>
-          <h3 className="home-widget-title">최근 글</h3>
+        
           <div className="home-widget-list">
             <Link href="/stories">최신 스토리 업데이트</Link>
             <Link href="/events">최근 이벤트 정리</Link>
@@ -344,19 +381,19 @@ export default async function HomeMixedBody() {
 
         <section className="home-widget-panel">
   <p className="home-widget-eyebrow">MUSIC</p>
-  <h3 className="home-widget-title">음악</h3>
+
   <MiniMusicPlayer />
 </section>
 
-         <section className="home-widget-panel">
+          <section className="home-widget-panel">
           <p className="home-widget-eyebrow">CALENDAR</p>
-          <h3 className="home-widget-title">캘린더</h3>
-          <div className="home-widget-calendar-box">달력 자리</div>
+         
+          <HomeCalendarWidget entries={calendarEntries} isAdmin={admin} />
         </section>
 
         <section className="home-widget-panel">
           <p className="home-widget-eyebrow">BANNER</p>
-          <h3 className="home-widget-title">배너</h3>
+          
           <Link href="/events" className="home-widget-banner">
             <img
               src="https://lianyujuhui.ivyro.net/data/file/pic/3553024586_cY85vLGD_92725175f100fb07e6de1c870635c59e337d93b2.jpg"
