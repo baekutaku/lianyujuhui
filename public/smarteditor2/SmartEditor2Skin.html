@@ -7,7 +7,26 @@
 <title>네이버 :: Smart Editor 2 &#8482;</title>
 <link href="css/ko_KR/smart_editor2.css" rel="stylesheet" type="text/css">
 <style type="text/css">
-	body { margin: 10px; }
+  @font-face {
+    font-family: 'KoPubWorldBatang';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-1@1.0/KoPubWorldBatangLight.woff2') format('woff2');
+    font-weight: 300;
+    font-style: normal;
+  }
+
+  @font-face {
+    font-family: 'GowunBatang';
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2104@1.0/GowunBatang-Regular.woff') format('woff');
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  body,
+  .se2_inputarea,
+  .husky_seditor_editing_area_container {
+    margin: 10px;
+    font-family: 'KoPubWorldBatang', serif;
+  }
 </style>
 <script type="text/javascript" src="./js/lib/jindo2.all.js" charset="utf-8"></script>
 <script type="text/javascript" src="./js/lib/jindo_component.js" charset="utf-8"></script>

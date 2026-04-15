@@ -1,5 +1,20 @@
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200");
 
+
+@font-face {
+  font-family: 'KoPubWorldBatang';
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-1@1.0/KoPubWorldBatangLight.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'GowunBatang';
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2104@1.0/GowunBatang-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+
 .material-symbols-rounded {
   font-family: "Material Symbols Rounded";
   font-weight: normal;
@@ -5858,3 +5873,10 @@ body {
     margin-top: 0.06em;
   }
 }
+
+.translation-body,
+.translation-body.rich-content,
+.rich-content.translation-body {
+  font-family: 'KoPubWorldBatang', 'GowunBatang', serif !important;
+}
+

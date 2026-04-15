@@ -16,8 +16,13 @@ type SmartEditorProps = {
   height?: number | string;
   autosyncMs?: number;
 };
+
 function normalizeHeight(height: number | string) {
   return typeof height === "number" ? `${height}px` : height;
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function loadSmartEditorScript() {
@@ -60,6 +65,103 @@ function loadSmartEditorScript() {
   });
 
   return window.__smartEditorScriptPromise;
+}
+
+function getIframeDocument(iframe: HTMLIFrameElement | null | undefined) {
+  if (!iframe) return null;
+  return iframe.contentDocument || iframe.contentWindow?.document || null;
+}
+
+async function getSmartEditorDocuments(wrapper: HTMLDivElement | null) {
+  if (!wrapper) {
+    return { skinDoc: null as Document | null, editingDoc: null as Document | null };
+  }
+
+  for (let i = 0; i < 40; i += 1) {
+    const outerIframe = wrapper.querySelector<HTMLIFrameElement>("iframe");
+    const skinDoc = getIframeDocument(outerIframe);
+
+    let editingDoc: Document | null = null;
+
+    if (skinDoc) {
+      const innerIframe =
+        skinDoc.querySelector<HTMLIFrameElement>("#se2_iframe") ||
+        skinDoc.querySelector<HTMLIFrameElement>("iframe");
+
+      editingDoc = getIframeDocument(innerIframe);
+    }
+
+    if (skinDoc && editingDoc?.body) {
+      return { skinDoc, editingDoc };
+    }
+
+    await wait(100);
+  }
+
+  return { skinDoc: null as Document | null, editingDoc: null as Document | null };
+}
+
+function injectFontStyle(doc: Document) {
+  if (doc.getElementById("smarteditor-custom-font-style")) {
+    return;
+  }
+
+  const style = doc.createElement("style");
+  style.id = "smarteditor-custom-font-style";
+  style.textContent = `
+    @font-face {
+      font-family: 'KoPubWorldBatang';
+      src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-1@1.0/KoPubWorldBatangLight.woff2') format('woff2');
+      font-weight: 300;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'GowunBatang';
+      src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2104@1.0/GowunBatang-Regular.woff') format('woff');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    body,
+    .se2_inputarea,
+    .husky_seditor_editing_area_container {
+      font-family: 'KoPubWorldBatang', serif !important;
+    }
+  `;
+
+  doc.head.appendChild(style);
+}
+
+async function applyEditorFonts(wrapper: HTMLDivElement | null) {
+  const { skinDoc, editingDoc } = await getSmartEditorDocuments(wrapper);
+
+  if (skinDoc) {
+    injectFontStyle(skinDoc);
+    if (skinDoc.body) {
+      skinDoc.body.style.fontFamily = "'KoPubWorldBatang', serif";
+    }
+  }
+
+  if (editingDoc) {
+    injectFontStyle(editingDoc);
+    if (editingDoc.body) {
+      editingDoc.body.style.fontFamily = "'KoPubWorldBatang', serif";
+    }
+
+    if ("fonts" in editingDoc) {
+      try {
+        await Promise.all([
+          editingDoc.fonts.load(`400 16px "KoPubWorldBatang"`),
+          editingDoc.fonts.load(`400 16px "GowunBatang"`),
+        ]);
+      } catch {
+        // 폰트 로드 실패해도 에디터 자체는 계속 사용
+      }
+    }
+  }
+
+  return { skinDoc, editingDoc };
 }
 
 export default function SmartEditor({
@@ -106,6 +208,10 @@ export default function SmartEditor({
             bUseToolbar: true,
             bUseVerticalResizer: true,
             bUseModeChanger: true,
+            aAdditionalFontList: [
+              ["KoPubWorldBatang", "코펍월드 바탕"],
+              ["GowunBatang", "고운 바탕"],
+            ],
             fOnBeforeUnload: function () {},
             I18N_LOCALE: "ko_KR",
           },
@@ -113,19 +219,29 @@ export default function SmartEditor({
             const editor = editorObjRef.current?.[0];
             if (!editor) return;
 
-            try {
-              const seedHtml = textareaRef.current?.value || initialValue;
+            (async () => {
+              try {
+                const seedHtml = textareaRef.current?.value || initialValue;
 
-if (seedHtml) {
-  editor.exec("PASTE_HTML", [seedHtml]);
-  editor.exec("UPDATE_CONTENTS_FIELD", []);
-}
-            } catch (e) {
-              console.error("[SmartEditor] initial sync failed", e);
-            }
+                if (seedHtml) {
+                  editor.exec("PASTE_HTML", [seedHtml]);
+                  editor.exec("UPDATE_CONTENTS_FIELD", []);
+                }
 
-            setReady(true);
-            setFailed(false);
+                await applyEditorFonts(wrapperRef.current);
+
+                if (typeof editor.setDefaultFont === "function") {
+                  editor.setDefaultFont("KoPubWorldBatang", 11);
+                }
+              } catch (e) {
+                console.error("[SmartEditor] initial sync failed", e);
+              }
+
+              if (!disposed) {
+                setReady(true);
+                setFailed(false);
+              }
+            })();
           },
           fCreator: "createSEditor2",
         });
@@ -167,7 +283,6 @@ if (seedHtml) {
     form.addEventListener("submit", handleSubmit);
     return () => form.removeEventListener("submit", handleSubmit);
   }, []);
-
 
   useEffect(() => {
     if (!ready || failed) return;
