@@ -396,7 +396,31 @@ export default async function HomeMixedBody() {
           
           <Link href="/events" className="home-widget-banner">
             <img
-              src="https://lianyujuhui.ivyro.net/data/file/pic/3553024586_cY85vLGD_92725175f100fb07e6de1c870635c59e337d93b2.jpg"
+              src="/images/home/banner-01.jpg"
+              alt="이벤트 배너"
+            />
+          </Link>
+           <Link href="/events" className="home-widget-banner">
+            <img
+              src="/images/home/banner-02.jpg"
+              alt="이벤트 배너"
+            />
+          </Link>
+           <Link href="/events" className="home-widget-banner">
+            <img
+              src="/images/home/banner-03.jpg"
+              alt="이벤트 배너"
+            />
+          </Link>
+           <Link href="/events" className="home-widget-banner">
+            <img
+              src="/images/home/banner-04.jpg"
+              alt="이벤트 배너"
+            />
+          </Link>
+           <Link href="/events" className="home-widget-banner">
+            <img
+              src="/images/home/banner-05.jpg"
               alt="이벤트 배너"
             />
           </Link>
