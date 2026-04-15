@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/utils/admin-auth";
 
 type StoryCard = {
   id: string;
@@ -7,6 +8,7 @@ type StoryCard = {
   slug: string;
   subtype: string;
   release_year: number;
+  release_date: string | null;
 };
 
 type StoryThumb = {
@@ -20,12 +22,43 @@ type StoryThumb = {
   sort_order: number | null;
 };
 
-export default async function StoriesPage() {
-  const { data: stories, error } = await supabase
+type PageProps = {
+  searchParams?: Promise<{
+    q?: string;
+    year?: string;
+    subtype?: string;
+  }>;
+};
+
+export default async function StoriesPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const q = String(resolvedSearchParams?.q || "").trim();
+  const year = String(resolvedSearchParams?.year || "").trim();
+  const subtype = String(resolvedSearchParams?.subtype || "").trim();
+
+  const admin = await isAdmin();
+
+  let query = supabase
     .from("stories")
-    .select("id, title, slug, subtype, release_year")
+    .select("id, title, slug, subtype, release_year, release_date")
     .eq("is_published", true)
-    .order("release_year", { ascending: false });
+    .order("release_year", { ascending: false })
+    .order("release_date", { ascending: false })
+    .order("title", { ascending: true });
+
+  if (q) {
+    query = query.or(`title.ilike.%${q}%,slug.ilike.%${q}%`);
+  }
+
+  if (year && !Number.isNaN(Number(year))) {
+    query = query.eq("release_year", Number(year));
+  }
+
+  if (subtype) {
+    query = query.eq("subtype", subtype);
+  }
+
+  const { data: stories, error } = await query;
 
   const storyIds = (stories ?? []).map((story) => story.id);
   const mediaMap = new Map<string, string>();
@@ -86,6 +119,101 @@ export default async function StoriesPage() {
         <p className="page-desc">
           카드 스토리와 번역 중심으로 정리된 스토리 목록입니다.
         </p>
+
+        <div
+          style={{
+            display: "grid",
+            gap: 12,
+            marginTop: 18,
+          }}
+        >
+          <form
+            method="get"
+            action="/stories"
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <input
+              type="text"
+              name="q"
+              defaultValue={q}
+              placeholder="제목 / slug 검색"
+              style={{
+                minWidth: 220,
+                flex: "1 1 240px",
+                height: 42,
+                padding: "0 14px",
+                borderRadius: 999,
+                border: "1px solid rgba(190, 205, 222, 0.7)",
+                background: "rgba(255,255,255,0.72)",
+              }}
+            />
+
+            <input
+              type="number"
+              name="year"
+              defaultValue={year}
+              placeholder="연도"
+              style={{
+                width: 120,
+                height: 42,
+                padding: "0 14px",
+                borderRadius: 999,
+                border: "1px solid rgba(190, 205, 222, 0.7)",
+                background: "rgba(255,255,255,0.72)",
+              }}
+            />
+
+            <select
+              name="subtype"
+              defaultValue={subtype}
+              style={{
+                width: 180,
+                height: 42,
+                padding: "0 14px",
+                borderRadius: 999,
+                border: "1px solid rgba(190, 205, 222, 0.7)",
+                background: "rgba(255,255,255,0.72)",
+              }}
+            >
+              <option value="">전체 유형</option>
+              <option value="card_story">카드 스토리</option>
+              <option value="main_story">메인스토리</option>
+              <option value="event_story">이벤트 스토리</option>
+              <option value="side_story">외전</option>
+            </select>
+
+            <button type="submit" className="primary-button">
+              검색
+            </button>
+
+            <Link href="/stories" className="nav-link">
+              초기화
+            </Link>
+          </form>
+
+          {admin ? (
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <Link href="/admin/stories/new" className="primary-button">
+                새 스토리 등록
+              </Link>
+
+              <Link href="/admin/stories" className="nav-link">
+                스토리 관리
+              </Link>
+            </div>
+          ) : null}
+        </div>
       </header>
 
       {error && (

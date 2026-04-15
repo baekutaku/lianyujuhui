@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import Link from "next/link";
+import { deleteStoryBundle } from "@/app/admin/actions";
+import ConfirmSubmitButton from "@/components/admin/common/ConfirmSubmitButton";
+import StoryDetailHeightSync from "@/components/story/StoryDetailHeightSync";
 
 type StoryPageProps = {
   params: Promise<{
@@ -113,36 +116,58 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
     <main>
       <section className="detail-panel story-topbar">
         <div className="story-topbar-main">
-          <p className="page-eyebrow">Archive / Stories</p>
-          <h1 className="story-page-title">{story.title}</h1>
+  <p className="page-eyebrow">Archive / Stories</p>
+  <h1 className="story-page-title">{story.title}</h1>
 
-          <div className="meta-row story-top-meta">
-            <span className="meta-pill">type: {story.subtype}</span>
-            <span className="meta-pill">year: {story.release_year}</span>
-            {!story.is_published && admin ? (
-              <span className="meta-pill">draft</span>
-            ) : null}
-          </div>
+  <div className="meta-row story-top-meta">
+    <span className="meta-pill">type: {story.subtype}</span>
+    <span className="meta-pill">year: {story.release_year}</span>
+    {!story.is_published && admin ? (
+      <span className="meta-pill">draft</span>
+    ) : null}
+  </div>
 
-          <div className="story-top-actions">
-            <Link
-              href="/stories"
-              className="story-action-button story-action-muted"
-            >
-              목록으로
-            </Link>
+  <div className="story-top-actions">
+    <Link
+      href="/stories"
+      className="story-action-button story-action-muted"
+    >
+      목록으로
+    </Link>
 
-            {admin && (
-              <Link
-                href={`/admin/stories/${story.slug}/edit`}
-                className="story-action-button"
-              >
-                관리자 수정
-              </Link>
-            )}
-          </div>
-        </div>
+    {admin ? (
+      <>
+        <Link
+          href={`/admin/stories/${encodeURIComponent(story.slug)}/edit`}
+          className="story-action-button"
+        >
+          관리자 수정
+        </Link>
 
+        <Link
+          href="/admin/stories/new"
+          className="story-action-button story-action-muted"
+        >
+          새 스토리 등록
+        </Link>
+
+        <form action={deleteStoryBundle} style={{ display: "inline-flex" }}>
+          <input type="hidden" name="storyId" value={story.id} />
+          <ConfirmSubmitButton
+            label="삭제"
+            confirmMessage={`정말 삭제할까요?\n\n${story.title}`}
+            className="story-action-button story-action-muted"
+            style={{
+              border: "none",
+              cursor: "pointer",
+              color: "#d35f7a",
+            }}
+          />
+        </form>
+      </>
+    ) : null}
+  </div>
+</div>
         <aside className="story-topbar-side">
           <div className="story-side-block">
             <h3 className="story-side-title">연결 카드</h3>
@@ -178,7 +203,7 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
           </div>
         </aside>
       </section>
-
+<StoryDetailHeightSync />
       <section className="story-main-grid">
         <div className="detail-panel story-media-panel">
           <div className="story-media-box">
