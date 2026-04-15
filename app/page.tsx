@@ -37,7 +37,7 @@ export default function HomePage() {
             <span className="home-chip">Baiqi Focus</span>
           </div>
 
-          <h1 className="home-hero-title">연모고 동창회 / Baiqi Archive</h1>
+          <h1 className="home-hero-title">연모고 동창회</h1>
           <p className="home-hero-desc">백기유연 CP 백업공간</p>
 
           <div className="home-hero-actions">

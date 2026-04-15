@@ -9,7 +9,6 @@ type StoryRow = {
   subtype: string;
   release_year: number | null;
   release_date: string | null;
-  summary: string | null;
 };
 
 type EventRow = {
@@ -19,9 +18,7 @@ type EventRow = {
   subtype: string;
   release_year: number | null;
   start_date: string | null;
-  end_date: string | null;
   thumbnail_url: string | null;
-  summary: string | null;
 };
 
 type MediaRow = {
@@ -41,17 +38,11 @@ type PhoneItemRow = {
   slug: string | null;
   subtype: string;
   created_at: string;
-  is_published?: boolean | null;
   content_json?: {
     characterKey?: string;
-    characterName?: string;
     avatarUrl?: string;
-
     authorKey?: string;
-    authorName?: string;
     authorAvatarUrl?: string;
-    authorHasProfile?: boolean;
-
     momentImageUrls?: string[];
     coverImageUrl?: string;
     coverUrl?: string;
@@ -114,10 +105,10 @@ function getPhoneThumb(item: PhoneItemRow) {
   const json = item.content_json;
 
   if (item.subtype === "moment") {
-    const momentImages = Array.isArray(json?.momentImageUrls)
-      ? json.momentImageUrls.filter(Boolean)
+    const images = Array.isArray(json?.momentImageUrls)
+      ? json!.momentImageUrls!.filter(Boolean)
       : [];
-    if (momentImages.length > 0) return momentImages[0] || "";
+    if (images.length > 0) return images[0] || "";
     if (json?.authorAvatarUrl?.trim()) return json.authorAvatarUrl.trim();
   }
 
@@ -174,7 +165,7 @@ async function getLatestStoriesBySubtype(
 ): Promise<HomeSection> {
   const { data: stories, error } = await supabase
     .from("stories")
-    .select("id, title, slug, subtype, release_year, release_date, summary")
+    .select("id, title, slug, subtype, release_year, release_date")
     .eq("is_published", true)
     .eq("subtype", subtype)
     .order("release_date", { ascending: false })
@@ -192,7 +183,7 @@ async function getLatestStoriesBySubtype(
 
   const ids = rows.map((row) => row.id);
 
-  const { data: mediaAssets, error: mediaError } = await supabase
+  const { data: mediaAssets } = await supabase
     .from("media_assets")
     .select(
       "parent_id, media_type, usage_type, url, youtube_video_id, thumbnail_url, is_primary, sort_order"
@@ -202,10 +193,6 @@ async function getLatestStoriesBySubtype(
     .order("is_primary", { ascending: false })
     .order("sort_order", { ascending: true });
 
-  if (mediaError) {
-    console.error(`[HomeMixedBody] ${title} media error:`, mediaError);
-  }
-
   const grouped = new Map<string, MediaRow[]>();
   (mediaAssets as MediaRow[] | null)?.forEach((item) => {
     const arr = grouped.get(item.parent_id) ?? [];
@@ -213,25 +200,27 @@ async function getLatestStoriesBySubtype(
     grouped.set(item.parent_id, arr);
   });
 
-  const items: HomeCard[] = rows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    href: `/stories/${encodeURIComponent(row.slug)}`,
-    thumb: pickMediaThumb(grouped.get(row.id) ?? []),
-    meta: formatStoryMeta(row),
-  }));
-
-  return { title, href, items };
+  return {
+    title,
+    href,
+    items: rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      href: `/stories/${encodeURIComponent(row.slug)}`,
+      thumb: pickMediaThumb(grouped.get(row.id) ?? []),
+      meta: formatStoryMeta(row),
+    })),
+  };
 }
 
 async function getLatestPhoneSection(): Promise<HomeSection> {
   const { data, error } = await supabase
     .from("phone_items")
-    .select("id, title, slug, subtype, created_at, is_published, content_json")
+    .select("id, title, slug, subtype, created_at, content_json")
     .eq("is_published", true)
     .in("subtype", ["moment", "message", "call", "video_call"])
     .order("created_at", { ascending: false })
-    .limit(6);
+    .limit(10);
 
   if (error) {
     console.error("[HomeMixedBody] phone_items fetch error:", error);
@@ -240,25 +229,23 @@ async function getLatestPhoneSection(): Promise<HomeSection> {
 
   const rows = (data as PhoneItemRow[] | null) ?? [];
 
-  const items: HomeCard[] = rows.map((row) => ({
-    id: row.id,
-    title: row.title?.trim() || "제목 없음",
-    href: getPhoneHref(row),
-    thumb: getPhoneThumb(row),
-    meta: getPhoneMeta(row.subtype),
-  }));
-
   return {
     title: "모멘트 / 문자 / 통화",
     href: "/phone-items",
-    items,
+    items: rows.map((row) => ({
+      id: row.id,
+      title: row.title?.trim() || "제목 없음",
+      href: getPhoneHref(row),
+      thumb: getPhoneThumb(row),
+      meta: getPhoneMeta(row.subtype),
+    })),
   };
 }
 
 async function getLatestEventSection(): Promise<HomeSection> {
   const { data: events, error } = await supabase
     .from("events")
-    .select("id, title, slug, subtype, release_year, start_date, end_date, thumbnail_url, summary")
+    .select("id, title, slug, subtype, release_year, start_date, thumbnail_url")
     .eq("is_published", true)
     .order("start_date", { ascending: false })
     .order("release_year", { ascending: false })
@@ -275,7 +262,7 @@ async function getLatestEventSection(): Promise<HomeSection> {
 
   const ids = rows.map((row) => row.id);
 
-  const { data: mediaAssets, error: mediaError } = await supabase
+  const { data: mediaAssets } = await supabase
     .from("media_assets")
     .select(
       "parent_id, media_type, usage_type, url, youtube_video_id, thumbnail_url, is_primary, sort_order"
@@ -285,10 +272,6 @@ async function getLatestEventSection(): Promise<HomeSection> {
     .order("is_primary", { ascending: false })
     .order("sort_order", { ascending: true });
 
-  if (mediaError) {
-    console.error("[HomeMixedBody] events media error:", mediaError);
-  }
-
   const grouped = new Map<string, MediaRow[]>();
   (mediaAssets as MediaRow[] | null)?.forEach((item) => {
     const arr = grouped.get(item.parent_id) ?? [];
@@ -296,129 +279,91 @@ async function getLatestEventSection(): Promise<HomeSection> {
     grouped.set(item.parent_id, arr);
   });
 
-  const items: HomeCard[] = rows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    href: `/events/${encodeURIComponent(row.slug)}`,
-    thumb: row.thumbnail_url?.trim() || pickMediaThumb(grouped.get(row.id) ?? []),
-    meta: formatEventMeta(row),
-  }));
-
-  return { title: "이벤트", href: "/events", items };
+  return {
+    title: "이벤트",
+    href: "/events",
+    items: rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      href: `/events/${encodeURIComponent(row.slug)}`,
+      thumb: row.thumbnail_url?.trim() || pickMediaThumb(grouped.get(row.id) ?? []),
+      meta: formatEventMeta(row),
+    })),
+  };
 }
 
 export default async function HomeMixedBody() {
   const [mainStory, sideStory, dateStory, phoneSection, eventSection] =
-  await Promise.all([
-    getLatestStoriesBySubtype("메인스토리", "/stories?subtype=main_story", "main_story"),
-    getLatestStoriesBySubtype("외전", "/stories?subtype=side_story", "side_story"),
-    getLatestStoriesBySubtype("데이트", "/stories?subtype=card_story", "card_story"),
-    getLatestPhoneSection(),
-    getLatestEventSection(),
-  ]);
+    await Promise.all([
+      getLatestStoriesBySubtype("메인스토리", "/stories?subtype=main_story", "main_story"),
+      getLatestStoriesBySubtype("외전", "/stories?subtype=side_story", "side_story"),
+      getLatestStoriesBySubtype("데이트", "/stories?subtype=card_story", "card_story"),
+      getLatestPhoneSection(),
+      getLatestEventSection(),
+    ]);
 
-  const leftRail = [mainStory, dateStory];
-const middleRail = [sideStory, eventSection];
-const rightRail = [phoneSection];
-
-  const sections = [mainStory, sideStory, dateStory, phoneSection, eventSection];
+  const sections = [mainStory, sideStory, dateStory, eventSection, phoneSection];
 
   return (
-    <section className="home-mixed-layout">
-  <div className="home-mixed-main">
-    {sections.map((section) => (
-      <HomeSectionCarousel
-        key={section.title}
-        title={section.title}
-        href={section.href}
-        items={section.items}
-      />
-    ))}
-  </div>
-
-  <aside className="home-mixed-side">
-    <section className="home-mixed-panel">
-      <p className="home-mixed-eyebrow">NOTICE</p>
-      <h3 className="home-mixed-side-title">아카이브 메모</h3>
-      <ul className="home-mixed-list">
-        <li>KR 콘텐츠는 2023년 1월 종료 시점 기준으로 기록.</li>
-        <li>1부는 전반 자료, 2부 이후는 선택적 정리.</li>
-        <li>CN은 최신 카드/스토리 비중이 높음.</li>
-      </ul>
-    </section>
-
-    <section className="home-film-layout">
-  <div className="home-film-rail">
-    {leftRail.map((section) => (
-      <HomeSectionCarousel
-        key={section.title}
-        title={section.title}
-        href={section.href}
-        items={section.items}
-      />
-    ))}
-  </div>
-
-  <div className="home-film-rail">
-    {middleRail.map((section) => (
-      <HomeSectionCarousel
-        key={section.title}
-        title={section.title}
-        href={section.href}
-        items={section.items}
-      />
-    ))}
-  </div>
-
-  <div className="home-film-rail home-film-rail-side">
-    {rightRail.map((section) => (
-      <HomeSectionCarousel
-        key={section.title}
-        title={section.title}
-        href={section.href}
-        items={section.items}
-      />
-    ))}
-
-    <section className="home-mixed-panel">
-      <p className="home-mixed-eyebrow">NOTICE</p>
-      <h3 className="home-mixed-side-title">아카이브 메모</h3>
-      <ul className="home-mixed-list">
-        <li>KR 콘텐츠는 2023년 1월 종료 시점 기준으로 기록.</li>
-        <li>1부는 전반 자료, 2부 이후는 선택적 정리.</li>
-        <li>CN은 최신 카드/스토리 비중이 높음.</li>
-      </ul>
-    </section>
-
-    <section className="home-mixed-panel">
-      <p className="home-mixed-eyebrow">NAVIGATION</p>
-      <h3 className="home-mixed-side-title">빠른 이동</h3>
-
-      <div className="home-mixed-linkboxes">
-        <Link href="/cards" className="home-mixed-linkbox">
-          <strong>카드</strong>
-          <span>진화 전후 / 관련 링크</span>
-        </Link>
-
-        <Link href="/stories" className="home-mixed-linkbox">
-          <strong>스토리</strong>
-          <span>메인 / 외전 / 데이트</span>
-        </Link>
-
-        <Link href="/phone-items" className="home-mixed-linkbox">
-          <strong>휴대폰</strong>
-          <span>모멘트 / 문자 / 통화</span>
-        </Link>
-
-        <Link href="/events" className="home-mixed-linkbox">
-          <strong>이벤트</strong>
-          <span>시즌 이벤트</span>
-        </Link>
+    <section className="home-classic-layout">
+      <div className="home-classic-main">
+        {sections.map((section) => (
+          <HomeSectionCarousel
+            key={section.title}
+            title={section.title}
+            href={section.href}
+            items={section.items}
+            autoMs={10000}
+          />
+        ))}
       </div>
+
+      <aside className="home-classic-side">
+        <section className="home-widget-panel">
+          <p className="home-widget-eyebrow">NOTICE</p>
+          <h3 className="home-widget-title">공지</h3>
+          <ul className="home-mixed-list">
+            <li>KR 콘텐츠는 2023년 1월 종료 시점 기준으로 기록.</li>
+            <li>1부는 전반 자료, 2부 이후는 선택적 정리.</li>
+            <li>CN은 최신 카드/스토리 비중이 높음.</li>
+          </ul>
+        </section>
+
+        <section className="home-widget-panel">
+          <p className="home-widget-eyebrow">RECENT</p>
+          <h3 className="home-widget-title">최근 글</h3>
+          <div className="home-widget-list">
+            <Link href="/stories">최신 스토리 업데이트</Link>
+            <Link href="/events">최근 이벤트 정리</Link>
+            <Link href="/phone-items">휴대폰 콘텐츠 보강</Link>
+            <Link href="/stories">외전 백업 추가</Link>
+            <Link href="/cards">카드 연동 보완</Link>
+          </div>
+        </section>
+
+        <section className="home-widget-panel">
+          <p className="home-widget-eyebrow">MUSIC</p>
+          <h3 className="home-widget-title">음악</h3>
+          <div className="home-widget-music-box">미니 플레이어 자리</div>
+        </section>
+
+         <section className="home-widget-panel">
+          <p className="home-widget-eyebrow">CALENDAR</p>
+          <h3 className="home-widget-title">캘린더</h3>
+          <div className="home-widget-calendar-box">달력 자리</div>
+        </section>
+
+        <section className="home-widget-panel">
+          <p className="home-widget-eyebrow">BANNER</p>
+          <h3 className="home-widget-title">배너</h3>
+          <Link href="/events" className="home-widget-banner">
+            <img
+              src="https://lianyujuhui.ivyro.net/data/file/pic/3553024586_cY85vLGD_92725175f100fb07e6de1c870635c59e337d93b2.jpg"
+              alt="이벤트 배너"
+            />
+          </Link>
+        </section>
+      </aside>
     </section>
-  </div>
-</section>
-  </aside>
-</section>
   );
 }
