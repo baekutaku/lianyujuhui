@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/server";
 import HomeSectionCarousel from "@/components/home/HomeSectionCarousel";
+import MiniMusicPlayer from "@/components/home/MiniMusicPlayer";
 
 type StoryRow = {
   id: string;
@@ -342,10 +343,10 @@ export default async function HomeMixedBody() {
         </section>
 
         <section className="home-widget-panel">
-          <p className="home-widget-eyebrow">MUSIC</p>
-          <h3 className="home-widget-title">음악</h3>
-          <div className="home-widget-music-box">미니 플레이어 자리</div>
-        </section>
+  <p className="home-widget-eyebrow">MUSIC</p>
+  <h3 className="home-widget-title">음악</h3>
+  <MiniMusicPlayer />
+</section>
 
          <section className="home-widget-panel">
           <p className="home-widget-eyebrow">CALENDAR</p>
