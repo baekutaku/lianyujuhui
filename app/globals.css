@@ -7616,3 +7616,320 @@ body {
     transform: translateY(0px);
   }
 }
+
+/* =========================
+   TYPOGRAPHY FIT FIX
+   너무 큰 제목 / 안 어울리는 감성 폰트 범위 축소
+========================= */
+
+/* 기본은 다시 깔끔하게 */
+body,
+input,
+select,
+textarea,
+button,
+.nav-link,
+.page-title,
+.archive-card-title,
+.quick-card-title,
+.detail-title,
+.detail-section-title,
+.home-widget-title,
+.quick-card-text,
+.detail-text,
+.translation-body {
+  font-family:
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+/* 왼쪽 브랜드만 살짝 감성 */
+.brand-title,
+.archive-record-title {
+  font-family: "GowunBatang", Pretendard, serif;
+}
+
+/* 왼쪽 브랜드 */
+.brand-sub {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: #b9afb8;
+}
+
+.brand-title {
+  font-size: 17px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #4b434a;
+}
+
+.brand-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #8e8590;
+}
+
+/* record 박스 */
+.archive-record-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: #b7adb7;
+}
+
+.archive-record-title {
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 700;
+  color: #4f4650;
+}
+
+.archive-record-text {
+  font-size: 12px;
+  color: #9a9099;
+}
+
+/* 메뉴는 명조 빼고 다시 정리 */
+.sidebar-nav {
+  gap: 3px;
+}
+
+.nav-link {
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.28;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #5b535d;
+}
+
+.nav-link:hover {
+  background: rgba(255, 255, 255, 0.56);
+  color: #403944;
+}
+
+/* 공통 페이지 제목도 줄이기 */
+.page-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: #b8afb9;
+}
+
+.page-title {
+  font-size: 28px;
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  color: #4e454f;
+}
+
+.page-desc {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #8b828d;
+}
+
+/* 대문 실제 타이틀 */
+.home-hero-title {
+  font-family:
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-size: clamp(28px, 2.9vw, 40px);
+  line-height: 1.06;
+  font-weight: 750;
+  letter-spacing: -0.05em;
+  color: #4b434d;
+}
+
+.home-hero-copy {
+  gap: 12px;
+}
+
+.home-hero {
+  padding: 26px;
+  gap: 24px;
+}
+
+.home-hero-copy .page-desc,
+.home-hero-copy p,
+.home-hero-copy .home-hero-desc {
+  font-size: 15px;
+  line-height: 1.72;
+  color: #8c8390;
+}
+
+/* 대문 버튼/칩이랑 밸런스 맞추기 */
+.quick-card-title,
+.archive-card-title,
+.detail-title,
+.detail-section-title {
+  font-size: 20px;
+  line-height: 1.28;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #4f4650;
+}
+
+/* 스토리 목록 제목 너무 튀는 거 눌러주기 */
+.archive-card-title {
+  font-size: 17px;
+  line-height: 1.34;
+}
+
+/* 위젯 제목도 과한 감성 빼기 */
+.home-widget-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #564d58;
+}
+
+@media (max-width: 768px) {
+  .brand-title {
+    font-size: 16px;
+  }
+
+  .nav-link {
+    font-size: 13px;
+    padding: 9px 11px;
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .home-hero-title {
+    font-size: clamp(24px, 7vw, 32px);
+    line-height: 1.1;
+  }
+
+  .home-hero {
+    padding: 20px;
+    gap: 18px;
+  }
+}
+
+//* =========================
+   LAYOUT WIDTH TUNE
+   데스크톱 전용
+========================= */
+
+@media (min-width: 901px) {
+  /* 1) 전체 레이아웃: 왼쪽 메뉴폭 축소 + 중앙 영역 더 넓게 */
+  .memory-shell {
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .sidebar {
+    width: 200px;
+    min-width: 200px;
+  }
+
+  .sidebar-inner {
+    padding: 14px 12px;
+  }
+
+  /* 2) 가운데 바깥 여백 줄이기 */
+  .site-shell {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .content-area {
+    padding: 16px 16px 20px 0;
+  }
+
+  .content-inner {
+    padding: 28px;
+  }
+
+  /* 3) 스토리 상세: 왼쪽 미디어폭 조금 줄이고 번역란 더 넓게 */
+  .story-main-grid {
+    grid-template-columns: minmax(300px, 440px) minmax(0, 1.18fr);
+    gap: 12px;
+  }
+
+  .story-media-box {
+    max-width: 460px;
+    border-radius: 20px;
+  }
+
+  .media-embed-wrap,
+  .story-detail-image,
+  .media-embed-wrap iframe {
+    border-radius: 20px;
+  }
+
+  .story-media-panel {
+    padding: 5px !important;
+    border-radius: 20px;
+  }
+
+  .story-translation-panel {
+    padding: 18px 18px 16px;
+    border-radius: 20px;
+    height: 760px;
+    min-height: 760px;
+  }
+
+  .translation-scroll-panel {
+    max-height: 700px;
+    padding-top: 4px;
+    padding-right: 4px;
+  }
+
+  /* 4) 상단 정보박스 */
+  .story-topbar {
+    grid-template-columns: 1fr 220px;
+    gap: 16px;
+    padding: 16px 18px !important;
+  }
+
+  .nav-link {
+    padding: 9px 12px;
+  }
+}
+
+/* 화면이 조금 좁을 때는 더 자연스럽게 */
+@media (max-width: 1400px) and (min-width: 901px) {
+  .story-translation-panel {
+    height: 700px;
+    min-height: 700px;
+  }
+
+  .translation-scroll-panel {
+    max-height: 640px;
+  }
+}
+
+/* 큰 화면에서만 조금 더 */
+@media (min-width: 1500px) {
+  .memory-shell {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .content-inner {
+    padding: 24px;
+  }
+
+  .story-main-grid {
+    grid-template-columns: minmax(290px, 420px) minmax(0, 1.24fr);
+    gap: 14px;
+  }
+
+  .story-media-box {
+    max-width: 440px;
+  }
+
+  .story-media-panel {
+    padding: 12px !important;
+  }
+}

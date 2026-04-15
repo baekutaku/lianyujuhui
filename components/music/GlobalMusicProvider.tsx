@@ -15,7 +15,10 @@ import { tracks, type Track } from "@/components/music/music-tracks";
 const AUTOPLAY_KEY = "baiqi_music_autoplay_enabled";
 const VOLUME_KEY = "baiqi_music_volume";
 const TRACK_INDEX_KEY = "baiqi_music_track_index";
-const CURRENT_TIME_KEY = "baiqi_music_current_time";
+
+function getTimeKey(trackId: string) {
+  return `baiqi_music_current_time_${trackId}`;
+}
 
 function formatNumber(value: string | null, fallback: number) {
   const num = Number(value);
@@ -69,14 +72,15 @@ export default function GlobalMusicProvider({
   const [volume, setVolumeState] = useState(0.75);
   const [isSeeking, setIsSeeking] = useState(false);
   const [autoplayEnabled, setAutoplayEnabled] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const currentTrack = tracks[trackIndex];
 
+  /* 초기 설정 로드 */
   useEffect(() => {
     const savedAutoplay = window.localStorage.getItem(AUTOPLAY_KEY);
     const savedVolume = window.localStorage.getItem(VOLUME_KEY);
     const savedTrackIndex = window.localStorage.getItem(TRACK_INDEX_KEY);
-    const savedCurrentTime = window.localStorage.getItem(CURRENT_TIME_KEY);
 
     setAutoplayEnabled(savedAutoplay === "true");
     setVolumeState(formatNumber(savedVolume, 0.75));
@@ -86,20 +90,18 @@ export default function GlobalMusicProvider({
       parsedIndex >= 0 && parsedIndex < tracks.length ? parsedIndex : 0;
     setTrackIndex(safeIndex);
 
-    setCurrentTime(formatNumber(savedCurrentTime, 0));
+    setIsInitialized(true);
   }, []);
 
   useEffect(() => {
+    if (!isInitialized) return;
     window.localStorage.setItem(VOLUME_KEY, String(volume));
-  }, [volume]);
+  }, [volume, isInitialized]);
 
   useEffect(() => {
+    if (!isInitialized) return;
     window.localStorage.setItem(TRACK_INDEX_KEY, String(trackIndex));
-  }, [trackIndex]);
-
-  useEffect(() => {
-    window.localStorage.setItem(CURRENT_TIME_KEY, String(currentTime));
-  }, [currentTime]);
+  }, [trackIndex, isInitialized]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -107,6 +109,13 @@ export default function GlobalMusicProvider({
     audio.volume = volume;
   }, [volume]);
 
+  /* 현재 트랙의 재생 시간 저장 */
+  useEffect(() => {
+    if (!isInitialized) return;
+    window.localStorage.setItem(getTimeKey(currentTrack.id), String(currentTime));
+  }, [currentTime, currentTrack.id, isInitialized]);
+
+  /* 오디오 이벤트 */
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -115,7 +124,7 @@ export default function GlobalMusicProvider({
       setDuration(audio.duration || 0);
 
       const savedTime = formatNumber(
-        window.localStorage.getItem(CURRENT_TIME_KEY),
+        window.localStorage.getItem(getTimeKey(currentTrack.id)),
         0
       );
 
@@ -144,41 +153,54 @@ export default function GlobalMusicProvider({
       audio.removeEventListener("timeupdate", onTimeUpdate);
       audio.removeEventListener("ended", onEnded);
     };
-  }, [isSeeking]);
+  }, [currentTrack.id, isSeeking]);
 
+  /* 트랙이 바뀔 때만 src 교체 */
   useEffect(() => {
+    if (!isInitialized) return;
+
     const audio = audioRef.current;
     if (!audio) return;
 
+    const wasPlaying = !audio.paused || isPlaying;
+
     audio.src = currentTrack.src;
     audio.load();
+
     setDuration(0);
+    setCurrentTime(0);
 
     const savedTime = formatNumber(
-      window.localStorage.getItem(CURRENT_TIME_KEY),
+      window.localStorage.getItem(getTimeKey(currentTrack.id)),
       0
     );
 
-    if (savedTime > 0) {
-      const applyTime = () => {
+    const applyTime = () => {
+      if (savedTime > 0 && savedTime < (audio.duration || 0)) {
         audio.currentTime = savedTime;
         setCurrentTime(savedTime);
-      };
-      audio.addEventListener("loadedmetadata", applyTime, { once: true });
+      }
+    };
+
+    audio.addEventListener("loadedmetadata", applyTime, { once: true });
+
+    if (wasPlaying) {
+      audio
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch(() => {
+          setIsPlaying(false);
+        });
     } else {
-      setCurrentTime(0);
+      setIsPlaying(false);
     }
+  }, [trackIndex, currentTrack.src, currentTrack.id, isInitialized]);
 
-    if (autoplayEnabled && isPlaying) {
-      audio.play().catch(() => {
-        setIsPlaying(false);
-      });
-    }
-  }, [trackIndex, currentTrack, autoplayEnabled]);
-
+  /* 스토리 들어가면 일시정지 */
   useEffect(() => {
     const isStoryPage = pathname.startsWith("/stories/");
-
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -190,11 +212,14 @@ export default function GlobalMusicProvider({
     }
 
     if (shouldResumeAfterStoryRef.current && autoplayEnabled) {
-      audio.play().then(() => {
-        setIsPlaying(true);
-      }).catch(() => {
-        setIsPlaying(false);
-      });
+      audio
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch(() => {
+          setIsPlaying(false);
+        });
       shouldResumeAfterStoryRef.current = false;
     }
   }, [pathname, autoplayEnabled]);
@@ -226,22 +251,18 @@ export default function GlobalMusicProvider({
     try {
       await audio.play();
       setIsPlaying(true);
-      if (!autoplayEnabled) enableAutoplay();
+      /* 재생 버튼 누른다고 autoplay 설정을 강제로 바꾸지 않음 */
     } catch {
       setIsPlaying(false);
     }
-  }, [isPlaying, autoplayEnabled, enableAutoplay]);
+  }, [isPlaying]);
 
   const prevTrack = useCallback(() => {
     setTrackIndex((prev) => (prev <= 0 ? tracks.length - 1 : prev - 1));
-    window.localStorage.setItem(CURRENT_TIME_KEY, "0");
-    setCurrentTime(0);
   }, []);
 
   const nextTrack = useCallback(() => {
     setTrackIndex((prev) => (prev >= tracks.length - 1 ? 0 : prev + 1));
-    window.localStorage.setItem(CURRENT_TIME_KEY, "0");
-    setCurrentTime(0);
   }, []);
 
   const commitSeek = useCallback((next: number) => {

@@ -59,7 +59,8 @@ function loadSmartEditorScript() {
     script.dataset.smarteditor = "husky";
 
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("SmartEditor 스크립트 로드 실패"));
+    script.onerror = () =>
+      reject(new Error("SmartEditor 스크립트 로드 실패"));
 
     document.body.appendChild(script);
   });
@@ -74,7 +75,10 @@ function getIframeDocument(iframe: HTMLIFrameElement | null | undefined) {
 
 async function getSmartEditorDocuments(wrapper: HTMLDivElement | null) {
   if (!wrapper) {
-    return { skinDoc: null as Document | null, editingDoc: null as Document | null };
+    return {
+      skinDoc: null as Document | null,
+      editingDoc: null as Document | null,
+    };
   }
 
   for (let i = 0; i < 40; i += 1) {
@@ -98,7 +102,10 @@ async function getSmartEditorDocuments(wrapper: HTMLDivElement | null) {
     await wait(100);
   }
 
-  return { skinDoc: null as Document | null, editingDoc: null as Document | null };
+  return {
+    skinDoc: null as Document | null,
+    editingDoc: null as Document | null,
+  };
 }
 
 function injectFontStyle(doc: Document) {
@@ -221,10 +228,11 @@ export default function SmartEditor({
 
             (async () => {
               try {
-                const seedHtml = textareaRef.current?.value || initialValue;
+                const seedHtml =
+                  textareaRef.current?.value || initialValue || "";
 
                 if (seedHtml) {
-                  editor.exec("PASTE_HTML", [seedHtml]);
+                  editor.exec("SET_IR", [seedHtml]);
                   editor.exec("UPDATE_CONTENTS_FIELD", []);
                 }
 
