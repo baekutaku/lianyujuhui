@@ -7,21 +7,38 @@ const heroImages = [
   "https://lianyujuhui.ivyro.net/data/editor/2601/8fb0c6d84c29941dd6950c3779c934de_1768844981_1157.jpg",
 ];
 
-const statusItems = [
+const shortcutItems = [
   {
-    label: "KR 서버",
-    value: "2023.01 종료 아카이브",
-    sub: "1~2부 초중반 종료",
+    href: "/cards",
+    title: "카드 아카이브",
+    desc: "SSR · SP · 한정 카드와 관련 서사 정리",
+    image:
+      "https://lianyujuhui.ivyro.net/data/file/pic/3553024586_ojVXpgCP_4d95c7745a8dc657d729f07a2e87839e4bd16757.jpg",
+    chips: ["카드", "연결서사"],
   },
   {
-    label: "CN 서버",
-    value: "운영 중",
-    sub: "1~2부 초중반 종료, 3부 막 시작 시점",
+    href: "/stories",
+    title: "스토리 아카이브",
+    desc: "KR 위주 · CN 스토리 번역 및 백업",
+    image:
+      "https://lianyujuhui.ivyro.net/data/file/pic/3553024586_cY85vLGD_92725175f100fb07e6de1c870635c59e337d93b2.jpg",
+    chips: ["Part1 Complete", "Part2 Partial"],
   },
   {
-    label: "기록 방식",
-    value: "카드 ↔ 스토리 ↔ 휴대폰 연결",
-    sub: "카드와 연결된 컨텐츠 유기적으로 아카이브(하려고 노력)",
+    href: "/phone-items",
+    title: "휴대폰 아카이브",
+    desc: "문자 · 모멘트 · 통화 기록 정리",
+    image:
+      "https://lianyujuhui.ivyro.net/data/editor/2601/8fb0c6d84c29941dd6950c3779c934de_1768844981_1157.jpg",
+    chips: ["문자", "모멘트", "통화"],
+  },
+  {
+    href: "/events",
+    title: "이벤트 아카이브",
+    desc: "기간 한정 이벤트와 관련 자료 모음",
+    image:
+      "https://lianyujuhui.ivyro.net/data/file/pic/3553024586_cY85vLGD_92725175f100fb07e6de1c870635c59e337d93b2.jpg",
+    chips: ["이벤트", "백업"],
   },
 ];
 
@@ -68,15 +85,37 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="home-status-grid">
-        {statusItems.map((item) => (
-          <article key={item.label} className="home-status-card">
-            <div className="home-status-label">{item.label}</div>
-            <strong className="home-status-value">{item.value}</strong>
-            <p className="home-status-sub">{item.sub}</p>
-          </article>
-        ))}
-      </section>
+     <section className="home-featured-grid home-shortcut-grid">
+  {shortcutItems.map((item) => (
+    <Link
+      key={item.href}
+      href={item.href}
+      className="home-featured-card home-shortcut-card"
+    >
+      <div className="home-featured-media">
+        <img
+          src={item.image}
+          alt={item.title}
+          className="home-featured-image"
+        />
+        <div className="home-featured-overlay home-shortcut-overlay" />
+      </div>
+
+      <div className="home-featured-body home-shortcut-body">
+        <div className="home-chip-row">
+          {item.chips.map((chip) => (
+            <span key={chip} className="home-chip">
+              {chip}
+            </span>
+          ))}
+        </div>
+
+        <h2 className="home-featured-title">{item.title}</h2>
+        <p className="home-featured-desc">{item.desc}</p>
+      </div>
+    </Link>
+  ))}
+</section>
 
       <HomeMixedBody />
     </main>
