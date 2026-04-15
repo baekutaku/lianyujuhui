@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   createCalendarEntry,
   updateCalendarEntry,
@@ -68,6 +69,8 @@ const [mode, setMode] = useState<ModalMode>("create");
 const [editingEntry, setEditingEntry] = useState<CalendarEntry | null>(null);
 const [toast, setToast] = useState("");
 const [isSubmitting, setIsSubmitting] = useState(false);
+const router = useRouter();
+const [, startTransition] = useTransition();
 useEffect(() => {
   if (!toast) return;
 
@@ -94,7 +97,9 @@ useEffect(() => {
     return [...arr].sort((a, b) => a.title.localeCompare(b.title, "ko"));
   }, [entryMap, selectedDate]);
 
-  const monthEntryCount = useMemo(() => {
+
+
+const monthEntryCount = useMemo(() => {
   const year = viewDate.getFullYear();
   const month = pad(viewDate.getMonth() + 1);
   const prefix = `${year}-${month}-`;
@@ -135,6 +140,10 @@ async function handleSubmit(formData: FormData) {
       setToast("일정이 수정됨");
     }
 
+    startTransition(() => {
+      router.refresh();
+    });
+
     setOpen(false);
     setEditingEntry(null);
   } catch (error) {
@@ -156,6 +165,10 @@ async function handleDelete(id: string) {
 
     await deleteCalendarEntry(formData);
     setToast("일정이 삭제됨");
+
+    startTransition(() => {
+      router.refresh();
+    });
   } catch (error) {
     console.error(error);
     setToast("삭제 실패");
@@ -173,21 +186,29 @@ async function handleDelete(id: string) {
 
           <div className="home-calendar-controls">
             <button
-              type="button"
-              className="home-calendar-nav"
-              onClick={() => setViewDate((prev) => moveMonth(prev, -1))}
-              aria-label="이전 달"
-            >
-              ‹
-            </button>
+  type="button"
+  className="home-calendar-nav"
+  onClick={() => {
+    const next = moveMonth(viewDate, -1);
+    setViewDate(next);
+    setSelectedDate(dateKey(next));
+  }}
+  aria-label="이전 달"
+>
+  ‹
+</button>
             <button
-              type="button"
-              className="home-calendar-nav"
-              onClick={() => setViewDate((prev) => moveMonth(prev, 1))}
-              aria-label="다음 달"
-            >
-              ›
-            </button>
+  type="button"
+  className="home-calendar-nav"
+  onClick={() => {
+    const next = moveMonth(viewDate, 1);
+    setViewDate(next);
+    setSelectedDate(dateKey(next));
+  }}
+  aria-label="다음 달"
+>
+  ›
+</button>
           </div>
         </div>
 
