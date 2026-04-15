@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
-import Link from "next/link";
 import { deleteStoryBundle } from "@/app/admin/actions";
 import ConfirmSubmitButton from "@/components/admin/common/ConfirmSubmitButton";
 import StoryDetailHeightSync from "@/components/story/StoryDetailHeightSync";
@@ -10,6 +10,12 @@ type StoryPageProps = {
   params: Promise<{
     slug: string;
   }>;
+};
+
+type RelatedCard = {
+  id: string;
+  title: string;
+  slug: string;
 };
 
 function looksLikeHtml(value: string) {
@@ -22,6 +28,13 @@ function safeDecodeSlug(value: string) {
   } catch {
     return value;
   }
+}
+function normalizeStoryHtml(html = "") {
+  return html
+    .replace(/<p>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, "")
+    .replace(/(<br\s*\/?>\s*){3,}/gi, "<br><br>")
+    .replace(/<p>\s*<\/p>/gi, "")
+    .trim();
 }
 
 export default async function StoryDetailPage({ params }: StoryPageProps) {
@@ -91,7 +104,7 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
     console.error("[stories/[slug]] relations fetch error:", relationsError);
   }
 
-  let relatedCards: { id: string; title: string; slug: string }[] = [];
+  let relatedCards: RelatedCard[] = [];
 
   if (relations && relations.length > 0) {
     const cardRelationIds = relations
@@ -112,98 +125,84 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
     }
   }
 
+  const hasConnections = relatedCards.length > 0;
+
   return (
     <main>
       <section className="detail-panel story-topbar">
         <div className="story-topbar-main">
-  <p className="page-eyebrow">Archive / Stories</p>
-  <h1 className="story-page-title">{story.title}</h1>
+          <p className="page-eyebrow">Archive / Stories</p>
 
-  <div className="meta-row story-top-meta">
-    <span className="meta-pill">type: {story.subtype}</span>
-    <span className="meta-pill">year: {story.release_year}</span>
-    {!story.is_published && admin ? (
-      <span className="meta-pill">draft</span>
-    ) : null}
-  </div>
+          <h1 className="story-page-title">{story.title}</h1>
 
-  <div className="story-top-actions">
-    <Link
-      href="/stories"
-      className="story-action-button story-action-muted"
-    >
-      목록으로
-    </Link>
+          <div className="meta-row story-top-meta">
+            <span className="meta-pill">type: {story.subtype}</span>
+            <span className="meta-pill">year: {story.release_year}</span>
+            {!story.is_published && admin ? (
+              <span className="meta-pill">draft</span>
+            ) : null}
+          </div>
 
-    {admin ? (
-      <>
-        <Link
-          href={`/admin/stories/${encodeURIComponent(story.slug)}/edit`}
-          className="story-action-button"
-        >
-          관리자 수정
-        </Link>
+          <div className="story-top-actions">
+            <Link
+              href="/stories"
+              className="story-action-button story-action-muted"
+            >
+              목록으로
+            </Link>
 
-        <Link
-          href="/admin/stories/new"
-          className="story-action-button story-action-muted"
-        >
-          새 스토리 등록
-        </Link>
+            {admin ? (
+              <>
+                <Link
+                  href={`/admin/stories/${encodeURIComponent(story.slug)}/edit`}
+                  className="story-action-button"
+                >
+                  관리자 수정
+                </Link>
 
-        <form action={deleteStoryBundle} style={{ display: "inline-flex" }}>
-          <input type="hidden" name="storyId" value={story.id} />
-          <ConfirmSubmitButton
-            label="삭제"
-            confirmMessage={`정말 삭제할까요?\n\n${story.title}`}
-            className="story-action-button story-action-muted"
-            style={{
-              border: "none",
-              cursor: "pointer",
-              color: "#d35f7a",
-            }}
-          />
-        </form>
-      </>
-    ) : null}
-  </div>
-</div>
-        <aside className="story-topbar-side">
-          <div className="story-side-block">
-            <h3 className="story-side-title">연결 카드</h3>
-            <div className="story-side-links">
-              {relatedCards.length > 0 ? (
-                relatedCards.map((card) => (
+                <Link
+                  href="/admin/stories/new"
+                  className="story-action-button story-action-muted"
+                >
+                  새 스토리 등록
+                </Link>
+
+                <form action={deleteStoryBundle} style={{ display: "inline-flex" }}>
+                  <input type="hidden" name="storyId" value={story.id} />
+                  <ConfirmSubmitButton
+                    label="삭제"
+                    confirmMessage={`정말 삭제할까요?\n\n${story.title}`}
+                    className="story-action-button story-action-danger"
+                  />
+                </form>
+              </>
+            ) : null}
+          </div>
+        </div>
+
+        {hasConnections ? (
+          <aside className="story-topbar-side">
+            <section className="story-side-block">
+              <h2 className="story-side-title">연결 카드</h2>
+
+              <div className="story-side-links">
+                {relatedCards.map((card) => (
                   <Link
                     key={card.id}
                     href={`/cards/${card.slug}`}
-                    className="meta-pill"
+                    className="story-side-chip"
                   >
                     {card.title}
                   </Link>
-                ))
-              ) : (
-                <span className="detail-text">없음</span>
-              )}
-            </div>
-          </div>
-
-          <div className="story-side-block">
-            <h3 className="story-side-title">휴대폰</h3>
-            <div className="story-side-links">
-              <span className="detail-text">문자 / 전화 / 모먼트 연결 예정</span>
-            </div>
-          </div>
-
-          <div className="story-side-block">
-            <h3 className="story-side-title">기타 연결</h3>
-            <div className="story-side-links">
-              <span className="detail-text">외전 / ASMR / 이벤트 연결 예정</span>
-            </div>
-          </div>
-        </aside>
+                ))}
+              </div>
+            </section>
+          </aside>
+        ) : null}
       </section>
-<StoryDetailHeightSync />
+
+      <StoryDetailHeightSync />
+
       <section className="story-main-grid">
         <div className="detail-panel story-media-panel">
           <div className="story-media-box">
@@ -225,9 +224,7 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
                   className="story-detail-image"
                 />
               ) : (
-                <div className="empty-box">
-                  지원되지 않는 미디어 형식입니다.
-                </div>
+                <div className="empty-box">지원되지 않는 미디어 형식입니다.</div>
               )
             ) : (
               <div className="empty-box">등록된 영상/이미지가 없습니다.</div>
@@ -236,13 +233,11 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
         </div>
 
         <div className="detail-panel story-translation-panel">
-          <h2 className="detail-section-title">번역</h2>
-
-          {translationError && (
+          {translationError ? (
             <pre className="error-box">
               {JSON.stringify(translationError, null, 2)}
             </pre>
-          )}
+          ) : null}
 
           {!visibleTranslations || visibleTranslations.length === 0 ? (
             <div className="empty-box">등록된 번역이 없습니다.</div>
@@ -252,18 +247,18 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
                 {visibleTranslations.map((translation) => (
                   <section key={translation.id}>
                     {translation.title ? (
-                      <h3 className="story-translation-title">
+                      <p className="story-translation-title">
                         {translation.title}
-                      </h3>
+                      </p>
                     ) : null}
 
                     {looksLikeHtml(translation.body || "") ? (
                       <div
-                        className="translation-body rich-content"
-                        dangerouslySetInnerHTML={{
-                          __html: translation.body || "",
-                        }}
-                      />
+  className="translation-body rich-content"
+  dangerouslySetInnerHTML={{
+    __html: normalizeStoryHtml(translation.body || ""),
+  }}
+/>
                     ) : (
                       <div
                         className="translation-body rich-content"
@@ -279,6 +274,27 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
           )}
         </div>
       </section>
+
+      {hasConnections ? (
+        <section className="detail-panel related-section">
+          <h2 className="detail-section-title" style={{ display: "block" }}>
+            관련 카드
+          </h2>
+
+          <div className="related-grid">
+            {relatedCards.map((card) => (
+              <Link
+                key={card.id}
+                href={`/cards/${card.slug}`}
+                className="related-card"
+              >
+                <p className="related-card-title">{card.title}</p>
+                <span className="mini-button">카드 보기</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

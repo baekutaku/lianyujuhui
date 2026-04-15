@@ -5643,3 +5643,218 @@ body {
     line-height: 1.82;
   }
 }
+
+/* =========================
+   STORY LIST REFINEMENT
+========================= */
+
+.story-list-toolbar {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.story-list-searchbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.story-list-search-input {
+  min-width: 280px;
+  flex: 1 1 420px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(190, 205, 222, 0.7);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.story-list-filter-input {
+  width: 140px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(190, 205, 222, 0.7);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.story-list-adminbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.story-thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.story-thumb-card {
+  list-style: none;
+}
+
+.story-thumb-link {
+  display: block;
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  text-decoration: none;
+}
+
+.story-thumb-link:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 36px rgba(120, 153, 181, 0.18);
+}
+
+.story-thumb-media {
+  width: 100%;
+  aspect-ratio: 16 / 8;
+  background: rgba(230, 240, 248, 0.8);
+  overflow: hidden;
+}
+
+.story-thumb-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.story-thumb-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-soft);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+.story-thumb-body {
+  padding: 16px 16px 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.story-thumb-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.34;
+  font-weight: 800;
+  color: var(--text-main);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.story-thumb-summary {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-sub);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.story-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.story-card-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(248, 245, 251, 0.96);
+  border: 1px solid rgba(222, 213, 228, 0.72);
+  color: #8a7e93;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 1200px) {
+  .story-thumb-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .story-list-searchbar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .story-list-search-input,
+  .story-list-filter-input {
+    width: 100%;
+  }
+
+  .story-thumb-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .story-thumb-title {
+    font-size: 18px;
+  }
+}
+
+.translation-body.rich-content,
+.rich-content.translation-body {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.translation-body.rich-content p,
+.rich-content.translation-body p,
+.translation-body.rich-content .se-text-paragraph,
+.rich-content.translation-body .se-text-paragraph,
+.translation-body.rich-content .se2_outputarea p,
+.rich-content.translation-body .se2_outputarea p {
+  margin: 0;
+  line-height: inherit;
+}
+
+.translation-body.rich-content p + p,
+.rich-content.translation-body p + p,
+.translation-body.rich-content p + div,
+.rich-content.translation-body p + div,
+.translation-body.rich-content div + p,
+.rich-content.translation-body div + p {
+  margin-top: 0.08em;
+}
+
+@media (max-width: 768px) {
+  .translation-body.rich-content,
+  .rich-content.translation-body {
+    font-size: 14.5px;
+    line-height: 1.46;
+  }
+
+  .translation-body.rich-content p + p,
+  .rich-content.translation-body p + p,
+  .translation-body.rich-content p + div,
+  .rich-content.translation-body p + div,
+  .translation-body.rich-content div + p,
+  .rich-content.translation-body div + p {
+    margin-top: 0.06em;
+  }
+}

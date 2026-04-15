@@ -9,6 +9,7 @@ type StoryCard = {
   subtype: string;
   release_year: number;
   release_date: string | null;
+  summary?: string | null;
 };
 
 type StoryThumb = {
@@ -30,6 +31,20 @@ type PageProps = {
   }>;
 };
 
+/**
+ * 임시 태그 맵
+ * 나중에 story_tags 테이블이나 tags 컬럼 붙이면 여기만 교체하면 됨.
+ */
+const storyTagsMap: Record<string, string[]> = {
+  "baiqi-story-2025-kr-o1a1": ["발렌타인", "놀이공원", "재회", "달달"],
+  "baiqi-3주년-2025-kr-a6l6": ["기념일", "연인무드", "일상", "축하"],
+  "baiqi-리포투-3주년-2025-kr-sd8p": ["기념일", "축하", "애정", "달달"],
+};
+
+function getStoryTags(story: StoryCard) {
+  return storyTagsMap[story.slug] ?? [];
+}
+
 export default async function StoriesPage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const q = String(resolvedSearchParams?.q || "").trim();
@@ -40,7 +55,7 @@ export default async function StoriesPage({ searchParams }: PageProps) {
 
   let query = supabase
     .from("stories")
-    .select("id, title, slug, subtype, release_year, release_date")
+    .select("id, title, slug, subtype, release_year, release_date, summary")
     .eq("is_published", true)
     .order("release_year", { ascending: false })
     .order("release_date", { ascending: false })
@@ -120,37 +135,14 @@ export default async function StoriesPage({ searchParams }: PageProps) {
           카드 스토리와 번역 중심으로 정리된 스토리 목록입니다.
         </p>
 
-        <div
-          style={{
-            display: "grid",
-            gap: 12,
-            marginTop: 18,
-          }}
-        >
-          <form
-            method="get"
-            action="/stories"
-            style={{
-              display: "flex",
-              gap: 10,
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-          >
+        <div className="story-list-toolbar">
+          <form method="get" action="/stories" className="story-list-searchbar">
             <input
               type="text"
               name="q"
               defaultValue={q}
               placeholder="제목 / slug 검색"
-              style={{
-                minWidth: 220,
-                flex: "1 1 240px",
-                height: 42,
-                padding: "0 14px",
-                borderRadius: 999,
-                border: "1px solid rgba(190, 205, 222, 0.7)",
-                background: "rgba(255,255,255,0.72)",
-              }}
+              className="story-list-search-input"
             />
 
             <input
@@ -158,27 +150,13 @@ export default async function StoriesPage({ searchParams }: PageProps) {
               name="year"
               defaultValue={year}
               placeholder="연도"
-              style={{
-                width: 120,
-                height: 42,
-                padding: "0 14px",
-                borderRadius: 999,
-                border: "1px solid rgba(190, 205, 222, 0.7)",
-                background: "rgba(255,255,255,0.72)",
-              }}
+              className="story-list-filter-input"
             />
 
             <select
               name="subtype"
               defaultValue={subtype}
-              style={{
-                width: 180,
-                height: 42,
-                padding: "0 14px",
-                borderRadius: 999,
-                border: "1px solid rgba(190, 205, 222, 0.7)",
-                background: "rgba(255,255,255,0.72)",
-              }}
+              className="story-list-filter-input"
             >
               <option value="">전체 유형</option>
               <option value="card_story">카드 스토리</option>
@@ -197,13 +175,7 @@ export default async function StoriesPage({ searchParams }: PageProps) {
           </form>
 
           {admin ? (
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                flexWrap: "wrap",
-              }}
-            >
+            <div className="story-list-adminbar">
               <Link href="/admin/stories/new" className="primary-button">
                 새 스토리 등록
               </Link>
@@ -216,11 +188,9 @@ export default async function StoriesPage({ searchParams }: PageProps) {
         </div>
       </header>
 
-      {error && (
-        <pre className="error-box">
-          {JSON.stringify(error, null, 2)}
-        </pre>
-      )}
+      {error ? (
+        <pre className="error-box">{JSON.stringify(error, null, 2)}</pre>
+      ) : null}
 
       {!stories || stories.length === 0 ? (
         <div className="empty-box">등록된 스토리가 없습니다.</div>
@@ -228,6 +198,7 @@ export default async function StoriesPage({ searchParams }: PageProps) {
         <ul className="story-thumb-grid">
           {(stories as StoryCard[]).map((story) => {
             const thumb = mediaMap.get(story.id);
+            const tags = getStoryTags(story);
 
             return (
               <li key={story.id} className="story-thumb-card">
@@ -247,12 +218,19 @@ export default async function StoriesPage({ searchParams }: PageProps) {
                   <div className="story-thumb-body">
                     <h2 className="story-thumb-title">{story.title}</h2>
 
-                    <div className="meta-row" style={{ marginBottom: "12px" }}>
-                      <span className="meta-pill">type: {story.subtype}</span>
-                      <span className="meta-pill">year: {story.release_year}</span>
-                    </div>
+                    {story.summary ? (
+                      <p className="story-thumb-summary">{story.summary}</p>
+                    ) : null}
 
-                    <span className="mini-button">상세 보기</span>
+                    {tags.length > 0 ? (
+                      <div className="story-card-tags">
+                        {tags.slice(0, 4).map((tag) => (
+                          <span key={tag} className="story-card-tag">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 </Link>
               </li>
