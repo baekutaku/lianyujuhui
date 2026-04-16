@@ -8,6 +8,7 @@ import StoryDetailHeightSync from "@/components/story/StoryDetailHeightSync";
 import { unlockProtectedStory } from "@/app/stories/[slug]/actions";
 import { hasStoryAccess } from "@/lib/utils/story-access";
 import StoryTranslationSwitcher from "@/components/story/StoryTranslationSwitcher";
+import StoryMediaSwitcher from "@/components/story/StoryMediaSwitcher";
 
 type StoryPageProps = {
   params: Promise<{
@@ -183,7 +184,7 @@ export default async function StoryDetailPage({
     console.error("[stories/[slug]] media fetch error:", mediaError);
   }
 
-  const primaryMedia = media?.[0] ?? null;
+
 
   const { data: relations, error: relationsError } = await supabase
     .from("item_relations")
@@ -296,32 +297,8 @@ export default async function StoryDetailPage({
 
       <section className="story-main-grid">
         <div className="detail-panel story-media-panel">
-          <div className="story-media-box">
-            {primaryMedia ? (
-              primaryMedia.media_type === "youtube" &&
-              primaryMedia.youtube_video_id ? (
-                <div className="media-embed-wrap">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${primaryMedia.youtube_video_id}`}
-                    title={primaryMedia.title || story.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              ) : primaryMedia.media_type === "image" ? (
-                <img
-                  src={primaryMedia.url}
-                  alt={primaryMedia.title || story.title}
-                  className="story-detail-image"
-                />
-              ) : (
-                <div className="empty-box">지원되지 않는 미디어 형식입니다.</div>
-              )
-            ) : (
-              <div className="empty-box">등록된 영상/이미지가 없습니다.</div>
-            )}
-          </div>
-        </div>
+  <StoryMediaSwitcher storyTitle={story.title} media={media ?? []} />
+</div>
 
         <div className="detail-panel story-translation-panel">
   {translationError ? (
