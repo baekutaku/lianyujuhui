@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/server";
 import { updateStoryBundle, deleteStoryBundle } from "@/app/admin/actions";
 import SmartEditor from "@/components/editor/SmartEditor";
 import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 import DeletePhoneItemButton from "@/components/admin/phone-items/DeletePhoneItemButton";
+import StoryMainMetaFields from "@/components/admin/stories/StoryMainMetaFields";
+import StoryVisibilityFields from "@/components/admin/stories/StoryVisibilityFields";
 
 const STORY_SUBTYPE_OPTIONS = [
-  { value: "card_story", label: "카드 스토리" },
+  { value: "card_story", label: "데이트" },
   { value: "main_story", label: "메인스토리" },
   { value: "side_story", label: "외전" },
   { value: "asmr", label: "너의 곁에" },
@@ -52,7 +54,7 @@ export default async function EditStoryPage({
 
   const { data: story, error: storyError } = await supabase
     .from("stories")
-    .select("id, title, slug, subtype, release_year, release_date, summary")
+    .select("*")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -93,6 +95,20 @@ export default async function EditStoryPage({
     .eq("relation_type", "card_story")
     .maybeSingle();
 
+  const { data: characters } = await supabase
+    .from("characters")
+    .select("id, key, name_ko")
+    .order("sort_order", { ascending: true });
+
+  const { data: appearingCharacterRows } = await supabase
+    .from("item_characters")
+    .select("character_id")
+    .eq("item_type", "story")
+    .eq("item_id", story.id);
+
+  const appearingCharacterIds =
+    appearingCharacterRows?.map((row) => row.character_id) ?? [];
+
   let linkedCardSlug = "";
 
   if (relation?.parent_id) {
@@ -111,7 +127,7 @@ export default async function EditStoryPage({
         <div className="page-eyebrow">Admin / Stories / Edit</div>
         <h1 className="page-title">스토리 통합 수정</h1>
         <p className="page-desc">
-          스토리, 번역, 영상, 카드 연결을 한 화면에서 수정합니다.
+          스토리, 메인 정렬 메타, 공개 범위, 번역, 영상, 카드 연결을 한 화면에서 수정합니다.
         </p>
       </header>
 
@@ -130,7 +146,8 @@ export default async function EditStoryPage({
           {safeDecode(error)}
         </p>
       ) : null}
-       {saved ? (
+
+      {saved ? (
         <p
           style={{
             marginBottom: "16px",
@@ -224,13 +241,13 @@ export default async function EditStoryPage({
             />
           </label>
 
-         <SmartEditor
-  name="translationBody"
-  label="번역 본문"
-  initialValue={translation?.body ?? ""}
-  height="700px"
-  autosyncMs={1500}
-/>
+          <SmartEditor
+            name="translationBody"
+            label="번역 본문"
+            initialValue={translation?.body ?? ""}
+            height={700}
+            autosyncMs={1500}
+          />
 
           <label className="form-field form-field-full">
             <span>연결 카드</span>
@@ -241,6 +258,30 @@ export default async function EditStoryPage({
             />
           </label>
         </div>
+
+        <StoryVisibilityFields
+          values={{
+            visibility: story.visibility ?? "public",
+            access_hint: story.access_hint ?? "",
+          }}
+        />
+
+        <StoryMainMetaFields
+          characters={characters ?? []}
+          values={{
+            part_no: story.part_no,
+            volume_no: story.volume_no,
+            main_season: story.main_season,
+            chapter_no: story.chapter_no,
+            main_kind: story.main_kind,
+            route_scope: story.route_scope,
+            primary_character_id: story.primary_character_id,
+            manual_sort_order: story.manual_sort_order,
+            arc_title: story.arc_title,
+            episode_title: story.episode_title,
+            appearing_character_ids: appearingCharacterIds,
+          }}
+        />
 
         <StoryFormEnhancer storageKey={`story-draft:${story.slug}`} />
       </form>
@@ -262,14 +303,14 @@ export default async function EditStoryPage({
         </Link>
 
         <form action={deleteStoryBundle}>
-  <input type="hidden" name="storyId" value={story.id} />
-  <DeletePhoneItemButton
-    label="삭제"
-    confirmMessage={`정말 삭제할까요?\n\n${story.title}`}
-    className="nav-link"
-    icon="delete"
-  />
-</form>
+          <input type="hidden" name="storyId" value={story.id} />
+          <DeletePhoneItemButton
+            label="삭제"
+            confirmMessage={`정말 삭제할까요?\n\n${story.title}`}
+            className="nav-link"
+            icon="delete"
+          />
+        </form>
       </div>
     </main>
   );

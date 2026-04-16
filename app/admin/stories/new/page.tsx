@@ -1,9 +1,12 @@
 import { createStoryBundle } from "@/app/admin/actions";
+import { supabase } from "@/lib/supabase/server";
 import SmartEditor from "@/components/editor/SmartEditor";
 import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
+import StoryMainMetaFields from "@/components/admin/stories/StoryMainMetaFields";
+import StoryVisibilityFields from "@/components/admin/stories/StoryVisibilityFields";
 
 const STORY_SUBTYPE_OPTIONS = [
-  { value: "card_story", label: "카드 스토리" },
+  { value: "card_story", label: "데이트" },
   { value: "main_story", label: "메인스토리" },
   { value: "side_story", label: "외전" },
   { value: "asmr", label: "너의 곁에" },
@@ -12,6 +15,7 @@ const STORY_SUBTYPE_OPTIONS = [
   { value: "myhome_story", label: "마이홈 스토리" },
   { value: "company_project", label: "회사 프로젝트" },
 ] as const;
+
 function safeDecode(value: string) {
   try {
     return decodeURIComponent(value);
@@ -28,13 +32,20 @@ export default async function NewStoryPage({
   const params = searchParams ? await searchParams : undefined;
   const error = params?.error ?? "";
 
+  const { data: characters } = await supabase
+    .from("characters")
+    .select("id, key, name_ko")
+    .order("sort_order", { ascending: true });
+
+  const characterRows = characters ?? [];
+
   return (
     <main>
       <header className="page-header">
         <div className="page-eyebrow">Admin / Stories</div>
         <h1 className="page-title">스토리 통합 등록</h1>
         <p className="page-desc">
-          스토리 기본 정보, 번역, 영상, 카드 연결을 한 화면에서 등록합니다.
+          스토리 기본 정보, 메인 정렬 메타, 공개 범위, 번역, 영상, 카드 연결을 한 화면에서 등록합니다.
         </p>
       </header>
 
@@ -96,7 +107,7 @@ export default async function NewStoryPage({
           </label>
 
           <label className="form-field">
-            <span>캐릭터</span>
+            <span>대표 캐릭터</span>
             <select name="characterKey" defaultValue="baiqi">
               <option value="baiqi">백기</option>
               <option value="lizeyan">이택언</option>
@@ -133,12 +144,12 @@ export default async function NewStoryPage({
           </label>
 
           <SmartEditor
-  name="translationBody"
-  label="번역 본문"
-  initialValue=""
-  height={700}
-  autosyncMs={1500}
-/>
+            name="translationBody"
+            label="번역 본문"
+            initialValue=""
+            height={700}
+            autosyncMs={1500}
+          />
 
           <label className="form-field form-field-full">
             <span>연결 카드 slug (선택)</span>
@@ -148,6 +159,21 @@ export default async function NewStoryPage({
             />
           </label>
         </div>
+
+        <StoryVisibilityFields
+          values={{
+            visibility: "public",
+            access_hint: "",
+          }}
+        />
+
+        <StoryMainMetaFields
+          characters={characterRows}
+          values={{
+            manual_sort_order: 0,
+            appearing_character_ids: [],
+          }}
+        />
 
         <StoryFormEnhancer storageKey="story-draft:new" />
       </form>

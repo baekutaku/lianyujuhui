@@ -5,10 +5,15 @@ import { isAdmin } from "@/lib/utils/admin-auth";
 import { deleteStoryBundle } from "@/app/admin/actions";
 import ConfirmSubmitButton from "@/components/admin/common/ConfirmSubmitButton";
 import StoryDetailHeightSync from "@/components/story/StoryDetailHeightSync";
+import { unlockProtectedStory } from "@/app/stories/[slug]/actions";
+import { hasStoryAccess } from "@/lib/utils/story-access";
 
 type StoryPageProps = {
   params: Promise<{
     slug: string;
+  }>;
+  searchParams?: Promise<{
+    passwordError?: string;
   }>;
 };
 
@@ -37,14 +42,84 @@ function normalizeStoryHtml(html = "") {
     .trim();
 }
 
-export default async function StoryDetailPage({ params }: StoryPageProps) {
+function ProtectedStoryGate({
+  slug,
+  title,
+  hint,
+  showError,
+}: {
+  slug: string;
+  title: string;
+  hint?: string | null;
+  showError?: boolean;
+}) {
+  return (
+    <main>
+      <section className="page-header">
+        <div className="page-eyebrow">Protected Story</div>
+        <h1 className="page-title">{title}</h1>
+        <p className="page-desc">이 스토리는 비밀번호가 있어야 열람할 수 있습니다.</p>
+      </section>
+
+      <section className="detail-panel" style={{ maxWidth: 560, margin: "0 auto" }}>
+        <div style={{ display: "grid", gap: 16 }}>
+          {showError ? (
+            <div className="error-box">비밀번호가 올바르지 않습니다.</div>
+          ) : null}
+
+          {hint ? (
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: 16,
+                background: "rgba(248, 245, 251, 0.96)",
+                border: "1px solid rgba(222, 213, 228, 0.72)",
+                color: "var(--text-sub)",
+              }}
+            >
+              힌트: {hint}
+            </div>
+          ) : null}
+
+          <form action={unlockProtectedStory} style={{ display: "grid", gap: 12 }}>
+            <input type="hidden" name="slug" value={slug} />
+
+            <input
+              type="password"
+              name="password"
+              placeholder="비밀번호 입력"
+              autoComplete="off"
+              className="story-toolbar-search"
+            />
+
+            <button type="submit" className="primary-button">
+              열람하기
+            </button>
+          </form>
+
+          <Link href="/stories" className="nav-link">
+            목록으로
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+export default async function StoryDetailPage({
+  params,
+  searchParams,
+}: StoryPageProps) {
   const { slug: rawSlug } = await params;
   const slug = safeDecodeSlug(rawSlug).trim();
+  const resolvedSearchParams = searchParams ? await searchParams : {};
   const admin = await isAdmin();
 
   const { data: story, error: storyError } = await supabase
     .from("stories")
-    .select("id, title, slug, subtype, release_year, is_published")
+    .select(
+      "id, title, slug, subtype, release_year, is_published, visibility, access_password_hash, access_hint"
+    )
     .eq("slug", slug)
     .maybeSingle();
 
@@ -56,8 +131,23 @@ export default async function StoryDetailPage({ params }: StoryPageProps) {
     notFound();
   }
 
-  if (!story.is_published && !admin) {
+   if (story.visibility === "private" && !admin) {
     notFound();
+  }
+
+  if (story.visibility === "protected" && !admin) {
+    const allowed = await hasStoryAccess(story.id, story.access_password_hash);
+
+    if (!allowed) {
+      return (
+        <ProtectedStoryGate
+          slug={story.slug}
+          title={story.title}
+          hint={story.access_hint}
+          showError={resolvedSearchParams.passwordError === "1"}
+        />
+      );
+    }
   }
 
   const { data: translations, error: translationError } = await supabase

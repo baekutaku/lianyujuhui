@@ -16,6 +16,20 @@ const FIELD_NAMES = [
   "youtubeUrl",
   "coverImageUrl",
   "cardSlug",
+  "visibility",
+  "accessPassword",
+  "accessHint",
+  "part_no",
+  "volume_no",
+  "main_season",
+  "chapter_no",
+  "main_kind",
+  "route_scope",
+  "primary_character_id",
+  "manual_sort_order",
+  "arc_title",
+  "episode_title",
+  "appearing_character_ids",
 ] as const;
 
 type StoryFormEnhancerProps = {
@@ -25,7 +39,7 @@ type StoryFormEnhancerProps = {
 
 type DraftPayload = {
   updatedAt: number;
-  values: Record<string, string>;
+  values: Record<string, string | string[]>;
 };
 
 function formatSavedAt(timestamp: number | null) {
@@ -38,6 +52,24 @@ function formatSavedAt(timestamp: number | null) {
 }
 
 function readFieldValue(form: HTMLFormElement, name: string) {
+  const fields = form.querySelectorAll(`[name="${name}"]`);
+
+  if (!fields.length) return "";
+
+  if (fields.length > 1) {
+    const values: string[] = [];
+
+    fields.forEach((field) => {
+      if (field instanceof HTMLInputElement) {
+        if ((field.type === "checkbox" || field.type === "radio") && field.checked) {
+          values.push(field.value);
+        }
+      }
+    });
+
+    return values;
+  }
+
   const field = form.elements.namedItem(name);
 
   if (!field) return "";
@@ -61,11 +93,26 @@ function readFieldValue(form: HTMLFormElement, name: string) {
   return "";
 }
 
-function writeFieldValue(
-  form: HTMLFormElement,
-  name: string,
-  value: string
-) {
+function writeFieldValue(form: HTMLFormElement, name: string, value: string | string[]) {
+  const fields = form.querySelectorAll(`[name="${name}"]`);
+
+  if (!fields.length) return;
+
+  if (fields.length > 1) {
+    const values = Array.isArray(value) ? value : [value];
+
+    fields.forEach((field) => {
+      if (field instanceof HTMLInputElement) {
+        if (field.type === "checkbox" || field.type === "radio") {
+          field.checked = values.includes(field.value);
+          field.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }
+    });
+
+    return;
+  }
+
   const field = form.elements.namedItem(name);
 
   if (!field) return;
@@ -75,7 +122,7 @@ function writeFieldValue(
     field instanceof HTMLTextAreaElement ||
     field instanceof HTMLSelectElement
   ) {
-    field.value = value;
+    field.value = Array.isArray(value) ? value[0] ?? "" : value;
     field.dispatchEvent(new Event("input", { bubbles: true }));
     field.dispatchEvent(new Event("change", { bubbles: true }));
     return;
@@ -195,7 +242,6 @@ export default function StoryFormEnhancer({
 
     try {
       const parsed = JSON.parse(rawDraft) as DraftPayload;
-
       if (!parsed?.values || typeof parsed !== "object") return;
 
       setSavedAt(parsed.updatedAt ?? null);
@@ -228,7 +274,7 @@ export default function StoryFormEnhancer({
     if (!form) return;
 
     const intervalId = window.setInterval(() => {
-      const values: Record<string, string> = {};
+      const values: Record<string, string | string[]> = {};
 
       for (const fieldName of FIELD_NAMES) {
         values[fieldName] = readFieldValue(form, fieldName);
