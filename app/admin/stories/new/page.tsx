@@ -117,11 +117,17 @@ export default async function NewStoryPage({
             </select>
           </label>
 
-          <label className="form-field form-field-full">
-            <span>요약</span>
-            <textarea name="summary" rows={4} />
-          </label>
-
+<label className="form-field form-field-full">
+  <span>해시태그</span>
+  <input
+  name="tagLabels"
+  autoComplete="off"
+  autoCorrect="off"
+  autoCapitalize="off"
+  spellCheck={false}
+  placeholder="예: 러브레터, 워시환니, 키스"
+/>
+</label>
           <label className="form-field form-field-full">
             <span>CN 유튜브 링크</span>
             <input

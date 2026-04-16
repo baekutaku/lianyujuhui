@@ -59,9 +59,7 @@ export default async function SiteLayout({
                     <Link href="/phone-items" className="nav-link">
                       휴대폰
                     </Link>
-                    <Link href="/events" className="nav-link">
-                      이벤트
-                    </Link>
+                    
                   </nav>
 
                   {admin ? (

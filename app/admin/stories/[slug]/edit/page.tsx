@@ -94,11 +94,14 @@ export default async function EditStoryPage({
     .eq("parent_id", story.id)
     .eq("media_type", "youtube");
 
-  const mediaCn =
-    mediaRows?.find((item) => item.usage_type === "pv_cn") ?? null;
+ const mediaLegacy =
+  mediaRows?.find((item) => item.usage_type === "pv") ?? null;
 
-  const mediaKr =
-    mediaRows?.find((item) => item.usage_type === "pv_kr") ?? null;
+const mediaCn =
+  mediaRows?.find((item) => item.usage_type === "pv_cn") ?? null;
+
+const mediaKr =
+  mediaRows?.find((item) => item.usage_type === "pv_kr") ?? mediaLegacy;
 
   const { data: coverMedia } = await supabase
     .from("media_assets")
@@ -142,6 +145,35 @@ export default async function EditStoryPage({
 
     linkedCardSlug = linkedCard?.slug ?? "";
   }
+
+ const { data: itemTagRows } = await supabase
+  .from("item_tags")
+  .select("tag_id, sort_order")
+  .eq("item_type", "story")
+  .eq("item_id", story.id)
+  .order("sort_order", { ascending: true });
+
+const tagIds = Array.from(
+  new Set((itemTagRows ?? []).map((row) => row.tag_id))
+);
+
+let defaultTagText = "";
+
+if (tagIds.length > 0) {
+  const { data: tagRows } = await supabase
+  .from("tags")
+  .select("id, label")
+  .in("id", tagIds);
+
+const tagNameMap = new Map(
+  (tagRows ?? []).map((row) => [row.id, row.label])
+);
+
+  defaultTagText = (itemTagRows ?? [])
+    .map((row) => tagNameMap.get(row.tag_id))
+    .filter(Boolean)
+    .join(", ");
+}
 
   return (
     <main>
@@ -230,14 +262,14 @@ export default async function EditStoryPage({
             />
           </label>
 
-          <label className="form-field form-field-full">
-            <span>요약</span>
-            <textarea
-              name="summary"
-              rows={4}
-              defaultValue={story.summary ?? ""}
-            />
-          </label>
+         <label className="form-field form-field-full">
+  <span>해시태그</span>
+  <input
+    name="tagLabels"
+    defaultValue={defaultTagText}
+    placeholder="예: 학교, 어머니, 추천, 고백전"
+  />
+</label>
 
           <label className="form-field form-field-full">
             <span>CN 유튜브 링크</span>

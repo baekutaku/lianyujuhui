@@ -109,6 +109,131 @@ async function syncStoryCharacters(storyId: string, characterIds: string[]) {
     throw new Error(error.message);
   }
 }
+function slugifyTag(input: string) {
+  return (
+    input
+      .normalize("NFKD")
+      .toLowerCase()
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9가-힣\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || "tag"
+  );
+}
+
+function parseTagLabels(value: FormDataEntryValue | null) {
+  return Array.from(
+    new Set(
+      String(value ?? "")
+        .split(/[,\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+function parseTagLabelsFromForm(formData: FormData) {
+  const values = formData.getAll("tagLabels");
+
+  return Array.from(
+    new Set(
+      values
+        .flatMap((value) =>
+          String(value ?? "")
+            .split(/[,\n]/)
+            .map((item) => item.trim().replace(/^#+/, ""))
+        )
+        .filter(Boolean)
+    )
+  );
+}
+
+
+
+async function syncStoryTags(storyId: string, labels: string[]) {
+  await supabase
+    .from("item_tags")
+    .delete()
+    .eq("item_type", "story")
+    .eq("item_id", storyId);
+
+  const normalizedLabels = Array.from(
+    new Set(
+      labels
+        .map((label) => label.trim())
+        .filter(Boolean)
+    )
+  );
+
+  if (normalizedLabels.length === 0) return;
+
+const normalizedTags = normalizedLabels.map((label) => {
+  const slug = slugifyTag(label);
+
+  return {
+    slug,
+    name: label,
+    label,
+    key: slug,
+    kind: "story",
+  };
+});
+
+  const slugs = normalizedTags.map((item) => item.slug);
+
+  const { data: existingTags, error: existingTagsError } = await supabase
+    .from("tags")
+    .select("id, slug")
+    .in("slug", slugs);
+
+  if (existingTagsError) {
+    throw new Error(existingTagsError.message);
+  }
+
+  const tagIdMap = new Map(
+    (existingTags ?? []).map((row) => [row.slug, row.id])
+  );
+
+  const missingTags = normalizedTags.filter((item) => !tagIdMap.has(item.slug));
+
+  if (missingTags.length > 0) {
+    const { data: insertedTags, error: insertError } = await supabase
+      .from("tags")
+      .insert(missingTags)
+      .select("id, slug");
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    (insertedTags ?? []).forEach((row) => {
+      tagIdMap.set(row.slug, row.id);
+    });
+  }
+
+  const itemTagRows = normalizedTags
+    .map((item, index) => {
+      const tagId = tagIdMap.get(item.slug);
+      if (!tagId) return null;
+
+      return {
+        item_type: "story",
+        item_id: storyId,
+        tag_id: tagId,
+        sort_order: index,
+      };
+    })
+    .filter(Boolean);
+
+  if (itemTagRows.length > 0) {
+    const { error } = await supabase.from("item_tags").insert(itemTagRows);
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+}
+
 
 async function resolveStoryMetaFromForm(formData: FormData, currentPasswordHash?: string | null) {
   const visibility = normalizeStoryVisibility(
@@ -176,10 +301,10 @@ export async function createCard(formData: FormData) {
     const rarity = String(formData.get("rarity") || "ssr").trim();
     const attribute = String(formData.get("attribute") || "affinity").trim();
     const releaseYear = Number(formData.get("releaseYear") || 2025);
-    const releaseDate = String(formData.get("releaseDate") || "").trim();
-    const summary = String(formData.get("summary") || "").trim();
-    const serverKey = String(formData.get("serverKey") || "kr").trim();
-    const characterKey = String(formData.get("characterKey") || "baiqi").trim();
+   const releaseDate = String(formData.get("releaseDate") || "").trim();
+const summary = String(formData.get("summary") || "").trim();
+const serverKey = String(formData.get("serverKey") || "kr").trim();
+const characterKey = String(formData.get("characterKey") || "baiqi").trim();
     const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
     const thumbnailAfterUrl = String(formData.get("thumbnailAfterUrl") || "").trim();
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
@@ -722,6 +847,16 @@ export async function updateTranslation(formData: FormData) {
   revalidatePath("/stories");
   redirect("/admin/stories");
 }
+const ALLOWED_STORY_SUBTYPES = new Set([
+  "card_story",
+  "main_story",
+  "side_story",
+  "asmr",
+  "behind_story",
+  "xiyue_story",
+  "myhome_story",
+  "company_project",
+]);
 
 export async function createStoryBundle(formData: FormData) {
   let successSlug = "";
@@ -732,10 +867,17 @@ export async function createStoryBundle(formData: FormData) {
 
     const title = String(formData.get("title") || "").trim();
     const subtype = String(formData.get("subtype") || "card_story").trim();
+
+    if (!ALLOWED_STORY_SUBTYPES.has(subtype)) {
+      throw new Error(`지원하지 않는 스토리 카테고리: ${subtype}`);
+    }
+
     const releaseYear = Number(formData.get("releaseYear") || 2025);
     const releaseDate = String(formData.get("releaseDate") || "").trim();
-    const summary = String(formData.get("summary") || "").trim();
-    const serverKey = String(formData.get("serverKey") || "cn").trim();
+    console.log("[createStoryBundle] raw =", formData.get("tagLabels"));
+    const tagLabels = parseTagLabelsFromForm(formData);
+    console.log("[createStoryBundle] parsed =", tagLabels);
+    const serverKey = String(formData.get("serverKey") || "kr").trim();
     const characterKey = String(formData.get("characterKey") || "baiqi").trim();
 
     const translationTitleCn = String(formData.get("translationTitleCn") || "");
@@ -794,7 +936,6 @@ export async function createStoryBundle(formData: FormData) {
         subtype,
         release_year: releaseYear,
         release_date: releaseDate || null,
-        summary,
         visibility: meta.visibility,
         access_password_hash: meta.accessPasswordHash,
         access_hint: meta.accessHint,
@@ -817,6 +958,7 @@ export async function createStoryBundle(formData: FormData) {
     }
 
     await syncStoryCharacters(insertedStory.id, meta.appearingCharacterIds);
+    await syncStoryTags(insertedStory.id, tagLabels);
 
     const hasCn = translationTitleCn.trim() || translationBodyCn.trim();
     const hasKr = translationTitleKr.trim() || translationBodyKr.trim();
@@ -907,9 +1049,8 @@ export async function createStoryBundle(formData: FormData) {
   }
 
   if (errorRedirectUrl) redirect(errorRedirectUrl);
-  redirect(`/stories/${successSlug}`);
+  redirect(`/admin/stories/${encodeURIComponent(successSlug)}/edit?saved=1`);
 }
-
 export async function updateStoryBundle(formData: FormData) {
   await requireAdmin();
 
@@ -925,10 +1066,12 @@ export async function updateStoryBundle(formData: FormData) {
     const title = String(formData.get("title") || "").trim();
     const subtype = String(formData.get("subtype") || "card_story").trim();
     const releaseYear = Number(formData.get("releaseYear") || 2025);
-    const releaseDate = String(formData.get("releaseDate") || "").trim();
-    const summary = String(formData.get("summary") || "").trim();
+   const releaseDate = String(formData.get("releaseDate") || "").trim();
+console.log("[updateStoryBundle] raw =", formData.get("tagLabels"));
+const tagLabels = parseTagLabelsFromForm(formData);
+console.log("[updateStoryBundle] parsed =", tagLabels);
 
-    const translationCnId = String(formData.get("translationCnId") || "").trim();
+const translationCnId = String(formData.get("translationCnId") || "").trim();
     const translationKrId = String(formData.get("translationKrId") || "").trim();
 
     const translationTitleCn = String(formData.get("translationTitleCn") || "");
@@ -970,7 +1113,6 @@ export async function updateStoryBundle(formData: FormData) {
         subtype,
         release_year: releaseYear,
         release_date: releaseDate || null,
-        summary,
         visibility: meta.visibility,
         access_password_hash: meta.accessPasswordHash,
         access_hint: meta.accessHint,
@@ -1013,6 +1155,8 @@ export async function updateStoryBundle(formData: FormData) {
       body: translationBodyKr,
       isPrimary: !hasCn && Boolean(hasKr),
     });
+
+    await syncStoryTags(storyId, tagLabels);
 
     await upsertStoryYoutubeMedia({
       mediaId: mediaCnId || undefined,

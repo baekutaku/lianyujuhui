@@ -51,6 +51,7 @@ type PageProps = {
     year?: SearchParamValue;
     tab?: SearchParamValue;
     sub?: SearchParamValue;
+    tag?: SearchParamValue;
     character?: SearchParamValue;
     scope?: SearchParamValue;
     sort?: SearchParamValue;
@@ -270,6 +271,7 @@ function getEventSubtypeLabel(subtype: string | null) {
 function buildStoriesHref({
   tab,
   sub,
+  tag,
   q,
   years,
   characters,
@@ -279,6 +281,7 @@ function buildStoriesHref({
 }: {
   tab: string;
   sub?: string;
+  tag?: string;
   q: string;
   years: string[];
   characters: string[];
@@ -290,6 +293,7 @@ function buildStoriesHref({
 
   if (tab) params.set("tab", tab);
   if (sub && sub !== "all") params.set("sub", sub);
+  if (tag) params.set("tag", tag);
   if (q) params.set("q", q);
   years.forEach((year) => params.append("year", year));
   characters.forEach((characterKey) => params.append("character", characterKey));
@@ -340,7 +344,7 @@ function compareStories(a: StoryCard, b: StoryCard, sort: string) {
 
 export default async function StoriesPage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
-
+const selectedTag = toSingleString(resolvedSearchParams?.tag);
   const q = toSingleString(resolvedSearchParams?.q);
   const tab = toSingleString(resolvedSearchParams?.tab);
   const sub = toSingleString(resolvedSearchParams?.sub) || "all";
@@ -474,6 +478,43 @@ if (activeTab.key === "main") {
 
   const storyIds = stories.map((story) => story.id);
   const itemCharacterMap = new Map<string, string[]>();
+  const storyTagMap = new Map<string, string[]>();
+
+if (storyIds.length > 0) {
+  const { data: itemTagRows } = await supabase
+    .from("item_tags")
+    .select("item_id, tag_id, sort_order")
+    .eq("item_type", "story")
+    .in("item_id", storyIds)
+    .order("sort_order", { ascending: true });
+
+  const tagIds = Array.from(
+    new Set((itemTagRows ?? []).map((row) => row.tag_id))
+  );
+
+  if (tagIds.length > 0) {
+    const { data: tagRows } = await supabase
+      .from("tags")
+      .select("id, label, name, slug")
+      .in("id", tagIds);
+
+    const tagNameMap = new Map(
+      (tagRows ?? []).map((row) => [
+        row.id,
+        row.label ?? row.name ?? row.slug,
+      ])
+    );
+
+    (itemTagRows ?? []).forEach((row) => {
+      const name = tagNameMap.get(row.tag_id);
+      if (!name) return;
+
+      const prev = storyTagMap.get(row.item_id) ?? [];
+      prev.push(name);
+      storyTagMap.set(row.item_id, prev);
+    });
+  }
+}
 
   if (storyIds.length > 0) {
     const { data: itemCharacters } = await supabase
@@ -525,39 +566,46 @@ if (activeTab.key === "main") {
     });
   }
 
-  stories = stories.filter((story) => {
-    const characterIds = getStoryCharacterIds(story);
+ stories = stories.filter((story) => {
+  const characterIds = getStoryCharacterIds(story);
 
-    if (selectedCharacterIdSet.size > 0) {
-      if (scope === "route") {
-        if (!story.primary_character_id || !selectedCharacterIdSet.has(story.primary_character_id)) {
-          return false;
-        }
-      } else {
-        const hasAnySelected = Array.from(selectedCharacterIdSet).some((id) =>
-          characterIds.has(id)
-        );
+  if (selectedCharacterIdSet.size > 0) {
+    if (scope === "route") {
+      if (!story.primary_character_id || !selectedCharacterIdSet.has(story.primary_character_id)) {
+        return false;
+      }
+    } else {
+      const hasAnySelected = Array.from(selectedCharacterIdSet).some((id) =>
+        characterIds.has(id)
+      );
 
-        if (!hasAnySelected) {
-          return false;
-        }
+      if (!hasAnySelected) {
+        return false;
       }
     }
+  }
 
-    if (scope === "route" && selectedCharacterIdSet.size === 0) {
-      return !!story.primary_character_id;
-    }
+  if (scope === "route" && selectedCharacterIdSet.size === 0) {
+    return !!story.primary_character_id;
+  }
 
-    if (scope === "multi") {
-      return characterIds.size >= 2;
-    }
+  if (scope === "multi") {
+    return characterIds.size >= 2;
+  }
 
-    if (scope === "all_cast") {
-      return totalCharacterCount > 0 ? characterIds.size >= totalCharacterCount : false;
-    }
+  if (scope === "all_cast") {
+    return totalCharacterCount > 0 ? characterIds.size >= totalCharacterCount : false;
+  }
 
-    return true;
+  return true;
+});
+
+if (selectedTag) {
+  stories = stories.filter((story) => {
+    const tags = storyTagMap.get(story.id) ?? [];
+    return tags.includes(selectedTag);
   });
+}
 
   stories.sort((a, b) => compareStories(a, b, sort));
 
@@ -617,40 +665,7 @@ if (activeTab.key === "main") {
   }
 
   
-const storyTagMap = new Map<string, string[]>();
 
-  if (filteredStoryIds.length > 0) {
-    const { data: itemTagRows } = await supabase
-      .from("item_tags")
-      .select("item_id, tag_id, sort_order")
-      .eq("item_type", "story")
-      .in("item_id", filteredStoryIds)
-      .order("sort_order", { ascending: true });
-
-    const tagIds = Array.from(
-      new Set((itemTagRows ?? []).map((row) => row.tag_id))
-    );
-
-    if (tagIds.length > 0) {
-     const { data: tagRows } = await supabase
-  .from("tags")
-  .select("id, label")
-  .in("id", tagIds);
-
-   const tagNameMap = new Map(
-  (tagRows ?? []).map((row) => [row.id, row.label])
-);
-
-      (itemTagRows ?? []).forEach((row) => {
-        const name = tagNameMap.get(row.tag_id);
-        if (!name) return;
-
-        const prev = storyTagMap.get(row.item_id) ?? [];
-        prev.push(name);
-        storyTagMap.set(row.item_id, prev);
-      });
-    }
-  }
 
 
   const scopeLabel =
@@ -659,13 +674,14 @@ const storyTagMap = new Map<string, string[]>();
   const sortLabel =
     SORT_OPTIONS.find((item) => item.key === sort)?.label ?? "";
 
-  const activeFilterChips = [
-    ...(q ? [`검색: ${q}`] : []),
-    ...selectedYears.map((yearValue) => `${yearValue}년`),
-    ...selectedCharacters.map((item) => item.name_ko),
-    ...(scopeLabel ? [scopeLabel] : []),
-    ...(sortLabel && sort !== "latest" ? [sortLabel] : []),
-  ];
+const activeFilterChips = [
+  ...(q ? [`검색: ${q}`] : []),
+  ...(selectedTag ? [`태그: #${selectedTag}`] : []),
+  ...selectedYears.map((yearValue) => `${yearValue}년`),
+  ...selectedCharacters.map((item) => item.name_ko),
+  ...(scopeLabel ? [scopeLabel] : []),
+  ...(sortLabel && sort !== "latest" ? [sortLabel] : []),
+];
 
   const visiblePages = getVisiblePages(totalPages, currentPage);
   const formStateKey = JSON.stringify({
@@ -884,6 +900,7 @@ const eventIds = events.map((event) => event.id);
 >
   <input type="hidden" name="tab" value={activeTab.key} />
   <input type="hidden" name="page" value="1" />
+  {selectedTag ? <input type="hidden" name="tag" value={selectedTag} /> : null}
   {sub !== "all" ? <input type="hidden" name="sub" value={sub} /> : null}
 
   <div className="story-toolbar-top">
@@ -1058,57 +1075,69 @@ const eventIds = events.map((event) => event.id);
                 const visibilityLabel = getVisibilityLabel(event.visibility, admin);
 
                 return (
-                  <li key={event.id} className="story-archive-item">
-                    <Link href={`/events/${event.slug}`} className="story-archive-link">
-                      <div className="story-archive-media">
-                        {thumb ? (
-                          <img
-                            src={thumb}
-                            alt={event.title}
-                            className="story-archive-image"
-                          />
-                        ) : (
-                          <div className="story-archive-empty">NO IMAGE</div>
-                        )}
-                      </div>
+               <li key={event.id} className="story-archive-item">
+  <div className="story-archive-card-shell">
+    <Link href={`/events/${event.slug}`} className="story-archive-link">
+      <div className="story-archive-media">
+        {thumb ? (
+          <img
+            src={thumb}
+            alt={event.title}
+            className="story-archive-image"
+          />
+        ) : (
+          <div className="story-archive-empty">NO IMAGE</div>
+        )}
+      </div>
 
-                      <div className="story-archive-body">
-                        <div className="story-archive-meta-row">
-                          <span className="story-archive-badge">
-                            {getEventSubtypeLabel(event.subtype)}
-                          </span>
+      <div className="story-archive-body">
+        <div className="story-archive-meta-row">
+          <span className="story-archive-badge">
+            {getEventSubtypeLabel(event.subtype)}
+          </span>
 
-                          {visibilityLabel ? (
-                            <span className="story-archive-badge">
-                              {visibilityLabel}
-                            </span>
-                          ) : null}
+          {visibilityLabel ? (
+            <span className="story-archive-badge">{visibilityLabel}</span>
+          ) : null}
 
-                          <span className="story-archive-date">
-                            {formatEventDate(event)}
-                          </span>
-                        </div>
+          <span className="story-archive-date">
+            {formatEventDate(event)}
+          </span>
+        </div>
 
-                        <h2 className="story-archive-title">{event.title}</h2>
+        <h2 className="story-archive-title">{event.title}</h2>
 
-                        {event.summary ? (
-                          <p className="story-archive-summary">{event.summary}</p>
-                        ) : (
-                          <p className="story-archive-summary is-empty">요약 없음</p>
-                        )}
+        {event.summary ? (
+          <p className="story-archive-summary">{event.summary}</p>
+        ) : null}
+      </div>
+    </Link>
 
-                        {tags.length > 0 ? (
-                          <div className="story-card-tags">
-                            {tags.slice(0, 4).map((tag) => (
-                              <span key={tag} className="story-card-tag">
-                                #{tag}
-                              </span>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </Link>
-                  </li>
+    {tags.length > 0 ? (
+      <div className="story-archive-tags-inline">
+        {tags.slice(0, 4).map((tag) => (
+          <Link
+            key={tag}
+            href={buildStoriesHref({
+              tab: activeTab.key,
+              sub: sub !== "all" ? sub : undefined,
+              tag,
+              q: "",
+              years: selectedYears,
+              characters: selectedCharacterKeys,
+              scope,
+              sort,
+              page: 1,
+            })}
+            className="story-card-tag"
+          >
+            #{tag}
+          </Link>
+        ))}
+      </div>
+    ) : null}
+  </div>
+</li>
                 );
               })}
             </ul>
@@ -1178,7 +1207,7 @@ const eventIds = events.map((event) => event.id);
         >
           <input type="hidden" name="tab" value={activeTab.key} />
           <input type="hidden" name="page" value="1" />
-
+{selectedTag ? <input type="hidden" name="tag" value={selectedTag} /> : null}
           <div className="story-toolbar-top">
             <input
               type="text"
@@ -1314,11 +1343,11 @@ const eventIds = events.map((event) => event.id);
 
         {admin ? (
           <div className="story-list-adminbar">
-            <Link href="/admin/events/new" className="primary-button">
+            <Link href="/admin/stories/new" className="primary-button">
               새 스토리 등록
             </Link>
 
-            <Link href="/admin/events" className="nav-link">
+            <Link href="/admin/stories" className="nav-link">
               스토리 관리
             </Link>
           </div>
@@ -1383,57 +1412,69 @@ const eventIds = events.map((event) => event.id);
                   const visibilityLabel = getVisibilityLabel(story.visibility, admin);
 
                   return (
-                    <li key={story.id} className="story-archive-item">
-                      <Link href={`/stories/${story.slug}`} className="story-archive-link">
-                        <div className="story-archive-media">
-                          {thumb ? (
-                            <img
-                              src={thumb}
-                              alt={story.title}
-                              className="story-archive-image"
-                            />
-                          ) : (
-                            <div className="story-archive-empty">NO IMAGE</div>
-                          )}
-                        </div>
+                   <li key={story.id} className="story-archive-item">
+  <div className="story-archive-card-shell">
+    <Link href={`/stories/${story.slug}`} className="story-archive-link">
+      <div className="story-archive-media">
+        {thumb ? (
+          <img
+            src={thumb}
+            alt={story.title}
+            className="story-archive-image"
+          />
+        ) : (
+          <div className="story-archive-empty">NO IMAGE</div>
+        )}
+      </div>
 
-                        <div className="story-archive-body">
-                          <div className="story-archive-meta-row">
-                            <span className="story-archive-badge">
-                              {getSubtypeLabel(story.subtype)}
-                            </span>
+      <div className="story-archive-body">
+        <div className="story-archive-meta-row">
+          <span className="story-archive-badge">
+            {getSubtypeLabel(story.subtype)}
+          </span>
 
-                            {visibilityLabel ? (
-                              <span className="story-archive-badge">
-                                {visibilityLabel}
-                              </span>
-                            ) : null}
+          {visibilityLabel ? (
+            <span className="story-archive-badge">{visibilityLabel}</span>
+          ) : null}
 
-                            <span className="story-archive-date">
-                              {formatStoryDate(story)}
-                            </span>
-                          </div>
+          <span className="story-archive-date">
+            {formatStoryDate(story)}
+          </span>
+        </div>
 
-                          <h2 className="story-archive-title">{story.title}</h2>
+        <h2 className="story-archive-title">{story.title}</h2>
 
-                          {story.summary ? (
-                            <p className="story-archive-summary">{story.summary}</p>
-                          ) : (
-                            <p className="story-archive-summary is-empty">요약 없음</p>
-                          )}
+        {story.summary ? (
+          <p className="story-archive-summary">{story.summary}</p>
+        ) : null}
+      </div>
+    </Link>
 
-                          {tags.length > 0 ? (
-                            <div className="story-card-tags">
-                              {tags.slice(0, 4).map((tag) => (
-                                <span key={tag} className="story-card-tag">
-                                  #{tag}
-                                </span>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      </Link>
-                    </li>
+    {tags.length > 0 ? (
+      <div className="story-archive-tags-inline">
+        {tags.slice(0, 4).map((tag) => (
+          <Link
+            key={tag}
+            href={buildStoriesHref({
+              tab: activeTab.key,
+              sub: sub !== "all" ? sub : undefined,
+              tag,
+              q: "",
+              years: selectedYears,
+              characters: selectedCharacterKeys,
+              scope,
+              sort,
+              page: 1,
+            })}
+            className="story-card-tag"
+          >
+            #{tag}
+          </Link>
+        ))}
+      </div>
+    ) : null}
+  </div>
+</li>
                   );
                 })}
               </ul>
