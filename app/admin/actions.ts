@@ -365,6 +365,110 @@ async function syncEventTags(eventId: string, labels: string[]) {
 }
 
 
+async function syncCardTags(cardId: string, labels: string[]) {
+  await supabase
+    .from("item_tags")
+    .delete()
+    .eq("item_type", "card")
+    .eq("item_id", cardId);
+
+  const normalizedLabels = Array.from(
+    new Set(
+      labels
+        .map((label) => label.trim())
+        .filter(Boolean)
+    )
+  );
+
+  if (normalizedLabels.length === 0) return;
+
+  const normalizedTags = normalizedLabels.map((label) => {
+    const slug = slugifyTag(label);
+
+    return {
+      slug,
+      name: label,
+      label,
+      key: slug,
+      kind: "card",
+    };
+  });
+
+  const slugs = normalizedTags.map((item) => item.slug);
+
+  const { data: existingTags, error: existingTagsError } = await supabase
+    .from("tags")
+    .select("id, slug, label, name")
+    .in("slug", slugs);
+
+  if (existingTagsError) {
+    throw new Error(existingTagsError.message);
+  }
+
+  const existingTagMap = new Map(
+    (existingTags ?? []).map((row) => [row.slug, row])
+  );
+
+  for (const item of normalizedTags) {
+    const existing = existingTagMap.get(item.slug);
+
+    if (existing && (existing.label !== item.label || existing.name !== item.name)) {
+      const { error: updateError } = await supabase
+        .from("tags")
+        .update({
+          label: item.label,
+          name: item.name,
+        })
+        .eq("id", existing.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+    }
+  }
+
+  const tagIdMap = new Map(
+    (existingTags ?? []).map((row) => [row.slug, row.id])
+  );
+
+  const missingTags = normalizedTags.filter((item) => !tagIdMap.has(item.slug));
+
+  if (missingTags.length > 0) {
+    const { data: insertedTags, error: insertError } = await supabase
+      .from("tags")
+      .insert(missingTags)
+      .select("id, slug");
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    (insertedTags ?? []).forEach((row) => {
+      tagIdMap.set(row.slug, row.id);
+    });
+  }
+
+  const itemTagRows = normalizedTags
+    .map((item, index) => {
+      const tagId = tagIdMap.get(item.slug);
+      if (!tagId) return null;
+
+      return {
+        item_type: "card",
+        item_id: cardId,
+        tag_id: tagId,
+        sort_order: index,
+      };
+    })
+    .filter(Boolean);
+
+  if (itemTagRows.length > 0) {
+    const { error } = await supabase.from("item_tags").insert(itemTagRows);
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+}
 
 async function resolveStoryMetaFromForm(formData: FormData, currentPasswordHash?: string | null) {
   const visibility = normalizeStoryVisibility(
@@ -426,16 +530,23 @@ async function requireAdmin() {
 
 export async function createCard(formData: FormData) {
   let targetSlug = "";
+  const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
+    await requireAdmin();
+
     const title = String(formData.get("title") || "").trim();
     const rarity = String(formData.get("rarity") || "ssr").trim();
     const attribute = String(formData.get("attribute") || "affinity").trim();
     const releaseYear = Number(formData.get("releaseYear") || 2025);
-   const releaseDate = String(formData.get("releaseDate") || "").trim();
-const summary = String(formData.get("summary") || "").trim();
-const serverKey = String(formData.get("serverKey") || "kr").trim();
-const characterKey = String(formData.get("characterKey") || "baiqi").trim();
+    const releaseDate = String(formData.get("releaseDate") || "").trim();
+    const summary = String(formData.get("summary") || "").trim();
+    const cardCategory = String(formData.get("cardCategory") || "other").trim();
+    const tagLabels = parseTagLabelsFromForm(formData);
+
+    const serverKey = String(formData.get("serverKey") || "kr").trim();
+    const characterKey = String(formData.get("characterKey") || "baiqi").trim();
+
     const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
     const thumbnailAfterUrl = String(formData.get("thumbnailAfterUrl") || "").trim();
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
@@ -489,6 +600,7 @@ const characterKey = String(formData.get("characterKey") || "baiqi").trim();
         thumbnail_url: thumbnailUrl || null,
         cover_image_url: coverImageUrl || null,
         summary,
+        card_category: cardCategory || null,
         is_published: true,
       })
       .select("id")
@@ -497,6 +609,8 @@ const characterKey = String(formData.get("characterKey") || "baiqi").trim();
     if (cardError || !insertedCard) {
       throw new Error(cardError?.message || "cards 저장 실패");
     }
+
+    await syncCardTags(insertedCard.id, tagLabels);
 
     if (thumbnailAfterUrl) {
       const { error: thumbAfterError } = await supabase
@@ -541,19 +655,34 @@ const characterKey = String(formData.get("characterKey") || "baiqi").trim();
     redirect(`/admin/cards/new?error=${encodeURIComponent(message)}`);
   }
 
-  redirect(`/admin/cards/${encodeURIComponent(targetSlug)}/edit`);
+  if (submitIntent === "view") {
+    redirect(`/cards/${encodeURIComponent(targetSlug)}`);
+  }
+
+  redirect(`/admin/cards/${encodeURIComponent(targetSlug)}/edit?saved=1`);
 }
 
 export async function createStory(formData: FormData) {
-await requireAdmin();
+  await requireAdmin();
 
-  const title = String(formData.get("title") || "");
-  const subtype = String(formData.get("subtype") || "card_story");
+  const submitIntent = String(formData.get("submitIntent") || "edit").trim();
+
+  const title = String(formData.get("title") || "").trim();
+  const subtype = String(formData.get("subtype") || "card_story").trim();
   const releaseYear = Number(formData.get("releaseYear") || 2025);
-  const releaseDate = String(formData.get("releaseDate") || "");
-  const summary = String(formData.get("summary") || "");
-  const serverKey = String(formData.get("serverKey") || "kr");
-  const characterKey = String(formData.get("characterKey") || "baiqi");
+  const releaseDate = String(formData.get("releaseDate") || "").trim();
+  const summary = String(formData.get("summary") || "").trim();
+  const serverKey = String(formData.get("serverKey") || "kr").trim();
+  const characterKey = String(formData.get("characterKey") || "baiqi").trim();
+  const tagLabels = parseTagLabelsFromForm(formData);
+
+  if (!title) {
+    throw new Error("title이 비어 있습니다.");
+  }
+
+  if (!Number.isFinite(releaseYear)) {
+    throw new Error("releaseYear가 올바르지 않습니다.");
+  }
 
   const { slug, originKey, contentId } = buildStoryKeys({
     subtype,
@@ -579,27 +708,38 @@ await requireAdmin();
     throw new Error("server 또는 character를 찾을 수 없습니다.");
   }
 
-  const { error } = await supabase.from("stories").insert({
-    content_id: contentId,
-    origin_key: originKey,
-    server_id: server.id,
-    primary_character_id: character.id,
-    title,
-    slug,
-    subtype,
-    release_year: releaseYear,
-    release_date: releaseDate || null,
-    summary,
-    is_published: true,
-  });
+  const { data: insertedStory, error } = await supabase
+    .from("stories")
+    .insert({
+      content_id: contentId,
+      origin_key: originKey,
+      server_id: server.id,
+      primary_character_id: character.id,
+      title,
+      slug,
+      subtype,
+      release_year: releaseYear,
+      release_date: releaseDate || null,
+      summary,
+      is_published: true,
+    })
+    .select("id, slug")
+    .single();
 
-  if (error) {
-    throw new Error(error.message);
+  if (error || !insertedStory) {
+    throw new Error(error?.message || "stories 저장 실패");
   }
+
+  await syncStoryTags(insertedStory.id, tagLabels);
 
   revalidatePath("/admin/stories");
   revalidatePath("/stories");
-  redirect("/admin/stories");
+
+  if (submitIntent === "view") {
+    redirect(`/stories/${encodeURIComponent(insertedStory.slug)}`);
+  }
+
+  redirect(`/admin/stories/${encodeURIComponent(insertedStory.slug)}/edit?saved=1`);
 }
 
 export async function createTranslation(formData: FormData) {
@@ -795,8 +935,11 @@ async function syncRelationsBySlugs(params: {
 }
 
 export async function updateCard(formData: FormData) {
+  await requireAdmin();
+
   const rawSlug = String(formData.get("slug") || "").trim();
   const safeSlug = encodeURIComponent(rawSlug);
+  const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
     const cardId = String(formData.get("cardId") || "").trim();
@@ -810,6 +953,8 @@ export async function updateCard(formData: FormData) {
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
     const coverAfterUrl = String(formData.get("coverAfterUrl") || "").trim();
     const summary = String(formData.get("summary") || "").trim();
+    const cardCategory = String(formData.get("cardCategory") || "other").trim();
+    const tagLabels = parseTagLabelsFromForm(formData);
 
     const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
     const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
@@ -830,12 +975,15 @@ export async function updateCard(formData: FormData) {
         thumbnail_url: thumbnailUrl || null,
         cover_image_url: coverImageUrl || null,
         summary,
+        card_category: cardCategory || null,
       })
       .eq("id", cardId);
 
     if (error) {
       throw new Error(error.message);
     }
+
+    await syncCardTags(cardId, tagLabels);
 
     const { data: existingThumbAfter } = await supabase
       .from("media_assets")
@@ -955,7 +1103,11 @@ export async function updateCard(formData: FormData) {
     redirect(`/admin/cards/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
   }
 
-  redirect("/admin/cards");
+  if (submitIntent === "view") {
+    redirect(`/cards/${safeSlug}`);
+  }
+
+  redirect(`/admin/cards/${safeSlug}/edit?saved=1`);
 }
 export async function updateTranslation(formData: FormData) {
   const translationId = String(formData.get("translationId") || "");
@@ -2095,7 +2247,10 @@ export async function deleteEventBundle(formData: FormData) {
 }
 
 export async function deleteCard(formData: FormData) {
+  await requireAdmin();
+
   const cardId = String(formData.get("cardId") ?? "").trim();
+  const rawSlug = String(formData.get("slug") ?? "").trim();
 
   if (!cardId) {
     throw new Error("cardId가 없습니다.");
@@ -2108,6 +2263,16 @@ export async function deleteCard(formData: FormData) {
 
   if (relationError) {
     throw new Error(`item_relations 삭제 실패: ${relationError.message}`);
+  }
+
+  const { error: tagError } = await supabase
+    .from("item_tags")
+    .delete()
+    .eq("item_type", "card")
+    .eq("item_id", cardId);
+
+  if (tagError) {
+    throw new Error(`item_tags 삭제 실패: ${tagError.message}`);
   }
 
   const { error: mediaError } = await supabase
@@ -2131,6 +2296,11 @@ export async function deleteCard(formData: FormData) {
 
   revalidatePath("/admin/cards");
   revalidatePath("/cards");
+
+  if (rawSlug) {
+    revalidatePath(`/cards/${rawSlug}`);
+  }
+
   redirect("/admin/cards");
 }
 

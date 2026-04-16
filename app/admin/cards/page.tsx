@@ -1,12 +1,58 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/server";
 import { deleteCard } from "@/app/admin/actions";
+
+const rarityLabelMap: Record<string, string> = {
+  nh: "NH",
+  n: "N",
+  r: "R",
+  sr: "SR",
+  er: "ER",
+  ser: "SER",
+  ssr: "SSR",
+  sp: "SP",
+  ur: "UR",
+};
+
+const attributeLabelMap: Record<string, string> = {
+  execution: "추진력",
+  drive: "추진력",
+  affinity: "친화력",
+  decision: "결단력",
+  judgment: "결단력",
+  creativity: "창의력",
+};
+
+const categoryLabelMap: Record<string, string> = {
+  date: "데이트 카드",
+  main_story: "메인스토리 연계",
+  side_story: "외전 / 서브",
+  birthday: "생일 카드",
+  charge: "누적충전 카드",
+  free: "무료 카드",
+};
+
+
+function getRarityLabel(value: string | null) {
+  if (!value) return "미분류";
+  return rarityLabelMap[value] ?? value.toUpperCase();
+}
+
+function getAttributeLabel(value: string | null) {
+  if (!value) return "미분류";
+  return attributeLabelMap[value] ?? value;
+}
+
+function getCategoryLabel(value: string | null) {
+  if (!value) return "미분류";
+  return categoryLabelMap[value] ?? "미분류";
+}
 
 export default async function AdminCardsPage() {
   const { data: cards, error } = await supabase
     .from("cards")
     .select(
-      "id, title, slug, rarity, attribute, release_year, thumbnail_url, cover_image_url, is_published"
+      "id, title, slug, rarity, attribute, release_year, thumbnail_url, cover_image_url, is_published, card_category"
     )
     .order("created_at", { ascending: false });
 
@@ -76,11 +122,12 @@ export default async function AdminCardsPage() {
                     <h2 className="story-thumb-title">{card.title}</h2>
 
                     <div className="meta-row" style={{ marginBottom: "12px" }}>
-                      <span className="meta-pill">rarity: {card.rarity}</span>
-                      <span className="meta-pill">attribute: {card.attribute}</span>
-                      <span className="meta-pill">year: {card.release_year}</span>
+                      <span className="meta-pill">등급: {getRarityLabel(card.rarity)}</span>
+                      <span className="meta-pill">속성: {getAttributeLabel(card.attribute)}</span>
+                      <span className="meta-pill">분류: {getCategoryLabel(card.card_category)}</span>
+                      <span className="meta-pill">연도: {card.release_year}</span>
                       <span className="meta-pill">
-                        published: {card.is_published ? "true" : "false"}
+                        공개: {card.is_published ? "예" : "아니오"}
                       </span>
                     </div>
 
@@ -108,6 +155,7 @@ export default async function AdminCardsPage() {
 
                       <form action={deleteCard}>
                         <input type="hidden" name="cardId" value={card.id} />
+                        <input type="hidden" name="slug" value={card.slug} />
                         <button
                           type="submit"
                           className="mini-button"

@@ -47,6 +47,16 @@ const FIELD_NAMES = [
   "thumbnailUrl",
   "relatedEventSlug",
   "isPublished",
+
+  // card
+  "rarity",
+  "attribute",
+  "cardCategory",
+  "thumbnailAfterUrl",
+  "coverAfterUrl",
+  "linkedStorySlugs",
+  "linkedPhoneItemSlugs",
+  "linkedEventSlugs",
 ] as const;
 
 type StoryFormEnhancerProps = {

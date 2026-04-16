@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import { updateCard, deleteCard } from "@/app/admin/actions";
+import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 import RelationPicker, {
   type RelationCandidate,
 } from "@/components/admin/relations/RelationPicker";
@@ -29,6 +30,52 @@ function safeDecode(value: string) {
   }
 }
 
+const CHARACTER_OPTIONS = [
+  { value: "baiqi", label: "백기" },
+  { value: "lizeyan", label: "이택언" },
+  { value: "zhouqiluo", label: "주기락" },
+  { value: "xumo", label: "허묵" },
+  { value: "lingxiao", label: "연시호" },
+] as const;
+
+const PHONE_CATEGORY_OPTIONS = [
+  { value: "daily", label: "일상" },
+  { value: "companion", label: "동반" },
+  { value: "card_story", label: "카드" },
+  { value: "main_story", label: "메인스토리" },
+  { value: "tangle", label: "얽힘" },
+] as const;
+
+const RARITY_OPTIONS = [
+  { value: "nh", label: "NH" },
+  { value: "n", label: "N" },
+  { value: "r", label: "R" },
+  { value: "sr", label: "SR" },
+  { value: "er", label: "ER" },
+  { value: "ser", label: "SER" },
+  { value: "ssr", label: "SSR" },
+  { value: "sp", label: "SP" },
+  { value: "ur", label: "UR" },
+] as const;
+
+const ATTRIBUTE_OPTIONS = [
+  { value: "execution", label: "추진력" },
+  { value: "affinity", label: "친화력" },
+  { value: "decision", label: "결단력" },
+  { value: "creativity", label: "창의력" },
+  { value: "drive", label: "추진력" },
+  { value: "judgment", label: "결단력" },
+] as const;
+
+const CARD_CATEGORY_OPTIONS = [
+  { value: "date", label: "데이트 카드" },
+  { value: "main_story", label: "메인스토리 연계" },
+  { value: "side_story", label: "외전 / 서브" },
+  { value: "birthday", label: "생일 카드" },
+  { value: "charge", label: "누적충전 카드" },
+  { value: "free", label: "무료 카드" },
+] as const;
+
 export default async function EditCardPage({
   params,
   searchParams,
@@ -41,7 +88,7 @@ export default async function EditCardPage({
   const { data: card, error } = await supabase
     .from("cards")
     .select(
-      "id, title, slug, rarity, attribute, release_year, release_date, thumbnail_url, cover_image_url, summary"
+      "id, title, slug, rarity, attribute, release_year, release_date, thumbnail_url, cover_image_url, summary, card_category"
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -74,7 +121,34 @@ export default async function EditCardPage({
     .eq("title", "evolution_after")
     .maybeSingle();
 
-    const { data: storyRelations } = await supabase
+  const { data: itemTagRows } = await supabase
+    .from("item_tags")
+    .select("tag_id, sort_order")
+    .eq("item_type", "card")
+    .eq("item_id", card.id)
+    .order("sort_order", { ascending: true });
+
+  const tagIds = Array.from(new Set((itemTagRows ?? []).map((row) => row.tag_id)));
+
+  let defaultTagText = "";
+
+  if (tagIds.length > 0) {
+    const { data: tagRows } = await supabase
+      .from("tags")
+      .select("id, label, name, slug")
+      .in("id", tagIds);
+
+    const tagNameMap = new Map(
+      (tagRows ?? []).map((row) => [row.id, row.label ?? row.name ?? row.slug])
+    );
+
+    defaultTagText = (itemTagRows ?? [])
+      .map((row) => tagNameMap.get(row.tag_id))
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  const { data: storyRelations } = await supabase
     .from("item_relations")
     .select("child_id, sort_order")
     .eq("parent_type", "card")
@@ -105,7 +179,7 @@ export default async function EditCardPage({
   const phoneIds = (phoneRelations ?? []).map((item) => item.child_id);
   const eventIds = (eventRelations ?? []).map((item) => item.child_id);
 
-    const [
+  const [
     { data: characters },
     { data: linkedStories },
     { data: linkedPhoneItems },
@@ -170,8 +244,6 @@ export default async function EditCardPage({
     (linkedEvents ?? []).map((item) => [item.id, item])
   );
 
-
-
   const initialStories: RelationCandidate[] = (storyRelations ?? [])
     .map((item) => linkedStoryMap.get(item.child_id))
     .filter(Boolean)
@@ -231,33 +303,13 @@ export default async function EditCardPage({
   const thumbnailAfterUrl = thumbAfterMedia?.url ?? "";
   const coverAfterUrl = coverAfterMedia?.url ?? "";
 
-
-const CHARACTER_OPTIONS = [
-  { value: "baiqi", label: "백기" },
-  { value: "lizeyan", label: "이택언" },
-  { value: "zhouqiluo", label: "주기락" },
-  { value: "xumo", label: "허묵" },
-  { value: "lingxiao", label: "연시호" },
-];
-
-const PHONE_CATEGORY_OPTIONS = [
-  { value: "daily", label: "일상" },
-  { value: "companion", label: "동반" },
-  { value: "card_story", label: "카드" },
-  { value: "main_story", label: "메인스토리" },
-  { value: "tangle", label: "얽힘" },
-];
-
-
-
-
   return (
     <main>
       <header className="page-header">
         <div className="page-eyebrow">Admin / Cards / Edit</div>
         <h1 className="page-title">카드 수정</h1>
         <p className="page-desc">
-          카드 기본 정보, 썸네일/대표 이미지, 연결 콘텐츠를 수정합니다.
+          카드 기본 정보, 카드 분류, 해시태그, 연결 콘텐츠를 수정합니다.
         </p>
       </header>
 
@@ -283,37 +335,46 @@ const PHONE_CATEGORY_OPTIONS = [
 
         <div className="form-grid">
           <label className="form-field form-field-full">
-            <span>title</span>
+            <span>카드 제목</span>
             <input name="title" defaultValue={card.title} required />
           </label>
 
           <label className="form-field">
-            <span>rarity</span>
-            <select name="rarity" defaultValue={card.rarity}>
-              <option value="nh">nh</option>
-              <option value="n">n</option>
-              <option value="r">r</option>
-              <option value="sr">sr</option>
-              <option value="er">er</option>
-              <option value="ser">ser</option>
-              <option value="ssr">ssr</option>
-              <option value="sp">sp</option>
-              <option value="ur">ur</option>
+            <span>등급</span>
+            <select name="rarity" defaultValue={card.rarity ?? "ssr"}>
+              {RARITY_OPTIONS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
             </select>
           </label>
 
           <label className="form-field">
-            <span>attribute</span>
-            <select name="attribute" defaultValue={card.attribute}>
-              <option value="drive">drive</option>
-              <option value="affinity">affinity</option>
-              <option value="judgment">judgment</option>
-              <option value="creativity">creativity</option>
+            <span>속성</span>
+            <select name="attribute" defaultValue={card.attribute ?? "affinity"}>
+              {ATTRIBUTE_OPTIONS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
             </select>
           </label>
 
+   <label className="form-field">
+  <span>카드 분류</span>
+  <select name="cardCategory" defaultValue={card.card_category ?? ""}>
+    <option value="">미분류</option>
+    {CARD_CATEGORY_OPTIONS.map((item) => (
+      <option key={item.value} value={item.value}>
+        {item.label}
+      </option>
+    ))}
+  </select>
+</label>
+
           <label className="form-field">
-            <span>release_year</span>
+            <span>연도</span>
             <input
               name="releaseYear"
               type="number"
@@ -323,7 +384,7 @@ const PHONE_CATEGORY_OPTIONS = [
           </label>
 
           <label className="form-field">
-            <span>release_date</span>
+            <span>출시일</span>
             <input
               name="releaseDate"
               type="date"
@@ -332,7 +393,20 @@ const PHONE_CATEGORY_OPTIONS = [
           </label>
 
           <label className="form-field form-field-full">
-            <span>thumbnail url</span>
+            <span>해시태그</span>
+            <input
+              name="tagLabels"
+              defaultValue={defaultTagText}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              placeholder="예: 생일, 무료, 카드스토리, 메인연계"
+            />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>썸네일 (진화 전)</span>
             <input
               name="thumbnailUrl"
               defaultValue={card.thumbnail_url ?? ""}
@@ -341,16 +415,7 @@ const PHONE_CATEGORY_OPTIONS = [
           </label>
 
           <label className="form-field form-field-full">
-            <span>cover image url</span>
-            <input
-              name="coverImageUrl"
-              defaultValue={card.cover_image_url ?? ""}
-              placeholder="https://..."
-            />
-          </label>
-
-          <label className="form-field form-field-full">
-            <span>thumbnail after url (optional)</span>
+            <span>썸네일 (진화 후)</span>
             <input
               name="thumbnailAfterUrl"
               defaultValue={thumbnailAfterUrl}
@@ -359,7 +424,16 @@ const PHONE_CATEGORY_OPTIONS = [
           </label>
 
           <label className="form-field form-field-full">
-            <span>cover after url (optional)</span>
+            <span>커버 이미지 (진화 전)</span>
+            <input
+              name="coverImageUrl"
+              defaultValue={card.cover_image_url ?? ""}
+              placeholder="https://..."
+            />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>커버 이미지 (진화 후)</span>
             <input
               name="coverAfterUrl"
               defaultValue={coverAfterUrl}
@@ -367,8 +441,8 @@ const PHONE_CATEGORY_OPTIONS = [
             />
           </label>
 
-                    <label className="form-field form-field-full">
-            <span>summary</span>
+          <label className="form-field form-field-full">
+            <span>요약</span>
             <textarea
               name="summary"
               rows={5}
@@ -419,9 +493,25 @@ const PHONE_CATEGORY_OPTIONS = [
           characterOptions={CHARACTER_OPTIONS}
         />
 
-        <button type="submit" className="primary-button">
-          카드 수정 저장
-        </button>
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
+            marginBottom: "16px",
+          }}
+        >
+          <Link href="/admin/cards/new" className="nav-link">
+            새 카드 등록
+          </Link>
+          <Link href={`/cards/${card.slug}`} className="nav-link">
+            공개 보기
+          </Link>
+        </div>
+
+        <div className="admin-subpanel">
+          <StoryFormEnhancer storageKey={`card-draft:${card.slug}`} />
+        </div>
       </form>
 
       <div
@@ -434,6 +524,7 @@ const PHONE_CATEGORY_OPTIONS = [
       >
         <form action={deleteCard}>
           <input type="hidden" name="cardId" value={card.id} />
+          <input type="hidden" name="slug" value={card.slug} />
           <button
             type="submit"
             className="nav-link"
