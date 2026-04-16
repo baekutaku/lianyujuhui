@@ -1,6 +1,7 @@
 import SmartEditor from "@/components/editor/SmartEditor";
 import { createEventBundle } from "@/app/admin/actions";
 import StoryVisibilityFields from "@/components/admin/stories/StoryVisibilityFields";
+import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 
 function safeDecode(value: string) {
   try {
@@ -174,18 +175,22 @@ export default async function NewEventPage({
               placeholder="예: 2025-anniversary-event"
             />
           </label>
+       </div>
+
+        <div className="admin-subpanel">
+          <StoryVisibilityFields
+            values={{
+              visibility: "public",
+              access_hint: "",
+            }}
+          />
         </div>
 
-        <StoryVisibilityFields
-          values={{
-            visibility: "public",
-            access_hint: "",
-          }}
-        />
+        <div className="admin-subpanel">
+          <StoryFormEnhancer storageKey="event-draft:new" />
+        </div>
 
-        <button type="submit" className="primary-button">
-          이벤트 통합 등록
-        </button>
+        
       </form>
     </main>
   );

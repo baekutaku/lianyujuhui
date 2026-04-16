@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import { unlockProtectedEvent } from "@/app/events/[slug]/actions";
 import { hasEventAccess } from "@/lib/utils/event-access";
+import { deleteEventBundle } from "@/app/admin/actions";
 
 type EventPageProps = {
   params: Promise<{
@@ -218,19 +219,37 @@ export default async function EventDetailPage({
           </div>
 
           <div className="story-top-actions">
-            <Link href="/events" className="story-action-button story-action-muted">
-              목록으로
-            </Link>
+  <Link href="/events" className="story-action-button story-action-muted">
+    목록으로
+  </Link>
 
-            {admin && (
-              <Link
-                href={`/admin/events/${event.slug}/edit`}
-                className="story-action-button"
-              >
-                관리자 수정
-              </Link>
-            )}
-          </div>
+  {admin && (
+    <>
+      <Link
+        href="/admin/events/new"
+        className="story-action-button story-action-muted"
+      >
+        새 이벤트 등록
+      </Link>
+
+      <Link
+        href={`/admin/events/${event.slug}/edit`}
+        className="story-action-button"
+      >
+        관리자 수정
+      </Link>
+<form action={deleteEventBundle}>
+  <input type="hidden" name="eventId" value={event.id} />
+  <button
+    type="submit"
+    className="story-action-button story-action-danger"
+  >
+    삭제
+  </button>
+</form>
+    </>
+  )}
+</div>
         </div>
 
         <aside className="story-topbar-side">

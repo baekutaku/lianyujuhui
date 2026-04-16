@@ -58,13 +58,17 @@ function buildEventKeys(params: {
   title: string;
   year: number;
   serverKey: string;
+  startDate?: string;
 }) {
   const base = slugify(params.title);
+  const startDatePart = params.startDate
+    ? params.startDate.replace(/-/g, "")
+    : "nodate";
 
   return {
-    slug: `${params.serverKey}-${params.year}-${params.subtype}-${params.characterKey}-${base}`,
-    originKey: `event:${params.serverKey}:${params.year}:${params.subtype}:${params.characterKey}:${base}`,
-    contentId: `event_${params.serverKey}_${params.year}_${params.subtype}_${params.characterKey}_${base}`,
+    slug: `${params.serverKey}-${params.year}-${params.subtype}-${params.characterKey}-${startDatePart}-${base}`,
+    originKey: `event:${params.serverKey}:${params.year}:${params.subtype}:${params.characterKey}:${startDatePart}:${base}`,
+    contentId: `event_${params.serverKey}_${params.year}_${params.subtype}_${params.characterKey}_${startDatePart}_${base}`,
   };
 }
 
@@ -1455,6 +1459,7 @@ export async function deleteStoryBundle(formData: FormData) {
 export async function createEventBundle(formData: FormData) {
   let createdEventId: string | null = null;
   let targetSlug = "";
+  const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
     const title = String(formData.get("title") || "").trim();
@@ -1472,10 +1477,9 @@ export async function createEventBundle(formData: FormData) {
     const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
     const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
     const cardSlug = String(formData.get("cardSlug") || "").trim();
-    
     const relatedEventSlug = String(formData.get("relatedEventSlug") || "").trim();
     const tagLabels = parseTagLabelsFromForm(formData);
-const meta = await resolveStoryMetaFromForm(formData);
+    const meta = await resolveStoryMetaFromForm(formData);
 
     if (!title) {
       throw new Error("title이 비어 있습니다.");
@@ -1486,14 +1490,29 @@ const meta = await resolveStoryMetaFromForm(formData);
     }
 
     const { slug, originKey, contentId } = buildEventKeys({
-      subtype,
-      characterKey,
-      title,
-      year: releaseYear,
-      serverKey,
-    });
+  subtype,
+  characterKey,
+  title,
+  year: releaseYear,
+  serverKey,
+  startDate,
+});
 
     targetSlug = slug;
+
+    const { data: existingEvent } = await supabase
+  .from("events")
+  .select("id, slug")
+  .eq("content_id", contentId)
+  .maybeSingle();
+
+if (existingEvent) {
+  redirect(
+    `/admin/events/${encodeURIComponent(existingEvent.slug)}/edit?error=${encodeURIComponent(
+      "이미 등록된 이벤트입니다."
+    )}`
+  );
+}
 
     const { data: server, error: serverError } = await supabase
       .from("servers")
@@ -1518,23 +1537,23 @@ const meta = await resolveStoryMetaFromForm(formData);
     const { data: insertedEvent, error: eventError } = await supabase
       .from("events")
       .insert({
-  content_id: contentId,
-  origin_key: originKey,
-  server_id: server.id,
-  primary_character_id: character.id,
-  title,
-  slug,
-  subtype,
-  release_year: releaseYear,
-  start_date: startDate || null,
-  end_date: endDate || null,
-  thumbnail_url: thumbnailUrl || null,
-  summary,
-  visibility: meta.visibility,
-  access_password_hash: meta.accessPasswordHash,
-  access_hint: meta.accessHint,
-  is_published: true,
-})
+        content_id: contentId,
+        origin_key: originKey,
+        server_id: server.id,
+        primary_character_id: character.id,
+        title,
+        slug,
+        subtype,
+        release_year: releaseYear,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        thumbnail_url: thumbnailUrl || null,
+        summary,
+        visibility: meta.visibility,
+        access_password_hash: meta.accessPasswordHash,
+        access_hint: meta.accessHint,
+        is_published: true,
+      })
       .select("id")
       .single();
 
@@ -1679,12 +1698,18 @@ const meta = await resolveStoryMetaFromForm(formData);
     redirect(`/admin/events/new?error=${encodeURIComponent(message)}`);
   }
 
- redirect(`/admin/events/${encodeURIComponent(targetSlug)}/edit`);
+  if (submitIntent === "view") {
+    redirect(`/events/${encodeURIComponent(targetSlug)}`);
+  }
+
+  redirect(`/admin/events/${encodeURIComponent(targetSlug)}/edit?saved=1`);
 }
 
 export async function updateEventBundle(formData: FormData) {
   const eventId = String(formData.get("eventId") || "").trim();
   const title = String(formData.get("title") || "").trim();
+  const slug = String(formData.get("slug") || "").trim();
+const submitIntent = String(formData.get("submitIntent") || "edit").trim();
   const subtype = String(formData.get("subtype") || "game_event").trim();
   const releaseYear = Number(formData.get("releaseYear") || 2025);
   const startDate = String(formData.get("startDate") || "").trim();
@@ -2010,7 +2035,13 @@ await syncEventTags(eventId, tagLabels);
 
   revalidatePath("/admin/events");
   revalidatePath("/events");
-  redirect("/admin/events");
+  const safeSlug = encodeURIComponent(slug);
+
+if (submitIntent === "view") {
+  redirect(`/events/${safeSlug}`);
+}
+
+redirect(`/admin/events/${safeSlug}/edit?saved=1`);
 }
 
 export async function deleteEventBundle(formData: FormData) {

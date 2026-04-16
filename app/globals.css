@@ -9037,3 +9037,67 @@ button,
     font-size: 18px;
   }
 }
+
+.admin-subpanel {
+  margin-top: 18px;
+  padding: 20px 22px;
+  border-radius: 22px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow-soft);
+}
+
+.admin-subpanel + .admin-subpanel {
+  margin-top: 14px;
+}
+
+.admin-subpanel h2,
+.admin-subpanel h3,
+.admin-subpanel h4 {
+  margin: 0 0 12px;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.admin-subpanel p {
+  margin: 0 0 10px;
+  color: var(--text-sub);
+  line-height: 1.7;
+}
+
+.admin-subpanel input,
+.admin-subpanel select,
+.admin-subpanel textarea {
+  max-width: 100%;
+}
+
+.admin-subpanel .nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+}
+
+.admin-subpanel button,
+.admin-subpanel .primary-button {
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .admin-subpanel {
+    padding: 16px;
+    border-radius: 18px;
+  }
+}
+
+.story-action-danger {
+  background: rgba(122, 59, 72, 0.14);
+  color: #8c4052;
+  border: 1px solid rgba(140, 64, 82, 0.22);
+}
+
+.story-action-danger:hover {
+  background: rgba(122, 59, 72, 0.2);
+}

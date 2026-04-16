@@ -4,6 +4,7 @@ import SmartEditor from "@/components/editor/SmartEditor";
 import StoryVisibilityFields from "@/components/admin/stories/StoryVisibilityFields";
 import { supabase } from "@/lib/supabase/client";
 import { updateEventBundle, deleteEventBundle } from "@/app/admin/actions";
+import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 
 function safeDecode(value: string) {
   try {
@@ -292,16 +293,20 @@ export default async function EditEventPage({
           </label>
         </div>
 
-        <StoryVisibilityFields
-          values={{
-            visibility: event.visibility ?? "public",
-            access_hint: event.access_hint ?? "",
-          }}
-        />
+         <div className="admin-subpanel">
+          <StoryVisibilityFields
+            values={{
+              visibility: event.visibility ?? "public",
+              access_hint: event.access_hint ?? "",
+            }}
+          />
+        </div>
 
-        <button type="submit" className="primary-button">
-          이벤트 수정 저장
-        </button>
+        <div className="admin-subpanel">
+          <StoryFormEnhancer storageKey={`event-draft:${event.slug}`} />
+        </div>
+
+        
       </form>
 
       <div
