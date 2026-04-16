@@ -7,6 +7,7 @@ import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 import DeletePhoneItemButton from "@/components/admin/phone-items/DeletePhoneItemButton";
 import StoryMainMetaFields from "@/components/admin/stories/StoryMainMetaFields";
 import StoryVisibilityFields from "@/components/admin/stories/StoryVisibilityFields";
+import StoryTranslationFields from "@/components/admin/stories/StoryTranslationFields";
 
 const STORY_SUBTYPE_OPTIONS = [
   { value: "card_story", label: "데이트" },
@@ -62,13 +63,30 @@ export default async function EditStoryPage({
     notFound();
   }
 
-  const { data: translation } = await supabase
-    .from("translations")
-    .select("id, title, body")
-    .eq("parent_type", "story")
-    .eq("parent_id", story.id)
-    .eq("is_primary", true)
-    .maybeSingle();
+const { data: translations } = await supabase
+  .from("translations")
+  .select("id, title, body, language_code")
+  .eq("parent_type", "story")
+  .eq("parent_id", story.id);
+
+function normalizeLang(value?: string | null) {
+  const code = (value || "").toLowerCase().trim();
+  if (code === "zh" || code === "zh-cn" || code === "cn" || code === "chs") {
+    return "cn";
+  }
+  if (code === "ko" || code === "ko-kr" || code === "kr" || code === "korean") {
+    return "kr";
+  }
+  return null;
+}
+
+const translationCn =
+  translations?.find((item) => normalizeLang(item.language_code) === "cn") ??
+  null;
+
+const translationKr =
+  translations?.find((item) => normalizeLang(item.language_code) === "kr") ??
+  null;
 
   const { data: media } = await supabase
     .from("media_assets")
@@ -165,7 +183,8 @@ export default async function EditStoryPage({
       <form action={updateStoryBundle} className="form-panel">
         <input type="hidden" name="storyId" value={story.id} />
         <input type="hidden" name="slug" value={story.slug} />
-        <input type="hidden" name="translationId" value={translation?.id ?? ""} />
+        <input type="hidden" name="translationCnId" value={translationCn?.id ?? ""} />
+<input type="hidden" name="translationKrId" value={translationKr?.id ?? ""} />
         <input type="hidden" name="mediaId" value={media?.id ?? ""} />
         <input type="hidden" name="coverMediaId" value={coverMedia?.id ?? ""} />
         <input type="hidden" name="relationId" value={relation?.id ?? ""} />
@@ -233,21 +252,13 @@ export default async function EditStoryPage({
             />
           </label>
 
-          <label className="form-field form-field-full">
-            <span>번역 제목</span>
-            <input
-              name="translationTitle"
-              defaultValue={translation?.title ?? ""}
-            />
-          </label>
-
-          <SmartEditor
-            name="translationBody"
-            label="번역 본문"
-            initialValue={translation?.body ?? ""}
-            height={700}
-            autosyncMs={1500}
-          />
+          <StoryTranslationFields
+  cnTitle={translationCn?.title ?? ""}
+  cnBody={translationCn?.body ?? ""}
+  krTitle={translationKr?.title ?? ""}
+  krBody={translationKr?.body ?? ""}
+  defaultLang={translationCn ? "cn" : "kr"}
+/>
 
           <label className="form-field form-field-full">
             <span>연결 카드</span>

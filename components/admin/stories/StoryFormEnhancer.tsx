@@ -11,8 +11,10 @@ const FIELD_NAMES = [
   "summary",
   "serverKey",
   "characterKey",
-  "translationTitle",
-  "translationBody",
+"translationTitleCn",
+"translationBodyCn",
+"translationTitleKr",
+"translationBodyKr",
   "youtubeUrl",
   "coverImageUrl",
   "cardSlug",
@@ -253,12 +255,14 @@ export default function StoryFormEnhancer({
         writeFieldValue(form, name, value ?? "");
       }
 
-      const translationField = form.elements.namedItem("translationBody");
-      if (translationField instanceof HTMLTextAreaElement) {
-        translationField.dispatchEvent(
-          new CustomEvent("story-draft-restore", { bubbles: false })
-        );
-      }
+      ["translationBodyCn", "translationBodyKr"].forEach((fieldName) => {
+  const field = form.elements.namedItem(fieldName);
+  if (field instanceof HTMLTextAreaElement) {
+    field.dispatchEvent(
+      new CustomEvent("story-draft-restore", { bubbles: false })
+    );
+  }
+});
 
       restoredRef.current = true;
     } catch (error) {
@@ -294,7 +298,7 @@ export default function StoryFormEnhancer({
 
   return (
     <div ref={wrapperRef}>
-      <input type="hidden" name="intent" value={intent} />
+      
       <StorySubmitButtons
         intent={intent}
         setIntent={setIntent}

@@ -57,11 +57,6 @@ type PageProps = {
   }>;
 };
 
-const storyTagsMap: Record<string, string[]> = {
-  "baiqi-story-2025-kr-o1a1": ["발렌타인", "놀이공원", "재회", "달달"],
-  "baiqi-3주년-2025-kr-a6l6": ["기념일", "연인무드", "일상", "축하"],
-  "baiqi-리포투-3주년-2025-kr-sd8p": ["기념일", "축하", "애정", "달달"],
-};
 
 const STORY_TAB_OPTIONS = [
   {
@@ -155,9 +150,7 @@ const SORT_OPTIONS = [
 
 const STORIES_PER_PAGE = 12;
 
-function getStoryTags(story: StoryCard) {
-  return storyTagsMap[story.slug] ?? [];
-}
+
 
 function toSingleString(value: SearchParamValue) {
   if (Array.isArray(value)) return String(value[0] ?? "").trim();
@@ -502,6 +495,41 @@ export default async function StoriesPage({ searchParams }: PageProps) {
       }
     });
   }
+const storyTagMap = new Map<string, string[]>();
+
+  if (filteredStoryIds.length > 0) {
+    const { data: itemTagRows } = await supabase
+      .from("item_tags")
+      .select("item_id, tag_id, sort_order")
+      .eq("item_type", "story")
+      .in("item_id", filteredStoryIds)
+      .order("sort_order", { ascending: true });
+
+    const tagIds = Array.from(
+      new Set((itemTagRows ?? []).map((row) => row.tag_id))
+    );
+
+    if (tagIds.length > 0) {
+      const { data: tagRows } = await supabase
+        .from("tags")
+        .select("id, name")
+        .in("id", tagIds);
+
+      const tagNameMap = new Map(
+        (tagRows ?? []).map((row) => [row.id, row.name])
+      );
+
+      (itemTagRows ?? []).forEach((row) => {
+        const name = tagNameMap.get(row.tag_id);
+        if (!name) return;
+
+        const prev = storyTagMap.get(row.item_id) ?? [];
+        prev.push(name);
+        storyTagMap.set(row.item_id, prev);
+      });
+    }
+  }
+
 
   const scopeLabel =
     SCOPE_OPTIONS.find((item) => item.key === scope)?.label ?? "";
@@ -745,7 +773,7 @@ export default async function StoriesPage({ searchParams }: PageProps) {
               <ul className="story-archive-list">
                 {pagedStories.map((story) => {
                   const thumb = mediaMap.get(story.id);
-                  const tags = getStoryTags(story);
+                  const tags = storyTagMap.get(story.id) ?? [];
                   const visibilityLabel = getVisibilityLabel(story.visibility, admin);
 
                   return (

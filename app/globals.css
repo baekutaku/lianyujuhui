@@ -8676,3 +8676,121 @@ button,
     font-size: 13px;
   }
 }
+
+.story-translation-panel {
+  position: relative;
+  overflow: visible;
+  padding-top: 42px;
+}
+
+.story-language-switcher {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: 10;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: stretch;
+  justify-content: center;
+  border: 1px solid rgba(18, 18, 18, 0.92);
+  background: #111;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.story-language-button {
+  appearance: none;
+  border: 0;
+  background: #111;
+  color: #fff;
+  min-width: 56px;
+  height: 30px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.story-language-button + .story-language-button {
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.story-language-button.is-active {
+  background: #fff;
+  color: #111;
+}
+
+.story-language-button:not(.is-active):hover {
+  background: #1d1d1d;
+}
+
+.story-translation-title {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 600;
+  color: #9b93a4;
+  letter-spacing: -0.01em;
+}
+
+@media (max-width: 768px) {
+  .story-translation-panel {
+    padding-top: 38px;
+  }
+
+  .story-language-button {
+    min-width: 52px;
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+}
+
+.admin-story-lang-switcher-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 18px;
+}
+
+.admin-story-lang-switcher {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid rgba(18, 18, 18, 0.92);
+  background: #111;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+}
+
+.admin-story-lang-button {
+  appearance: none;
+  border: 0;
+  background: #111;
+  color: #fff;
+  min-width: 60px;
+  height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-story-lang-button + .admin-story-lang-button {
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.admin-story-lang-button.is-active {
+  background: #fff;
+  color: #111;
+}
+
+.admin-story-lang-panels {
+  position: relative;
+}
+
+.admin-story-lang-panel.is-hidden {
+  display: none;
+}
+
+.admin-story-lang-panel.is-active {
+  display: block;
+}

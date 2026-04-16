@@ -7,6 +7,7 @@ import ConfirmSubmitButton from "@/components/admin/common/ConfirmSubmitButton";
 import StoryDetailHeightSync from "@/components/story/StoryDetailHeightSync";
 import { unlockProtectedStory } from "@/app/stories/[slug]/actions";
 import { hasStoryAccess } from "@/lib/utils/story-access";
+import StoryTranslationSwitcher from "@/components/story/StoryTranslationSwitcher";
 
 type StoryPageProps = {
   params: Promise<{
@@ -153,8 +154,8 @@ export default async function StoryDetailPage({
   const { data: translations, error: translationError } = await supabase
     .from("translations")
     .select(
-      "id, title, body, translation_type, is_primary, is_published, created_at"
-    )
+  "id, title, body, language_code, translation_type, is_primary, is_published, created_at"
+)
     .eq("parent_type", "story")
     .eq("parent_id", story.id)
     .order("is_primary", { ascending: false })
@@ -323,46 +324,18 @@ export default async function StoryDetailPage({
         </div>
 
         <div className="detail-panel story-translation-panel">
-          {translationError ? (
-            <pre className="error-box">
-              {JSON.stringify(translationError, null, 2)}
-            </pre>
-          ) : null}
+  {translationError ? (
+    <pre className="error-box">
+      {JSON.stringify(translationError, null, 2)}
+    </pre>
+  ) : null}
 
-          {!visibleTranslations || visibleTranslations.length === 0 ? (
-            <div className="empty-box">등록된 번역이 없습니다.</div>
-          ) : (
-            <div className="translation-scroll-panel">
-              <div style={{ display: "grid", gap: "20px" }}>
-                {visibleTranslations.map((translation) => (
-                  <section key={translation.id}>
-                    {translation.title ? (
-                      <p className="story-translation-title">
-                        {translation.title}
-                      </p>
-                    ) : null}
-
-                    {looksLikeHtml(translation.body || "") ? (
-                      <div
-  className="translation-body rich-content"
-  dangerouslySetInnerHTML={{
-    __html: normalizeStoryHtml(translation.body || ""),
-  }}
-/>
-                    ) : (
-                      <div
-                        className="translation-body rich-content"
-                        style={{ whiteSpace: "pre-wrap" }}
-                      >
-                        {translation.body || ""}
-                      </div>
-                    )}
-                  </section>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+  {!visibleTranslations || visibleTranslations.length === 0 ? (
+    <div className="empty-box">등록된 번역이 없습니다.</div>
+  ) : (
+    <StoryTranslationSwitcher translations={visibleTranslations} />
+  )}
+</div>
       </section>
 
       {hasConnections ? (

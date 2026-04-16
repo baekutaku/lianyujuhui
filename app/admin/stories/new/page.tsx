@@ -1,9 +1,9 @@
 import { createStoryBundle } from "@/app/admin/actions";
 import { supabase } from "@/lib/supabase/server";
-import SmartEditor from "@/components/editor/SmartEditor";
 import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 import StoryMainMetaFields from "@/components/admin/stories/StoryMainMetaFields";
 import StoryVisibilityFields from "@/components/admin/stories/StoryVisibilityFields";
+import StoryTranslationFields from "@/components/admin/stories/StoryTranslationFields";
 
 const STORY_SUBTYPE_OPTIONS = [
   { value: "card_story", label: "데이트" },
@@ -100,10 +100,10 @@ export default async function NewStoryPage({
 
           <label className="form-field">
             <span>서버</span>
-            <select name="serverKey" defaultValue="kr">
-              <option value="kr">한국</option>
-              <option value="cn">중국</option>
-            </select>
+            <select name="serverKey" defaultValue="cn">
+  <option value="cn">중국</option>
+  <option value="kr">한국</option>
+</select>
           </label>
 
           <label className="form-field">
@@ -138,18 +138,7 @@ export default async function NewStoryPage({
             />
           </label>
 
-          <label className="form-field form-field-full">
-            <span>번역 제목</span>
-            <input name="translationTitle" />
-          </label>
-
-          <SmartEditor
-            name="translationBody"
-            label="번역 본문"
-            initialValue=""
-            height={700}
-            autosyncMs={1500}
-          />
+          <StoryTranslationFields defaultLang="cn" />
 
           <label className="form-field form-field-full">
             <span>연결 카드 slug (선택)</span>
