@@ -41,6 +41,25 @@ const CATEGORY_LABEL_MAP: Record<string, string> = {
   free: "무료 카드",
 };
 
+const STORY_SUBTYPE_LABEL_MAP: Record<string, string> = {
+  card_story: "데이트",
+  asmr: "너의 곁에",
+  side_story: "외전",
+  main_story: "메인스토리",
+  behind_story: "막후의 장",
+  xiyue_story: "서월국",
+  myhome_story: "마이홈 스토리",
+  company_project: "회사 프로젝트",
+};
+
+const PHONE_SUBTYPE_LABEL_MAP: Record<string, string> = {
+  message: "메시지",
+  moment: "모멘트",
+  call: "전화",
+  video_call: "영상통화",
+  article: "기사",
+};
+
 function safeDecodeSlug(value: string) {
   try {
     return decodeURIComponent(value);
@@ -64,17 +83,32 @@ function getCategoryLabel(value: string | null | undefined) {
   return CATEGORY_LABEL_MAP[value] ?? "미분류";
 }
 
-// 네 실제 공개 라우트가 다르면 여기만 바꾸면 됨
-function getStoryHref(slug: string) {
-  return `/stories/${slug}`;
+function getStorySubtypeLabel(value: string | null | undefined) {
+  if (!value) return "스토리";
+  return STORY_SUBTYPE_LABEL_MAP[value] ?? value;
 }
 
-function getPhoneHref(slug: string) {
-  return `/phone-items/${slug}`;
+function getPhoneSubtypeLabel(value: string | null | undefined) {
+  if (!value) return "휴대폰";
+  return PHONE_SUBTYPE_LABEL_MAP[value] ?? value;
 }
 
-function getEventHref(slug: string) {
-  return `/events/${slug}`;
+function getEventSubtypeLabel(value: string | null | undefined) {
+  if (!value) return "이벤트";
+  return value;
+}
+
+/* 실제 공개 경로가 다르면 여기만 수정 */
+function getStoryHref(slug: string, from: string) {
+  return `/stories/${slug}?from=${encodeURIComponent(from)}`;
+}
+
+function getPhoneHref(slug: string, from: string) {
+  return `/phone-items/${slug}?from=${encodeURIComponent(from)}`;
+}
+
+function getEventHref(slug: string, from: string) {
+  return `/events/${slug}?from=${encodeURIComponent(from)}`;
 }
 
 export default async function CardDetailPage({ params }: PageProps) {
@@ -98,6 +132,8 @@ export default async function CardDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  const currentCardPath = `/cards/${encodeURIComponent(card.slug)}`;
+
   const { data: mediaRows } = await supabase
     .from("media_assets")
     .select("id, usage_type, title, url")
@@ -108,13 +144,15 @@ export default async function CardDetailPage({ params }: PageProps) {
   const beforeThumb =
     card.thumbnail_url ||
     mediaRows?.find(
-      (item) => item.usage_type === "thumbnail" && item.title !== "evolution_after"
+      (item) =>
+        item.usage_type === "thumbnail" && item.title !== "evolution_after"
     )?.url ||
     null;
 
   const afterThumb =
     mediaRows?.find(
-      (item) => item.usage_type === "thumbnail" && item.title === "evolution_after"
+      (item) =>
+        item.usage_type === "thumbnail" && item.title === "evolution_after"
     )?.url || null;
 
   const beforeCover =
@@ -172,17 +210,27 @@ export default async function CardDetailPage({ params }: PageProps) {
     .filter((rel) => rel.child_type === "event")
     .map((rel) => rel.child_id);
 
-  const [{ data: stories }, { data: phoneItems }, { data: events }] = await Promise.all([
-    storyIds.length > 0
-      ? supabase.from("stories").select("id, title, slug, subtype").in("id", storyIds)
-      : Promise.resolve({ data: [] as any[] }),
-    phoneIds.length > 0
-      ? supabase.from("phone_items").select("id, title, slug, subtype").in("id", phoneIds)
-      : Promise.resolve({ data: [] as any[] }),
-    eventIds.length > 0
-      ? supabase.from("events").select("id, title, slug, subtype").in("id", eventIds)
-      : Promise.resolve({ data: [] as any[] }),
-  ]);
+  const [{ data: stories }, { data: phoneItems }, { data: events }] =
+    await Promise.all([
+      storyIds.length > 0
+        ? supabase
+            .from("stories")
+            .select("id, title, slug, subtype")
+            .in("id", storyIds)
+        : Promise.resolve({ data: [] as any[] }),
+      phoneIds.length > 0
+        ? supabase
+            .from("phone_items")
+            .select("id, title, slug, subtype")
+            .in("id", phoneIds)
+        : Promise.resolve({ data: [] as any[] }),
+      eventIds.length > 0
+        ? supabase
+            .from("events")
+            .select("id, title, slug, subtype")
+            .in("id", eventIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
 
   return (
     <main>
@@ -239,6 +287,38 @@ export default async function CardDetailPage({ params }: PageProps) {
             ) : null}
           </div>
         </div>
+
+        <aside className="story-topbar-side card-detail-top-side">
+          <section className="story-side-block">
+            <h2 className="story-side-title">해시태그</h2>
+            {tags.length > 0 ? (
+              <div className="card-detail-tags">
+                {tags.map((tag) => (
+                  <Link
+                    key={tag}
+                    href={`/cards?tag=${encodeURIComponent(tag)}`}
+                    className="card-tag-link"
+                  >
+                    #{tag}
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="detail-text">등록된 해시태그가 없습니다.</div>
+            )}
+          </section>
+
+          <section className="story-side-block">
+            <h2 className="story-side-title">요약</h2>
+            {card.summary ? (
+              <div className="rich-content detail-text">
+                <p>{card.summary}</p>
+              </div>
+            ) : (
+              <div className="detail-text">등록된 카드 설명이 없습니다.</div>
+            )}
+          </section>
+        </aside>
       </section>
 
       <section className="story-main-grid card-detail-main-grid">
@@ -254,75 +334,76 @@ export default async function CardDetailPage({ params }: PageProps) {
           />
         </div>
 
-        <aside className="detail-panel card-detail-info-panel">
-          {tags.length > 0 ? (
+        <aside className="detail-panel card-detail-links-panel">
+          <div className="card-detail-links-scroll">
             <section className="card-detail-side-block">
-              <h2 className="detail-section-title">해시태그</h2>
-              <div className="card-detail-tags">
-                {tags.map((tag) => (
-                  <span key={tag} className="story-card-tag">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          <section className="card-detail-side-block">
-            <h2 className="detail-section-title">카드 설명</h2>
-            {card.summary ? (
-              <div className="rich-content detail-text">
-                <p>{card.summary}</p>
-              </div>
-            ) : (
-              <div className="empty-box">등록된 카드 설명이 없습니다.</div>
-            )}
-          </section>
-
-          <section className="card-detail-side-block">
-            <h2 className="detail-section-title">연결 스토리</h2>
-            <div className="story-side-links">
+              <h2 className="detail-section-title">연결 스토리</h2>
               {(stories?.length ?? 0) > 0 ? (
-                stories!.map((story: any) => (
-                  <Link key={story.id} href={getStoryHref(story.slug)} className="story-side-chip">
-                    {story.title}
-                  </Link>
-                ))
+                <div className="card-related-list">
+                  {stories!.map((story: any) => (
+                    <Link
+                      key={story.id}
+                      href={getStoryHref(story.slug, currentCardPath)}
+                      className="card-related-link"
+                    >
+                      <span className="card-related-kicker">
+                        {getStorySubtypeLabel(story.subtype)}
+                      </span>
+                      <strong className="card-related-title">{story.title}</strong>
+                    </Link>
+                  ))}
+                </div>
               ) : (
-                <span className="detail-text">연결된 스토리가 없습니다.</span>
+                <div className="card-related-empty">연결된 스토리가 없습니다.</div>
               )}
-            </div>
-          </section>
+            </section>
 
-          <section className="card-detail-side-block">
-            <h2 className="detail-section-title">연결 휴대폰</h2>
-            <div className="story-side-links">
+            <section className="card-detail-side-block">
+              <h2 className="detail-section-title">연결 휴대폰</h2>
               {(phoneItems?.length ?? 0) > 0 ? (
-                phoneItems!.map((item: any) => (
-                  <Link key={item.id} href={getPhoneHref(item.slug)} className="story-side-chip">
-                    {item.title}
-                  </Link>
-                ))
+                <div className="card-related-list">
+                  {phoneItems!.map((item: any) => (
+                    <Link
+                      key={item.id}
+                      href={getPhoneHref(item.slug, currentCardPath)}
+                      className="card-related-link"
+                    >
+                      <span className="card-related-kicker">
+                        {getPhoneSubtypeLabel(item.subtype)}
+                      </span>
+                      <strong className="card-related-title">{item.title}</strong>
+                    </Link>
+                  ))}
+                </div>
               ) : (
-                <span className="detail-text">연결된 휴대폰 콘텐츠가 없습니다.</span>
+                <div className="card-related-empty">
+                  연결된 휴대폰 콘텐츠가 없습니다.
+                </div>
               )}
-            </div>
-          </section>
+            </section>
 
-          <section className="card-detail-side-block">
-            <h2 className="detail-section-title">관련 이벤트</h2>
-            <div className="story-side-links">
+            <section className="card-detail-side-block">
+              <h2 className="detail-section-title">관련 이벤트</h2>
               {(events?.length ?? 0) > 0 ? (
-                events!.map((event: any) => (
-                  <Link key={event.id} href={getEventHref(event.slug)} className="story-side-chip">
-                    {event.title}
-                  </Link>
-                ))
+                <div className="card-related-list">
+                  {events!.map((event: any) => (
+                    <Link
+                      key={event.id}
+                      href={getEventHref(event.slug, currentCardPath)}
+                      className="card-related-link"
+                    >
+                      <span className="card-related-kicker">
+                        {getEventSubtypeLabel(event.subtype)}
+                      </span>
+                      <strong className="card-related-title">{event.title}</strong>
+                    </Link>
+                  ))}
+                </div>
               ) : (
-                <span className="detail-text">관련 이벤트가 없습니다.</span>
+                <div className="card-related-empty">관련 이벤트가 없습니다.</div>
               )}
-            </div>
-          </section>
+            </section>
+          </div>
         </aside>
       </section>
     </main>

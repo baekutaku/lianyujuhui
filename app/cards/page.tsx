@@ -10,6 +10,7 @@ type CardsPageProps = {
     category?: string;
     character?: string;
     year?: string;
+    tag?: string;
   }>;
 };
 
@@ -90,6 +91,7 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   const category = String(params?.category || "").trim();
   const character = String(params?.character || "").trim();
   const year = String(params?.year || "").trim();
+  const tag = String(params?.tag || "").trim();
 
   const [{ data: cards, error }, { data: characters }] = await Promise.all([
     supabase
@@ -114,7 +116,7 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
       return { ...card, characterKey };
     }) ?? [];
 
-  const filteredCards = allCards.filter((card: any) => {
+  const baseFilteredCards = allCards.filter((card: any) => {
     const matchesQ =
       !q ||
       String(card.title || "").toLowerCase().includes(q) ||
@@ -141,6 +143,60 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
       matchesYear
     );
   });
+
+  let filteredCards = baseFilteredCards;
+
+  if (tag && baseFilteredCards.length > 0) {
+    const baseCardIds = baseFilteredCards.map((card: any) => card.id);
+
+    const { data: itemTags } = await supabase
+      .from("item_tags")
+      .select("item_id, tag_id")
+      .eq("item_type", "card")
+      .in("item_id", baseCardIds);
+
+    const relatedTagIds = Array.from(
+      new Set((itemTags ?? []).map((row) => row.tag_id))
+    );
+
+    if (relatedTagIds.length > 0) {
+      const { data: relatedTags } = await supabase
+        .from("tags")
+        .select("id, slug, label, name")
+        .in("id", relatedTagIds);
+
+      const normalizedTargetTag = tag.toLowerCase();
+
+      const matchedTagIds = new Set(
+        (relatedTags ?? [])
+          .filter((row) =>
+            [row.slug, row.label, row.name]
+              .filter(Boolean)
+              .some(
+                (value) =>
+                  String(value).trim().toLowerCase() === normalizedTargetTag
+              )
+          )
+          .map((row) => row.id)
+      );
+
+      if (matchedTagIds.size > 0) {
+        const matchedCardIds = new Set(
+          (itemTags ?? [])
+            .filter((row) => matchedTagIds.has(row.tag_id))
+            .map((row) => row.item_id)
+        );
+
+        filteredCards = baseFilteredCards.filter((card: any) =>
+          matchedCardIds.has(card.id)
+        );
+      } else {
+        filteredCards = [];
+      }
+    } else {
+      filteredCards = [];
+    }
+  }
 
   const cardIds = filteredCards.map((card: any) => card.id);
   const afterThumbMap = new Map<string, string>();
@@ -204,10 +260,12 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
               value: key,
               label: CHARACTER_LABEL_MAP[key] ?? key,
             }))}
-            rarityOptions={Object.entries(RARITY_LABEL_MAP).map(([value, label]) => ({
-              value,
-              label,
-            }))}
+            rarityOptions={Object.entries(RARITY_LABEL_MAP).map(
+              ([value, label]) => ({
+                value,
+                label,
+              })
+            )}
             categoryOptions={[
               { value: "__uncategorized__", label: "미분류" },
               ...Object.entries(CATEGORY_LABEL_MAP).map(([value, label]) => ({
@@ -218,6 +276,15 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
           />
         </div>
       </div>
+
+      {tag ? (
+        <div className="cards-active-tag-row">
+          <span className="cards-active-tag-chip">#{tag}</span>
+          <Link href="/cards" className="nav-link">
+            전체 보기
+          </Link>
+        </div>
+      ) : null}
 
       {error && (
         <pre className="error-box">
