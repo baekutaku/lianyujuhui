@@ -456,7 +456,7 @@ export default async function EditCardPage({
           name="linkedStorySlugs"
           candidates={storyCandidates}
           initialSelected={initialStories}
-          characterOptions={CHARACTER_OPTIONS}
+          characterOptions={[...CHARACTER_OPTIONS]}
           subtypeOptions={[
             { value: "card_story", label: "데이트" },
             { value: "asmr", label: "너의 곁에" },
@@ -474,8 +474,8 @@ export default async function EditCardPage({
           name="linkedPhoneItemSlugs"
           candidates={phoneCandidates}
           initialSelected={initialPhoneItems}
-          characterOptions={CHARACTER_OPTIONS}
-          categoryOptions={PHONE_CATEGORY_OPTIONS}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          categoryOptions={[...PHONE_CATEGORY_OPTIONS]}
           subtypeOptions={[
             { value: "message", label: "메시지" },
             { value: "moment", label: "모멘트" },
@@ -490,7 +490,7 @@ export default async function EditCardPage({
           name="linkedEventSlugs"
           candidates={eventCandidates}
           initialSelected={initialEvents}
-          characterOptions={CHARACTER_OPTIONS}
+          characterOptions={[...CHARACTER_OPTIONS]}
         />
 
         <div
