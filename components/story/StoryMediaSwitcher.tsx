@@ -63,83 +63,66 @@ export default function StoryMediaSwitcher({ storyTitle, media }: Props) {
   }, [activeLang, mediaCn, mediaKr]);
 
   return (
-    <div className="story-media-box">
+    <div className="story-panel-stack">
       {mediaCn || mediaKr ? (
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            justifyContent: "center",
-            marginBottom: 12,
-          }}
-        >
-          {mediaCn ? (
-            <button
-              type="button"
-              onClick={() => setActiveLang("cn")}
-              style={{
-                border: "1px solid rgba(170, 170, 170, 0.35)",
-                borderRadius: 999,
-                padding: "8px 14px",
-                background: activeLang === "cn" ? "rgba(255,255,255,0.96)" : "transparent",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              CN
-            </button>
-          ) : null}
+        <div className="story-switcher-row">
+          <div className="story-language-switcher">
+            {mediaCn ? (
+              <button
+                type="button"
+                className={`story-language-button ${activeLang === "cn" ? "is-active" : ""}`}
+                onClick={() => setActiveLang("cn")}
+              >
+                CN
+              </button>
+            ) : null}
 
-          {mediaKr ? (
-            <button
-              type="button"
-              onClick={() => setActiveLang("kr")}
-              style={{
-                border: "1px solid rgba(170, 170, 170, 0.35)",
-                borderRadius: 999,
-                padding: "8px 14px",
-                background: activeLang === "kr" ? "rgba(255,255,255,0.96)" : "transparent",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              KR
-            </button>
-          ) : null}
+            {mediaKr ? (
+              <button
+                type="button"
+                className={`story-language-button ${activeLang === "kr" ? "is-active" : ""}`}
+                onClick={() => setActiveLang("kr")}
+              >
+                KR
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
-      {activeVideo ? (
-        <div className="media-embed-wrap">
-          <iframe
-            src={getYoutubeEmbedUrl(activeVideo)}
-            title={activeVideo.title || storyTitle}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        </div>
-      ) : fallbackMedia ? (
-        fallbackMedia.media_type === "image" ? (
-          <img
-            src={fallbackMedia.url}
-            alt={fallbackMedia.title || storyTitle}
-            className="story-detail-image"
-          />
-        ) : fallbackMedia.media_type === "youtube" ? (
+      <div className="story-media-box">
+        {activeVideo ? (
           <div className="media-embed-wrap">
             <iframe
-              src={getYoutubeEmbedUrl(fallbackMedia)}
-              title={fallbackMedia.title || storyTitle}
+              src={getYoutubeEmbedUrl(activeVideo)}
+              title={activeVideo.title || storyTitle}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
           </div>
+        ) : fallbackMedia ? (
+          fallbackMedia.media_type === "image" ? (
+            <img
+              src={fallbackMedia.url}
+              alt={fallbackMedia.title || storyTitle}
+              className="story-detail-image"
+            />
+          ) : fallbackMedia.media_type === "youtube" ? (
+            <div className="media-embed-wrap">
+              <iframe
+                src={getYoutubeEmbedUrl(fallbackMedia)}
+                title={fallbackMedia.title || storyTitle}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <div className="empty-box">지원되지 않는 미디어 형식입니다.</div>
+          )
         ) : (
-          <div className="empty-box">지원되지 않는 미디어 형식입니다.</div>
-        )
-      ) : (
-        <div className="empty-box">등록된 영상/이미지가 없습니다.</div>
-      )}
+          <div className="empty-box">등록된 영상/이미지가 없습니다.</div>
+        )}
+      </div>
     </div>
   );
 }

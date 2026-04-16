@@ -8794,3 +8794,76 @@ button,
 .admin-story-lang-panel.is-active {
   display: block;
 }
+
+.story-media-switcher-shell {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.story-media-switcher-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+}
+
+/* story switch - home UI 톤으로 교체 */
+.story-switcher-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.story-language-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(176, 203, 224, 0.34);
+  box-shadow: 0 8px 18px rgba(133, 164, 190, 0.10);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.story-language-button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #7f8f9f;
+  min-width: 42px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.story-language-button:hover {
+  background: rgba(255, 255, 255, 0.72);
+  color: #5f7081;
+}
+
+.story-language-button.is-active {
+  background: linear-gradient(135deg, #cfe1f1 0%, #ead5e2 100%);
+  color: #56697c;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 4px 10px rgba(168, 184, 208, 0.20);
+}
+
+.story-language-button:active {
+  transform: translateY(1px);
+}
