@@ -138,7 +138,7 @@ export default async function NewStoryPage({
             />
           </label>
 
-          <StoryTranslationFields defaultLang="cn" />
+         <StoryTranslationFields />
 
           <label className="form-field form-field-full">
             <span>연결 카드 slug (선택)</span>

@@ -257,7 +257,6 @@ const translationKr =
   cnBody={translationCn?.body ?? ""}
   krTitle={translationKr?.title ?? ""}
   krBody={translationKr?.body ?? ""}
-  defaultLang={translationCn ? "cn" : "kr"}
 />
 
           <label className="form-field form-field-full">
