@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SmartEditor from "@/components/editor/SmartEditor";
+import StoryVisibilityFields from "@/components/admin/stories/StoryVisibilityFields";
 import { supabase } from "@/lib/supabase/client";
 import { updateEventBundle, deleteEventBundle } from "@/app/admin/actions";
 
@@ -19,6 +20,16 @@ function safeDecodeSlug(value: string) {
     return value;
   }
 }
+
+const EVENT_SUBTYPE_OPTIONS = [
+  { value: "birthday_baiqi", label: "캐릭터 생일" },
+  { value: "birthday_mc", label: "유저 생일" },
+  { value: "anniversary_event", label: "N주년" },
+  { value: "game_event", label: "명절 / 기념일" },
+  { value: "seasonal_event", label: "시즌 이벤트" },
+  { value: "game_event", label: "콜라보" },
+  { value: "return_event", label: "복귀 이벤트" },
+] as const;
 
 type EditEventPageProps = {
   params: Promise<{
@@ -39,7 +50,7 @@ export default async function EditEventPage({
   const { data: event, error: eventError } = await supabase
     .from("events")
     .select(
-      "id, title, slug, subtype, release_year, start_date, end_date, summary, server_id, primary_character_id, thumbnail_url, is_published"
+      "id, title, slug, subtype, release_year, start_date, end_date, summary, server_id, primary_character_id, thumbnail_url, is_published, visibility, access_hint"
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -87,6 +98,33 @@ export default async function EditEventPage({
     characters?.find((character) => character.id === event.primary_character_id)?.key ??
     "baiqi";
 
+  const { data: itemTagRows } = await supabase
+    .from("item_tags")
+    .select("tag_id, sort_order")
+    .eq("item_type", "event")
+    .eq("item_id", event.id)
+    .order("sort_order", { ascending: true });
+
+  const tagIds = Array.from(new Set((itemTagRows ?? []).map((row) => row.tag_id)));
+
+  let defaultTagText = "";
+
+  if (tagIds.length > 0) {
+    const { data: tagRows } = await supabase
+      .from("tags")
+      .select("id, label, name, slug")
+      .in("id", tagIds);
+
+    const tagNameMap = new Map(
+      (tagRows ?? []).map((row) => [row.id, row.label ?? row.name ?? row.slug])
+    );
+
+    defaultTagText = (itemTagRows ?? [])
+      .map((row) => tagNameMap.get(row.tag_id))
+      .filter(Boolean)
+      .join(", ");
+  }
+
   return (
     <main>
       <header className="page-header">
@@ -121,24 +159,26 @@ export default async function EditEventPage({
 
         <div className="form-grid">
           <label className="form-field form-field-full">
-            <span>title</span>
+            <span>제목</span>
             <input name="title" defaultValue={event.title} required />
           </label>
 
           <label className="form-field">
-            <span>subtype</span>
-            <select name="subtype" defaultValue={event.subtype}>
-              <option value="return_event">return_event</option>
-              <option value="birthday_baiqi">birthday_baiqi</option>
-              <option value="birthday_mc">birthday_mc</option>
-              <option value="game_event">game_event</option>
-              <option value="anniversary_event">anniversary_event</option>
-              <option value="seasonal_event">seasonal_event</option>
+            <span>카테고리</span>
+            <select name="subtype" defaultValue={event.subtype ?? "seasonal_event"}>
+              {EVENT_SUBTYPE_OPTIONS.map((item) => (
+                <option
+                  key={`${item.value}-${item.label}`}
+                  value={item.value}
+                >
+                  {item.label}
+                </option>
+              ))}
             </select>
           </label>
 
           <label className="form-field">
-            <span>release_year</span>
+            <span>연도</span>
             <input
               name="releaseYear"
               type="number"
@@ -148,7 +188,7 @@ export default async function EditEventPage({
           </label>
 
           <label className="form-field">
-            <span>start_date</span>
+            <span>시작일</span>
             <input
               name="startDate"
               type="date"
@@ -157,7 +197,7 @@ export default async function EditEventPage({
           </label>
 
           <label className="form-field">
-            <span>end_date</span>
+            <span>종료일</span>
             <input
               name="endDate"
               type="date"
@@ -166,7 +206,7 @@ export default async function EditEventPage({
           </label>
 
           <label className="form-field">
-            <span>server</span>
+            <span>서버</span>
             <select name="serverKey" defaultValue={serverKey}>
               {servers?.map((server) => (
                 <option key={server.id} value={server.key}>
@@ -177,7 +217,7 @@ export default async function EditEventPage({
           </label>
 
           <label className="form-field">
-            <span>character</span>
+            <span>캐릭터</span>
             <select name="characterKey" defaultValue={characterKey}>
               {characters?.map((character) => (
                 <option key={character.id} value={character.key}>
@@ -188,12 +228,25 @@ export default async function EditEventPage({
           </label>
 
           <label className="form-field form-field-full">
-            <span>summary</span>
+            <span>요약</span>
             <textarea name="summary" rows={4} defaultValue={event.summary ?? ""} />
           </label>
 
           <label className="form-field form-field-full">
-            <span>youtube url</span>
+            <span>해시태그</span>
+            <input
+              name="tagLabels"
+              defaultValue={defaultTagText}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              placeholder="예: 생일, 한정, 복각"
+            />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>유튜브 URL</span>
             <input
               name="youtubeUrl"
               defaultValue={
@@ -204,7 +257,7 @@ export default async function EditEventPage({
           </label>
 
           <label className="form-field form-field-full">
-            <span>thumbnail url</span>
+            <span>썸네일 URL</span>
             <input
               name="thumbnailUrl"
               defaultValue={event.thumbnail_url ?? ""}
@@ -213,7 +266,7 @@ export default async function EditEventPage({
           </label>
 
           <label className="form-field form-field-full">
-            <span>translation title</span>
+            <span>번역 제목</span>
             <input
               name="translationTitle"
               defaultValue={translation?.title ?? ""}
@@ -222,13 +275,13 @@ export default async function EditEventPage({
 
           <SmartEditor
             name="translationBody"
-            label="translation body"
+            label="번역 본문"
             initialValue={translation?.body ?? ""}
             height="700px"
           />
 
           <label className="form-field form-field-full">
-            <span>is_published</span>
+            <span>게시 여부</span>
             <select
               name="isPublished"
               defaultValue={event.is_published ? "true" : "false"}
@@ -238,6 +291,13 @@ export default async function EditEventPage({
             </select>
           </label>
         </div>
+
+        <StoryVisibilityFields
+          values={{
+            visibility: event.visibility ?? "public",
+            access_hint: event.access_hint ?? "",
+          }}
+        />
 
         <button type="submit" className="primary-button">
           이벤트 수정 저장

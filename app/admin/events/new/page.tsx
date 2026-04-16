@@ -1,5 +1,6 @@
 import SmartEditor from "@/components/editor/SmartEditor";
 import { createEventBundle } from "@/app/admin/actions";
+import StoryVisibilityFields from "@/components/admin/stories/StoryVisibilityFields";
 
 function safeDecode(value: string) {
   try {
@@ -8,6 +9,16 @@ function safeDecode(value: string) {
     return value;
   }
 }
+
+const EVENT_SUBTYPE_OPTIONS = [
+  { value: "birthday_baiqi", label: "캐릭터 생일" },
+  { value: "birthday_mc", label: "유저 생일" },
+  { value: "anniversary_event", label: "N주년" },
+  { value: "game_event", label: "명절 / 기념일" },
+  { value: "seasonal_event", label: "시즌 이벤트" },
+  { value: "game_event", label: "콜라보" },
+  { value: "return_event", label: "복귀 이벤트" },
+] as const;
 
 export default async function NewEventPage({
   searchParams,
@@ -46,24 +57,26 @@ export default async function NewEventPage({
       <form action={createEventBundle} className="form-panel">
         <div className="form-grid">
           <label className="form-field form-field-full">
-            <span>title</span>
+            <span>제목</span>
             <input name="title" required />
           </label>
 
           <label className="form-field">
-            <span>subtype</span>
-            <select name="subtype" defaultValue="game_event">
-              <option value="return_event">return_event</option>
-              <option value="birthday_baiqi">birthday_baiqi</option>
-              <option value="birthday_mc">birthday_mc</option>
-              <option value="game_event">game_event</option>
-              <option value="anniversary_event">anniversary_event</option>
-              <option value="seasonal_event">seasonal_event</option>
+            <span>카테고리</span>
+            <select name="subtype" defaultValue="seasonal_event">
+              {EVENT_SUBTYPE_OPTIONS.map((item) => (
+                <option
+                  key={`${item.value}-${item.label}`}
+                  value={item.value}
+                >
+                  {item.label}
+                </option>
+              ))}
             </select>
           </label>
 
           <label className="form-field">
-            <span>release_year</span>
+            <span>연도</span>
             <input
               name="releaseYear"
               type="number"
@@ -73,17 +86,17 @@ export default async function NewEventPage({
           </label>
 
           <label className="form-field">
-            <span>start_date</span>
+            <span>시작일</span>
             <input name="startDate" type="date" />
           </label>
 
           <label className="form-field">
-            <span>end_date</span>
+            <span>종료일</span>
             <input name="endDate" type="date" />
           </label>
 
           <label className="form-field">
-            <span>server</span>
+            <span>서버</span>
             <select name="serverKey" defaultValue="kr">
               <option value="kr">kr</option>
               <option value="cn">cn</option>
@@ -91,7 +104,7 @@ export default async function NewEventPage({
           </label>
 
           <label className="form-field">
-            <span>character</span>
+            <span>캐릭터</span>
             <select name="characterKey" defaultValue="baiqi">
               <option value="baiqi">baiqi</option>
               <option value="lizeyan">lizeyan</option>
@@ -102,12 +115,24 @@ export default async function NewEventPage({
           </label>
 
           <label className="form-field form-field-full">
-            <span>summary</span>
+            <span>요약</span>
             <textarea name="summary" rows={4} />
           </label>
 
           <label className="form-field form-field-full">
-            <span>youtube url</span>
+            <span>해시태그</span>
+            <input
+              name="tagLabels"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              placeholder="예: 생일, 한정, 복각"
+            />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>유튜브 URL</span>
             <input
               name="youtubeUrl"
               placeholder="https://www.youtube.com/watch?v=..."
@@ -115,7 +140,7 @@ export default async function NewEventPage({
           </label>
 
           <label className="form-field form-field-full">
-            <span>thumbnail url</span>
+            <span>썸네일 URL</span>
             <input
               name="thumbnailUrl"
               placeholder="https://..."
@@ -123,19 +148,19 @@ export default async function NewEventPage({
           </label>
 
           <label className="form-field form-field-full">
-            <span>translation title</span>
+            <span>번역 제목</span>
             <input name="translationTitle" />
           </label>
 
           <SmartEditor
             name="translationBody"
-            label="translation body"
+            label="번역 본문"
             initialValue=""
             height="700px"
           />
 
           <label className="form-field form-field-full">
-            <span>linked card slug (optional)</span>
+            <span>연결 카드 slug (선택)</span>
             <input
               name="cardSlug"
               placeholder="예: baiqi-ssr-some-card"
@@ -143,13 +168,20 @@ export default async function NewEventPage({
           </label>
 
           <label className="form-field form-field-full">
-            <span>linked event slug (optional)</span>
+            <span>연결 이벤트 slug (선택)</span>
             <input
               name="relatedEventSlug"
               placeholder="예: 2025-anniversary-event"
             />
           </label>
         </div>
+
+        <StoryVisibilityFields
+          values={{
+            visibility: "public",
+            access_hint: "",
+          }}
+        />
 
         <button type="submit" className="primary-button">
           이벤트 통합 등록

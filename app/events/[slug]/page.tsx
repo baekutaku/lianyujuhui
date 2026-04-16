@@ -1,11 +1,16 @@
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
-import { isAdmin } from "@/lib/utils/admin-auth";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/utils/admin-auth";
+import { unlockProtectedEvent } from "@/app/events/[slug]/actions";
+import { hasEventAccess } from "@/lib/utils/event-access";
 
 type EventPageProps = {
   params: Promise<{
     slug: string;
+  }>;
+  searchParams?: Promise<{
+    passwordError?: string;
   }>;
 };
 
@@ -13,13 +18,92 @@ function looksLikeHtml(value: string) {
   return /<\/?[a-z][\s\S]*>/i.test(value);
 }
 
-export default async function EventDetailPage({ params }: EventPageProps) {
-  const { slug } = await params;
+function safeDecodeSlug(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function ProtectedEventGate({
+  slug,
+  title,
+  hint,
+  showError,
+}: {
+  slug: string;
+  title: string;
+  hint?: string | null;
+  showError?: boolean;
+}) {
+  return (
+    <main>
+      <section className="page-header">
+        <div className="page-eyebrow">Protected Event</div>
+        <h1 className="page-title">{title}</h1>
+        <p className="page-desc">이 이벤트는 비밀번호가 있어야 열람할 수 있습니다.</p>
+      </section>
+
+      <section className="detail-panel" style={{ maxWidth: 560, margin: "0 auto" }}>
+        <div style={{ display: "grid", gap: 16 }}>
+          {showError ? (
+            <div className="error-box">비밀번호가 올바르지 않습니다.</div>
+          ) : null}
+
+          {hint ? (
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: 16,
+                background: "rgba(248, 245, 251, 0.96)",
+                border: "1px solid rgba(222, 213, 228, 0.72)",
+                color: "var(--text-sub)",
+              }}
+            >
+              힌트: {hint}
+            </div>
+          ) : null}
+
+          <form action={unlockProtectedEvent} style={{ display: "grid", gap: 12 }}>
+            <input type="hidden" name="slug" value={slug} />
+
+            <input
+              type="password"
+              name="password"
+              placeholder="비밀번호 입력"
+              autoComplete="off"
+              className="story-toolbar-search"
+            />
+
+            <button type="submit" className="primary-button">
+              열람하기
+            </button>
+          </form>
+
+          <Link href="/events" className="nav-link">
+            목록으로
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+export default async function EventDetailPage({
+  params,
+  searchParams,
+}: EventPageProps) {
+  const { slug: rawSlug } = await params;
+  const slug = safeDecodeSlug(rawSlug).trim();
+  const resolvedSearchParams = searchParams ? await searchParams : {};
   const admin = await isAdmin();
 
   const { data: event, error: eventError } = await supabase
     .from("events")
-    .select("id, title, slug, subtype, release_year, start_date, end_date, summary, is_published")
+    .select(
+      "id, title, slug, subtype, release_year, start_date, end_date, summary, is_published, visibility, access_password_hash, access_hint"
+    )
     .eq("slug", slug)
     .maybeSingle();
 
@@ -33,6 +117,25 @@ export default async function EventDetailPage({ params }: EventPageProps) {
 
   if (!event.is_published && !admin) {
     notFound();
+  }
+
+  if (event.visibility === "private" && !admin) {
+    notFound();
+  }
+
+  if (event.visibility === "protected" && !admin) {
+    const allowed = await hasEventAccess(event.id, event.access_password_hash);
+
+    if (!allowed) {
+      return (
+        <ProtectedEventGate
+          slug={event.slug}
+          title={event.title}
+          hint={event.access_hint}
+          showError={resolvedSearchParams.passwordError === "1"}
+        />
+      );
+    }
   }
 
   const { data: translations, error: translationError } = await supabase
@@ -106,6 +209,12 @@ export default async function EventDetailPage({ params }: EventPageProps) {
             <span className="meta-pill">year: {event.release_year}</span>
             {event.start_date ? <span className="meta-pill">start: {event.start_date}</span> : null}
             {event.end_date ? <span className="meta-pill">end: {event.end_date}</span> : null}
+            {event.visibility === "protected" ? (
+              <span className="meta-pill">비밀번호 필요</span>
+            ) : null}
+            {event.visibility === "private" && admin ? (
+              <span className="meta-pill">비공개</span>
+            ) : null}
           </div>
 
           <div className="story-top-actions">

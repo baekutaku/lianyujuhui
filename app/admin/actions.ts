@@ -168,27 +168,49 @@ async function syncStoryTags(storyId: string, labels: string[]) {
 
   if (normalizedLabels.length === 0) return;
 
-const normalizedTags = normalizedLabels.map((label) => {
-  const slug = slugifyTag(label);
+  const normalizedTags = normalizedLabels.map((label) => {
+    const slug = slugifyTag(label);
 
-  return {
-    slug,
-    name: label,
-    label,
-    key: slug,
-    kind: "story",
-  };
-});
+    return {
+      slug,
+      name: label,
+      label,
+      key: slug,
+      kind: "story",
+    };
+  });
 
   const slugs = normalizedTags.map((item) => item.slug);
 
   const { data: existingTags, error: existingTagsError } = await supabase
     .from("tags")
-    .select("id, slug")
+    .select("id, slug, label, name")
     .in("slug", slugs);
 
   if (existingTagsError) {
     throw new Error(existingTagsError.message);
+  }
+
+  const existingTagMap = new Map(
+    (existingTags ?? []).map((row) => [row.slug, row])
+  );
+
+  for (const item of normalizedTags) {
+    const existing = existingTagMap.get(item.slug);
+
+    if (existing && (existing.label !== item.label || existing.name !== item.name)) {
+      const { error: updateError } = await supabase
+        .from("tags")
+        .update({
+          label: item.label,
+          name: item.name,
+        })
+        .eq("id", existing.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+    }
   }
 
   const tagIdMap = new Map(
@@ -233,6 +255,111 @@ const normalizedTags = normalizedLabels.map((label) => {
     }
   }
 }
+async function syncEventTags(eventId: string, labels: string[]) {
+  await supabase
+    .from("item_tags")
+    .delete()
+    .eq("item_type", "event")
+    .eq("item_id", eventId);
+
+  const normalizedLabels = Array.from(
+    new Set(
+      labels
+        .map((label) => label.trim())
+        .filter(Boolean)
+    )
+  );
+
+  if (normalizedLabels.length === 0) return;
+
+  const normalizedTags = normalizedLabels.map((label) => {
+    const slug = slugifyTag(label);
+
+    return {
+      slug,
+      name: label,
+      label,
+      key: slug,
+      kind: "event",
+    };
+  });
+
+  const slugs = normalizedTags.map((item) => item.slug);
+
+  const { data: existingTags, error: existingTagsError } = await supabase
+    .from("tags")
+    .select("id, slug, label, name")
+    .in("slug", slugs);
+
+  if (existingTagsError) {
+    throw new Error(existingTagsError.message);
+  }
+
+  const existingTagMap = new Map(
+    (existingTags ?? []).map((row) => [row.slug, row])
+  );
+
+  for (const item of normalizedTags) {
+    const existing = existingTagMap.get(item.slug);
+
+    if (existing && (existing.label !== item.label || existing.name !== item.name)) {
+      const { error: updateError } = await supabase
+        .from("tags")
+        .update({
+          label: item.label,
+          name: item.name,
+        })
+        .eq("id", existing.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+    }
+  }
+
+  const tagIdMap = new Map(
+    (existingTags ?? []).map((row) => [row.slug, row.id])
+  );
+
+  const missingTags = normalizedTags.filter((item) => !tagIdMap.has(item.slug));
+
+  if (missingTags.length > 0) {
+    const { data: insertedTags, error: insertError } = await supabase
+      .from("tags")
+      .insert(missingTags)
+      .select("id, slug");
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    (insertedTags ?? []).forEach((row) => {
+      tagIdMap.set(row.slug, row.id);
+    });
+  }
+
+  const itemTagRows = normalizedTags
+    .map((item, index) => {
+      const tagId = tagIdMap.get(item.slug);
+      if (!tagId) return null;
+
+      return {
+        item_type: "event",
+        item_id: eventId,
+        tag_id: tagId,
+        sort_order: index,
+      };
+    })
+    .filter(Boolean);
+
+  if (itemTagRows.length > 0) {
+    const { error } = await supabase.from("item_tags").insert(itemTagRows);
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+}
+
 
 
 async function resolveStoryMetaFromForm(formData: FormData, currentPasswordHash?: string | null) {
@@ -1345,7 +1472,10 @@ export async function createEventBundle(formData: FormData) {
     const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
     const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
     const cardSlug = String(formData.get("cardSlug") || "").trim();
+    
     const relatedEventSlug = String(formData.get("relatedEventSlug") || "").trim();
+    const tagLabels = parseTagLabelsFromForm(formData);
+const meta = await resolveStoryMetaFromForm(formData);
 
     if (!title) {
       throw new Error("title이 비어 있습니다.");
@@ -1388,20 +1518,23 @@ export async function createEventBundle(formData: FormData) {
     const { data: insertedEvent, error: eventError } = await supabase
       .from("events")
       .insert({
-        content_id: contentId,
-        origin_key: originKey,
-        server_id: server.id,
-        primary_character_id: character.id,
-        title,
-        slug,
-        subtype,
-        release_year: releaseYear,
-        start_date: startDate || null,
-        end_date: endDate || null,
-        thumbnail_url: thumbnailUrl || null,
-        summary,
-        is_published: true,
-      })
+  content_id: contentId,
+  origin_key: originKey,
+  server_id: server.id,
+  primary_character_id: character.id,
+  title,
+  slug,
+  subtype,
+  release_year: releaseYear,
+  start_date: startDate || null,
+  end_date: endDate || null,
+  thumbnail_url: thumbnailUrl || null,
+  summary,
+  visibility: meta.visibility,
+  access_password_hash: meta.accessPasswordHash,
+  access_hint: meta.accessHint,
+  is_published: true,
+})
       .select("id")
       .single();
 
@@ -1410,6 +1543,7 @@ export async function createEventBundle(formData: FormData) {
     }
 
     createdEventId = insertedEvent.id;
+    await syncEventTags(insertedEvent.id, tagLabels);
 
     if (translationBody) {
       const { error: translationError } = await supabase
@@ -1572,9 +1706,25 @@ export async function updateEventBundle(formData: FormData) {
   const cardSlug = String(formData.get("cardSlug") || "").trim();
   const relatedEventSlug = String(formData.get("relatedEventSlug") || "").trim();
 
+  const tagLabels = parseTagLabelsFromForm(formData);
+
   if (!eventId) {
     throw new Error("eventId가 없습니다.");
   }
+const { data: currentEvent, error: currentEventError } = await supabase
+  .from("events")
+  .select("access_password_hash")
+  .eq("id", eventId)
+  .single();
+
+if (currentEventError) {
+  throw new Error(currentEventError.message);
+}
+
+const meta = await resolveStoryMetaFromForm(
+  formData,
+  currentEvent?.access_password_hash ?? null
+);
 
   const { data: server, error: serverError } = await supabase
     .from("servers")
@@ -1599,23 +1749,26 @@ export async function updateEventBundle(formData: FormData) {
   const { error: eventError } = await supabase
     .from("events")
     .update({
-      title,
-      subtype,
-      release_year: releaseYear,
-      start_date: startDate || null,
-      end_date: endDate || null,
-      summary,
-      server_id: server.id,
-      primary_character_id: character.id,
-      thumbnail_url: thumbnailUrl || null,
-      is_published: isPublished,
-    })
+  title,
+  subtype,
+  release_year: releaseYear,
+  start_date: startDate || null,
+  end_date: endDate || null,
+  summary,
+  server_id: server.id,
+  primary_character_id: character.id,
+  thumbnail_url: thumbnailUrl || null,
+  visibility: meta.visibility,
+  access_password_hash: meta.accessPasswordHash,
+  access_hint: meta.accessHint,
+  is_published: isPublished,
+})
     .eq("id", eventId);
 
   if (eventError) {
     throw new Error(eventError.message);
   }
-
+await syncEventTags(eventId, tagLabels);
   if (translationId) {
     const { error: translationError } = await supabase
       .from("translations")
