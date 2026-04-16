@@ -50,6 +50,7 @@ type PageProps = {
     q?: SearchParamValue;
     year?: SearchParamValue;
     tab?: SearchParamValue;
+    sub?: SearchParamValue;
     character?: SearchParamValue;
     scope?: SearchParamValue;
     sort?: SearchParamValue;
@@ -57,13 +58,24 @@ type PageProps = {
   }>;
 };
 
+type EventCard = {
+  id: string;
+  title: string;
+  slug: string;
+  subtype: string | null;
+  release_year: number | null;
+  start_date: string | null;
+  summary?: string | null;
+  primary_character_id?: string | null;
+  visibility?: string | null;
+};
 
 const STORY_TAB_OPTIONS = [
   {
     key: "main",
     label: "메인스토리",
     subtypes: ["main_story", "behind_story"],
-    desc: "시작 / 막후의 장 중심으로 보는 메인스토리 묶음",
+    desc: "1부 / 2부 / 3부와 막후의 장 중심의 메인스토리 묶음",
   },
   {
     key: "card",
@@ -75,50 +87,49 @@ const STORY_TAB_OPTIONS = [
     key: "asmr",
     label: "너의 곁에",
     subtypes: ["asmr"],
-    desc: "ASMR / 오디오형 스토리, 데이트와도 연결되는 서사",
+    desc: "ASMR / 오디오형 스토리",
   },
   {
     key: "event",
     label: "이벤트 / 기념일",
-    subtypes: ["event_story"],
-    desc: "생일, 기념일, 시즌, 이벤트 서사",
+    subtypes: [],
+    desc: "생일, 기념일, 시즌, 복귀, N주년 이벤트",
   },
   {
     key: "side",
     label: "외전",
     subtypes: ["side_story"],
-    desc: "메인과 연결되지만 별도 분류가 필요한 외전 스토리",
+    desc: "개인서사 외전 중심",
   },
   {
     key: "xiyue",
     label: "서월국",
     subtypes: ["xiyue_story"],
-    desc: "다른 세계관 / 서월국 관련 스토리",
+    desc: "서월국 관련 스토리",
   },
   {
     key: "myhome",
     label: "마이홈",
     subtypes: ["myhome_story"],
-    desc: "마이홈 / 개인 루트 성격의 스토리",
+    desc: "마이홈 계열 스토리",
   },
   {
     key: "company",
-    label: "회사 프로젝트",
+    label: "촬영장 / 회사 프로젝트",
     subtypes: ["company_project"],
-    desc: "촬영장 / 시티뉴스 등 회사 프로젝트 계열",
+    desc: "회사 프로젝트 / 촬영장 계열 스토리",
   },
   {
     key: "all",
     label: "전체",
     subtypes: [],
-    desc: "등록된 전체 스토리",
+    desc: "등록된 전체 스토리와 이벤트",
   },
 ] as const;
 
 const SUBTYPE_LABELS: Record<string, string> = {
   card_story: "데이트",
   main_story: "메인스토리",
-  event_story: "이벤트 스토리",
   side_story: "외전",
   asmr: "너의 곁에",
   behind_story: "막후의 장",
@@ -134,6 +145,51 @@ const NOTICE_ITEMS = [
   "태그 검색 / 연결 검색은 다음 단계에서 추가 예정",
 ];
 
+
+const CHARACTER_SUBFILTERS = [
+  { key: "all", label: "전체" },
+  { key: "baiqi", label: "백기" },
+  { key: "lizeyan", label: "이택언" },
+  { key: "xumo", label: "허묵" },
+  { key: "zhouqiluo", label: "주기락" },
+  { key: "lingxiao", label: "연시호" },
+] as const;
+
+const STORY_SUBFILTERS = {
+  all: [],
+
+  main: [
+    { key: "all", label: "전체" },
+    { key: "part1", label: "1부" },
+    { key: "part2", label: "2부" },
+    { key: "part3", label: "3부" },
+    { key: "behind_story", label: "막후의 장" },
+  ],
+
+  card: CHARACTER_SUBFILTERS,
+  asmr: CHARACTER_SUBFILTERS,
+  side: CHARACTER_SUBFILTERS,
+  xiyue: CHARACTER_SUBFILTERS,
+  myhome: CHARACTER_SUBFILTERS,
+  company: CHARACTER_SUBFILTERS,
+
+  event: [
+    { key: "all", label: "전체" },
+    { key: "birthday_character", label: "캐릭터 생일" },
+    { key: "birthday_mc", label: "유저 생일" },
+    { key: "anniversary", label: "N주년" },
+    { key: "festival", label: "명절 / 기념일" },
+    { key: "seasonal", label: "시즌 이벤트" },
+    { key: "collab", label: "콜라보" },
+    { key: "return", label: "복귀 이벤트" },
+  ],
+} as const;
+
+function getSubLabel(tab: string, sub: string) {
+  const items = STORY_SUBFILTERS[tab as keyof typeof STORY_SUBFILTERS] ?? [];
+  return items.find((item) => item.key === sub)?.label ?? "전체";
+}
+
 const SCOPE_OPTIONS = [
   { key: "", label: "등장 범위 전체" },
   { key: "route", label: "루트 중심" },
@@ -141,6 +197,9 @@ const SCOPE_OPTIONS = [
   { key: "multi", label: "2인 이상 등장" },
   { key: "all_cast", label: "전체 등장" },
 ] as const;
+
+
+
 
 const SORT_OPTIONS = [
   { key: "latest", label: "최신순" },
@@ -187,8 +246,30 @@ function formatStoryDate(story: StoryCard) {
   return "날짜 미정";
 }
 
+function formatEventDate(event: EventCard) {
+  if (event.start_date) return event.start_date;
+  if (event.release_year) return `${event.release_year}`;
+  return "날짜 미정";
+}
+
+function getEventSubtypeLabel(subtype: string | null) {
+  if (!subtype) return "이벤트";
+
+  const map: Record<string, string> = {
+    birthday_baiqi: "캐릭터 생일",
+    birthday_mc: "유저 생일",
+    anniversary_event: "N주년",
+    seasonal_event: "시즌 이벤트",
+    return_event: "복귀 이벤트",
+    game_event: "게임 이벤트",
+  };
+
+  return map[subtype] ?? subtype;
+}
+
 function buildStoriesHref({
   tab,
+  sub,
   q,
   years,
   characters,
@@ -197,6 +278,7 @@ function buildStoriesHref({
   page,
 }: {
   tab: string;
+  sub?: string;
   q: string;
   years: string[];
   characters: string[];
@@ -207,6 +289,7 @@ function buildStoriesHref({
   const params = new URLSearchParams();
 
   if (tab) params.set("tab", tab);
+  if (sub && sub !== "all") params.set("sub", sub);
   if (q) params.set("q", q);
   years.forEach((year) => params.append("year", year));
   characters.forEach((characterKey) => params.append("character", characterKey));
@@ -260,6 +343,7 @@ export default async function StoriesPage({ searchParams }: PageProps) {
 
   const q = toSingleString(resolvedSearchParams?.q);
   const tab = toSingleString(resolvedSearchParams?.tab);
+  const sub = toSingleString(resolvedSearchParams?.sub) || "all";
   const scope = toSingleString(resolvedSearchParams?.scope);
   const sort = toSingleString(resolvedSearchParams?.sort) || "latest";
   const pageRaw = Number(toSingleString(resolvedSearchParams?.page) || "1");
@@ -270,12 +354,25 @@ export default async function StoriesPage({ searchParams }: PageProps) {
     )
   ).sort((a, b) => Number(b) - Number(a));
 
-  const selectedCharacterKeys = Array.from(
-    new Set(toStringArray(resolvedSearchParams?.character))
-  );
+  const rawSelectedCharacterKeys = Array.from(
+  new Set(toStringArray(resolvedSearchParams?.character))
+);
+
+const selectedCharacterKeys = Array.from(
+  new Set(
+    [
+      ...rawSelectedCharacterKeys,
+      ["card", "asmr", "side", "xiyue", "myhome", "company"].includes(tab) &&
+      ["baiqi", "lizeyan", "xumo", "zhouqiluo", "lingxiao"].includes(sub)
+        ? sub
+        : "",
+    ].filter(Boolean)
+  )
+);
 
   const activeTab = getActiveTab(tab);
   const admin = await isAdmin();
+
 
   const { data: characters } = await supabase
     .from("characters")
@@ -349,8 +446,31 @@ export default async function StoriesPage({ searchParams }: PageProps) {
     );
   }
 
-  const { data: rawStories, error } = await query;
-  let stories = (rawStories ?? []) as StoryCard[];
+  
+
+ const { data: rawStories, error } = await query;
+let stories = (rawStories ?? []) as StoryCard[];
+
+if (activeTab.key === "main") {
+  if (sub === "part1") {
+    stories = stories.filter(
+      (story) => story.subtype === "main_story" && story.part_no === 1
+    );
+  } else if (sub === "part2") {
+    stories = stories.filter(
+      (story) => story.subtype === "main_story" && story.part_no === 2
+    );
+  } else if (sub === "part3") {
+    stories = stories.filter(
+      (story) => story.subtype === "main_story" && story.part_no === 3
+    );
+  } else if (sub === "behind_story") {
+    stories = stories.filter((story) => story.subtype === "behind_story");
+  }
+}
+
+
+
 
   const storyIds = stories.map((story) => story.id);
   const itemCharacterMap = new Map<string, string[]>();
@@ -495,6 +615,8 @@ export default async function StoriesPage({ searchParams }: PageProps) {
       }
     });
   }
+
+  
 const storyTagMap = new Map<string, string[]>();
 
   if (filteredStoryIds.length > 0) {
@@ -510,14 +632,14 @@ const storyTagMap = new Map<string, string[]>();
     );
 
     if (tagIds.length > 0) {
-      const { data: tagRows } = await supabase
-        .from("tags")
-        .select("id, name")
-        .in("id", tagIds);
+     const { data: tagRows } = await supabase
+  .from("tags")
+  .select("id, label")
+  .in("id", tagIds);
 
-      const tagNameMap = new Map(
-        (tagRows ?? []).map((row) => [row.id, row.name])
-      );
+   const tagNameMap = new Map(
+  (tagRows ?? []).map((row) => [row.id, row.label])
+);
 
       (itemTagRows ?? []).forEach((row) => {
         const name = tagNameMap.get(row.tag_id);
@@ -555,6 +677,463 @@ const storyTagMap = new Map<string, string[]>();
     sort,
   });
 
+  
+
+
+if (activeTab.key === "event") {
+  let eventQuery = supabase
+    .from("events")
+    .select("id, title, slug, subtype, release_year, start_date, summary, primary_character_id, visibility")
+    .eq("is_published", true);
+
+  if (!admin) {
+    eventQuery = eventQuery.neq("visibility", "private");
+  }
+
+  const { data: rawEvents, error } = await eventQuery;
+  let events = (rawEvents ?? []) as EventCard[];
+
+  
+
+  if (sub === "birthday_character") {
+  events = events.filter((item) => item.subtype === "birthday_baiqi");
+} else if (sub === "birthday_mc") {
+  events = events.filter((item) => item.subtype === "birthday_mc");
+} else if (sub === "anniversary") {
+  events = events.filter((item) => item.subtype === "anniversary_event");
+} else if (sub === "seasonal") {
+  events = events.filter((item) => item.subtype === "seasonal_event");
+} else if (sub === "return") {
+  events = events.filter((item) => item.subtype === "return_event");
+} else if (sub === "festival") {
+  events = events.filter((item) => item.subtype === "game_event");
+} else if (sub === "collab") {
+  events = events.filter((item) => item.subtype === "game_event");
+}
+
+if (selectedYears.length > 0) {
+  const yearSet = new Set(selectedYears.map((value) => Number(value)));
+  events = events.filter((item) => {
+    if (item.release_year && yearSet.has(item.release_year)) return true;
+    if (item.start_date) {
+      const eventYear = new Date(item.start_date).getFullYear();
+      return yearSet.has(eventYear);
+    }
+    return false;
+  });
+}
+
+if (q) {
+  const loweredQ = q.toLowerCase();
+  events = events.filter((item) => {
+    const titleMatch = item.title.toLowerCase().includes(loweredQ);
+    const summaryMatch = (item.summary ?? "").toLowerCase().includes(loweredQ);
+    return titleMatch || summaryMatch;
+  });
+}
+
+if (selectedCharacterIdSet.size > 0) {
+  events = events.filter(
+    (item) =>
+      !!item.primary_character_id &&
+      selectedCharacterIdSet.has(item.primary_character_id)
+  );
+}
+
+const eventIds = events.map((event) => event.id);
+  const eventMediaMap = new Map<string, string>();
+  const eventTagMap = new Map<string, string[]>();
+
+  if (eventIds.length > 0) {
+    const { data: mediaAssets } = await supabase
+      .from("media_assets")
+      .select(
+        "parent_id, media_type, usage_type, url, youtube_video_id, thumbnail_url, is_primary, sort_order"
+      )
+      .eq("parent_type", "event")
+      .in("parent_id", eventIds)
+      .order("is_primary", { ascending: false })
+      .order("sort_order", { ascending: true });
+
+    const grouped = new Map<string, StoryThumb[]>();
+
+    (mediaAssets as StoryThumb[] | null)?.forEach((media) => {
+      const arr = grouped.get(media.parent_id) ?? [];
+      arr.push(media);
+      grouped.set(media.parent_id, arr);
+    });
+
+    grouped.forEach((items, eventId) => {
+      const coverImage = items.find(
+        (media) => media.media_type === "image" && media.usage_type === "cover"
+      );
+      const bannerImage = items.find(
+        (media) => media.media_type === "image" && media.usage_type === "banner"
+      );
+      const normalImage = items.find((media) => media.media_type === "image");
+      const youtubeMedia = items.find((media) => media.media_type === "youtube");
+
+      let thumb = "";
+
+      if (coverImage?.url) {
+        thumb = coverImage.url;
+      } else if (bannerImage?.url) {
+        thumb = bannerImage.url;
+      } else if (normalImage?.url) {
+        thumb = normalImage.url;
+      } else if (youtubeMedia) {
+        thumb =
+          youtubeMedia.thumbnail_url ||
+          (youtubeMedia.youtube_video_id
+            ? `https://img.youtube.com/vi/${youtubeMedia.youtube_video_id}/hqdefault.jpg`
+            : "");
+      }
+
+      if (thumb) {
+        eventMediaMap.set(eventId, thumb);
+      }
+    });
+
+    const { data: itemTagRows } = await supabase
+      .from("item_tags")
+      .select("item_id, tag_id")
+      .eq("item_type", "event")
+      .in("item_id", eventIds);
+
+    const tagIds = Array.from(new Set((itemTagRows ?? []).map((row) => row.tag_id)));
+
+    if (tagIds.length > 0) {
+      const { data: tagRows } = await supabase
+        .from("tags")
+        .select("id, label")
+        .in("id", tagIds);
+
+      const tagNameMap = new Map(
+  (tagRows ?? []).map((row) => [row.id, row.label])
+);
+
+      (itemTagRows ?? []).forEach((row) => {
+        const name = tagNameMap.get(row.tag_id);
+        if (!name) return;
+
+        const prev = eventTagMap.get(row.item_id) ?? [];
+        prev.push(name);
+        eventTagMap.set(row.item_id, prev);
+      });
+    }
+  }
+
+  return (
+    <main>
+      <header className="page-header">
+
+        
+        <div className="page-eyebrow">Archive / Stories</div>
+        
+        <h1 className="page-title">스토리 아카이브</h1>
+        <p className="page-desc">
+          메인스토리와 데이트를 우선으로 정리하는 연결형 스토리 목록입니다.
+        </p>
+
+
+        <div className="story-archive-tabs">
+          {STORY_TAB_OPTIONS.map((item) => {
+            const href = buildStoriesHref({
+              tab: item.key,
+              q,
+              years: selectedYears,
+              characters: selectedCharacterKeys,
+              scope,
+              sort,
+              page: 1,
+            });
+
+            const active = item.key === activeTab.key;
+            
+
+            return (
+              <Link
+                key={item.key}
+                href={href}
+                className={`story-archive-tab ${active ? "active" : ""}`}
+              >
+                {item.label}
+                
+              </Link>
+            );
+          })}
+        </div>
+         {admin ? (
+  <div className="story-list-adminbar">
+    <Link href="/admin/events/new" className="primary-button">
+      새 이벤트 등록
+    </Link>
+
+    <Link href="/admin/events" className="nav-link">
+      이벤트 관리
+    </Link>
+  </div>
+) : null}
+      </header>
+
+      <form
+  key={formStateKey}
+  method="get"
+  action="/stories"
+  className="story-toolbar-form"
+>
+  <input type="hidden" name="tab" value={activeTab.key} />
+  <input type="hidden" name="page" value="1" />
+  {sub !== "all" ? <input type="hidden" name="sub" value={sub} /> : null}
+
+  <div className="story-toolbar-top">
+    <input
+      type="text"
+      name="q"
+      defaultValue={q}
+      placeholder="제목 / 이벤트 내용 검색"
+      className="story-toolbar-search"
+    />
+
+    <details className="story-filter-details">
+      <summary className="story-filter-trigger">필터</summary>
+
+      <div className="story-filter-panel">
+        <div className="story-filter-panel-head">
+          <div>
+            <p className="story-filter-panel-eyebrow">FILTER</p>
+            <h2 className="story-filter-panel-title">이벤트 필터</h2>
+          </div>
+
+          <Link
+            href={buildStoriesHref({
+              tab: activeTab.key,
+              sub: sub !== "all" ? sub : undefined,
+              q: "",
+              years: [],
+              characters: [],
+              scope: "",
+              sort: "latest",
+              page: 1,
+            })}
+            className="story-filter-reset-btn"
+          >
+            재설정
+          </Link>
+        </div>
+
+     <div className="story-filter-sections">
+  <section className="story-filter-section">
+    <h3 className="story-filter-section-title">캐릭터</h3>
+    <div className="story-filter-chip-grid">
+      {characterRows.map((item) => (
+        <label key={item.id} className="story-filter-chip-option">
+          <input
+            type="checkbox"
+            name="character"
+            value={item.key}
+            defaultChecked={selectedCharacterKeys.includes(item.key)}
+            className="story-filter-chip-input"
+          />
+          <span className="story-filter-chip-label">{item.name_ko}</span>
+        </label>
+      ))}
+    </div>
+  </section>
+
+  <section className="story-filter-section">
+    <h3 className="story-filter-section-title">연도</h3>
+    <div className="story-filter-chip-grid is-year-grid">
+      {yearOptions.map((yearValue) => (
+        <label key={yearValue} className="story-filter-chip-option">
+          <input
+            type="checkbox"
+            name="year"
+            value={String(yearValue)}
+            defaultChecked={selectedYears.includes(String(yearValue))}
+            className="story-filter-chip-input"
+          />
+          <span className="story-filter-chip-label">{yearValue}</span>
+        </label>
+      ))}
+    </div>
+  </section>
+
+  <section className="story-filter-section">
+    <h3 className="story-filter-section-title">정렬</h3>
+    <div className="story-filter-chip-grid">
+      {SORT_OPTIONS.map((item) => (
+        <label key={item.key} className="story-filter-chip-option">
+          <input
+            type="radio"
+            name="sort"
+            value={item.key}
+            defaultChecked={sort === item.key}
+            className="story-filter-chip-input"
+          />
+          <span className="story-filter-chip-label">{item.label}</span>
+        </label>
+      ))}
+    </div>
+  </section>
+</div>
+
+        <div className="story-filter-actions">
+          <button type="submit" className="story-filter-apply-btn">
+            적용
+          </button>
+        </div>
+      </div>
+    </details>
+
+    <button type="submit" className="primary-button story-toolbar-submit">
+      검색
+    </button>
+  </div>
+
+  {activeFilterChips.length > 0 ? (
+    <div className="story-active-filters">
+      {activeFilterChips.map((chip) => (
+        <span key={chip} className="story-active-filter-chip">
+          {chip}
+        </span>
+      ))}
+    </div>
+  ) : null}
+</form>
+
+      <section className="story-archive-shell">
+        <div className="story-archive-main">
+          <section className="detail-panel story-archive-intro">
+            {(STORY_SUBFILTERS.event ?? []).length > 0 ? (
+              <div className="archive-subchip-row" style={{ marginTop: "12px" }}>
+                {(STORY_SUBFILTERS.event ?? []).map((item) => {
+                  const href =
+                    item.key === "all"
+                      ? `/stories?tab=event`
+                      : `/stories?tab=event&sub=${item.key}`;
+
+                  const active = sub === item.key;
+
+                  return (
+                    <Link
+                      key={item.key}
+                      href={href}
+                      className={`archive-subchip ${active ? "is-active" : ""}`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+              
+            ) : null}
+
+            <div className="story-archive-intro-top">
+              <div>
+                <p className="story-archive-intro-label">현재 카테고리</p>
+                <h2 className="story-archive-intro-title">
+                  {activeTab.label}
+                  {sub !== "all" ? ` · ${getSubLabel("event", sub)}` : ""}
+                </h2>
+              </div>
+
+              <span className="meta-pill">{events.length}개</span>
+            </div>
+
+            <p className="story-archive-intro-desc">{activeTab.desc}</p>
+          </section>
+
+          {error ? (
+            <pre className="error-box">{JSON.stringify(error, null, 2)}</pre>
+          ) : null}
+
+          {events.length === 0 ? (
+            <div className="empty-box">등록된 이벤트가 없습니다.</div>
+          ) : (
+            <ul className="story-archive-list">
+              {events.map((event) => {
+                const thumb = eventMediaMap.get(event.id);
+                const tags = eventTagMap.get(event.id) ?? [];
+                const visibilityLabel = getVisibilityLabel(event.visibility, admin);
+
+                return (
+                  <li key={event.id} className="story-archive-item">
+                    <Link href={`/events/${event.slug}`} className="story-archive-link">
+                      <div className="story-archive-media">
+                        {thumb ? (
+                          <img
+                            src={thumb}
+                            alt={event.title}
+                            className="story-archive-image"
+                          />
+                        ) : (
+                          <div className="story-archive-empty">NO IMAGE</div>
+                        )}
+                      </div>
+
+                      <div className="story-archive-body">
+                        <div className="story-archive-meta-row">
+                          <span className="story-archive-badge">
+                            {getEventSubtypeLabel(event.subtype)}
+                          </span>
+
+                          {visibilityLabel ? (
+                            <span className="story-archive-badge">
+                              {visibilityLabel}
+                            </span>
+                          ) : null}
+
+                          <span className="story-archive-date">
+                            {formatEventDate(event)}
+                          </span>
+                        </div>
+
+                        <h2 className="story-archive-title">{event.title}</h2>
+
+                        {event.summary ? (
+                          <p className="story-archive-summary">{event.summary}</p>
+                        ) : (
+                          <p className="story-archive-summary is-empty">요약 없음</p>
+                        )}
+
+                        {tags.length > 0 ? (
+                          <div className="story-card-tags">
+                            {tags.slice(0, 4).map((tag) => (
+                              <span key={tag} className="story-card-tag">
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        <aside className="story-archive-sidebar">
+          <section className="detail-panel story-archive-notice">
+            <p className="story-archive-notice-eyebrow">NOTICE</p>
+            <h2 className="story-archive-notice-title">스토리 안내</h2>
+
+            <ul className="story-archive-notice-list">
+              {NOTICE_ITEMS.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </section>
+        </aside>
+      </section>
+    </main>
+  );
+}
+  
+
+
   return (
     <main>
       <header className="page-header">
@@ -586,7 +1165,6 @@ const storyTagMap = new Map<string, string[]>();
                 className={`story-archive-tab ${active ? "active" : ""}`}
               >
                 {item.label}
-                <span className="story-archive-tab-count">({count})</span>
               </Link>
             );
           })}
@@ -736,11 +1314,11 @@ const storyTagMap = new Map<string, string[]>();
 
         {admin ? (
           <div className="story-list-adminbar">
-            <Link href="/admin/stories/new" className="primary-button">
+            <Link href="/admin/events/new" className="primary-button">
               새 스토리 등록
             </Link>
 
-            <Link href="/admin/stories" className="nav-link">
+            <Link href="/admin/events" className="nav-link">
               스토리 관리
             </Link>
           </div>
@@ -750,6 +1328,34 @@ const storyTagMap = new Map<string, string[]>();
       <section className="story-archive-shell">
         <div className="story-archive-main">
           <section className="detail-panel story-archive-intro">
+            {(STORY_SUBFILTERS[activeTab.key as keyof typeof STORY_SUBFILTERS] ?? []).length > 0 ? (
+  <div className="archive-subchip-row" style={{ marginTop: "12px" }}>
+    {(STORY_SUBFILTERS[activeTab.key as keyof typeof STORY_SUBFILTERS] ?? []).map((item) => {
+      const href = buildStoriesHref({
+        tab: activeTab.key,
+        sub: item.key,
+        q,
+        years: selectedYears,
+        characters: rawSelectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      });
+
+      const active = sub === item.key;
+
+      return (
+        <Link
+          key={item.key}
+          href={href}
+          className={`archive-subchip ${active ? "is-active" : ""}`}
+        >
+          {item.label}
+        </Link>
+      );
+    })}
+  </div>
+) : null}
             <div className="story-archive-intro-top">
               <div>
                 <p className="story-archive-intro-label">현재 카테고리</p>

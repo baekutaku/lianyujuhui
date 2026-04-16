@@ -8867,3 +8867,29 @@ button,
 .story-language-button:active {
   transform: translateY(1px);
 }
+
+.archive-subchip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.archive-subchip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(244, 249, 253, 0.96);
+  border: 1px solid rgba(176, 203, 224, 0.28);
+  color: #5f7388;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.archive-subchip.is-active {
+  background: linear-gradient(135deg, var(--sky-400), var(--sky-500));
+  color: #234055;
+}
