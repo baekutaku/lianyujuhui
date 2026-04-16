@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import { updateStoryBundle, deleteStoryBundle } from "@/app/admin/actions";
-import SmartEditor from "@/components/editor/SmartEditor";
 import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 import DeletePhoneItemButton from "@/components/admin/phone-items/DeletePhoneItemButton";
 import StoryMainMetaFields from "@/components/admin/stories/StoryMainMetaFields";
@@ -43,6 +42,17 @@ function safeDecodeSlug(value: string) {
   }
 }
 
+function normalizeLang(value?: string | null) {
+  const code = (value || "").toLowerCase().trim();
+  if (code === "zh" || code === "zh-cn" || code === "cn" || code === "chs") {
+    return "cn";
+  }
+  if (code === "ko" || code === "ko-kr" || code === "kr" || code === "korean") {
+    return "kr";
+  }
+  return null;
+}
+
 export default async function EditStoryPage({
   params,
   searchParams,
@@ -63,38 +73,32 @@ export default async function EditStoryPage({
     notFound();
   }
 
-const { data: translations } = await supabase
-  .from("translations")
-  .select("id, title, body, language_code")
-  .eq("parent_type", "story")
-  .eq("parent_id", story.id);
+  const { data: translations } = await supabase
+    .from("translations")
+    .select("id, title, body, language_code")
+    .eq("parent_type", "story")
+    .eq("parent_id", story.id);
 
-function normalizeLang(value?: string | null) {
-  const code = (value || "").toLowerCase().trim();
-  if (code === "zh" || code === "zh-cn" || code === "cn" || code === "chs") {
-    return "cn";
-  }
-  if (code === "ko" || code === "ko-kr" || code === "kr" || code === "korean") {
-    return "kr";
-  }
-  return null;
-}
+  const translationCn =
+    translations?.find((item) => normalizeLang(item.language_code) === "cn") ??
+    null;
 
-const translationCn =
-  translations?.find((item) => normalizeLang(item.language_code) === "cn") ??
-  null;
+  const translationKr =
+    translations?.find((item) => normalizeLang(item.language_code) === "kr") ??
+    null;
 
-const translationKr =
-  translations?.find((item) => normalizeLang(item.language_code) === "kr") ??
-  null;
-
-  const { data: media } = await supabase
+  const { data: mediaRows } = await supabase
     .from("media_assets")
-    .select("id, url")
+    .select("id, url, usage_type")
     .eq("parent_type", "story")
     .eq("parent_id", story.id)
-    .eq("media_type", "youtube")
-    .maybeSingle();
+    .eq("media_type", "youtube");
+
+  const mediaCn =
+    mediaRows?.find((item) => item.usage_type === "pv_cn") ?? null;
+
+  const mediaKr =
+    mediaRows?.find((item) => item.usage_type === "pv_kr") ?? null;
 
   const { data: coverMedia } = await supabase
     .from("media_assets")
@@ -184,8 +188,9 @@ const translationKr =
         <input type="hidden" name="storyId" value={story.id} />
         <input type="hidden" name="slug" value={story.slug} />
         <input type="hidden" name="translationCnId" value={translationCn?.id ?? ""} />
-<input type="hidden" name="translationKrId" value={translationKr?.id ?? ""} />
-        <input type="hidden" name="mediaId" value={media?.id ?? ""} />
+        <input type="hidden" name="translationKrId" value={translationKr?.id ?? ""} />
+        <input type="hidden" name="mediaCnId" value={mediaCn?.id ?? ""} />
+        <input type="hidden" name="mediaKrId" value={mediaKr?.id ?? ""} />
         <input type="hidden" name="coverMediaId" value={coverMedia?.id ?? ""} />
         <input type="hidden" name="relationId" value={relation?.id ?? ""} />
 
@@ -235,10 +240,19 @@ const translationKr =
           </label>
 
           <label className="form-field form-field-full">
-            <span>유튜브 링크</span>
+            <span>CN 유튜브 링크</span>
             <input
-              name="youtubeUrl"
-              defaultValue={media?.url ?? ""}
+              name="youtubeUrlCn"
+              defaultValue={mediaCn?.url ?? ""}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>KR 유튜브 링크</span>
+            <input
+              name="youtubeUrlKr"
+              defaultValue={mediaKr?.url ?? ""}
               placeholder="https://www.youtube.com/watch?v=..."
             />
           </label>
@@ -253,11 +267,11 @@ const translationKr =
           </label>
 
           <StoryTranslationFields
-  cnTitle={translationCn?.title ?? ""}
-  cnBody={translationCn?.body ?? ""}
-  krTitle={translationKr?.title ?? ""}
-  krBody={translationKr?.body ?? ""}
-/>
+            cnTitle={translationCn?.title ?? ""}
+            cnBody={translationCn?.body ?? ""}
+            krTitle={translationKr?.title ?? ""}
+            krBody={translationKr?.body ?? ""}
+          />
 
           <label className="form-field form-field-full">
             <span>연결 카드</span>

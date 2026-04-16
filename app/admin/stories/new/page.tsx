@@ -101,9 +101,9 @@ export default async function NewStoryPage({
           <label className="form-field">
             <span>서버</span>
             <select name="serverKey" defaultValue="cn">
-  <option value="cn">중국</option>
-  <option value="kr">한국</option>
-</select>
+              <option value="cn">중국</option>
+              <option value="kr">한국</option>
+            </select>
           </label>
 
           <label className="form-field">
@@ -123,22 +123,27 @@ export default async function NewStoryPage({
           </label>
 
           <label className="form-field form-field-full">
-            <span>유튜브 링크</span>
+            <span>CN 유튜브 링크</span>
             <input
-              name="youtubeUrl"
+              name="youtubeUrlCn"
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>KR 유튜브 링크</span>
+            <input
+              name="youtubeUrlKr"
               placeholder="https://www.youtube.com/watch?v=..."
             />
           </label>
 
           <label className="form-field form-field-full">
             <span>커버 이미지 URL</span>
-            <input
-              name="coverImageUrl"
-              placeholder="https://..."
-            />
+            <input name="coverImageUrl" placeholder="https://..." />
           </label>
 
-         <StoryTranslationFields />
+          <StoryTranslationFields />
 
           <label className="form-field form-field-full">
             <span>연결 카드 slug (선택)</span>

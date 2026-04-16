@@ -130,6 +130,10 @@ async function resolveStoryMetaFromForm(formData: FormData, currentPasswordHash?
     }
   }
 
+
+
+  
+
   const appearingCharacterIds = Array.from(
     new Set(
       formData
@@ -739,7 +743,8 @@ export async function createStoryBundle(formData: FormData) {
     const translationTitleKr = String(formData.get("translationTitleKr") || "");
     const translationBodyKr = String(formData.get("translationBodyKr") || "");
 
-    const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
+    const youtubeUrlCn = String(formData.get("youtubeUrlCn") || "").trim();
+    const youtubeUrlKr = String(formData.get("youtubeUrlKr") || "").trim();
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
     const cardSlug = String(formData.get("cardSlug") || "").trim();
 
@@ -849,23 +854,23 @@ export async function createStoryBundle(formData: FormData) {
       if (imageError) throw new Error(imageError.message);
     }
 
-    if (youtubeUrl) {
-      const { error: mediaError } = await supabase
-        .from("media_assets")
-        .insert({
-          parent_type: "story",
-          parent_id: insertedStory.id,
-          media_type: "youtube",
-          usage_type: "pv",
-          url: youtubeUrl,
-          youtube_video_id: extractYoutubeVideoId(youtubeUrl),
-          title: `${title} PV`,
-          is_primary: !coverImageUrl,
-          sort_order: coverImageUrl ? 1 : 0,
-        });
+    await upsertStoryYoutubeMedia({
+      storyId: insertedStory.id,
+      title: `${title} PV CN`,
+      usageType: "pv_cn",
+      url: youtubeUrlCn,
+      isPrimary: !coverImageUrl,
+      sortOrder: coverImageUrl ? 1 : 0,
+    });
 
-      if (mediaError) throw new Error(mediaError.message);
-    }
+    await upsertStoryYoutubeMedia({
+      storyId: insertedStory.id,
+      title: `${title} PV KR`,
+      usageType: "pv_kr",
+      url: youtubeUrlKr,
+      isPrimary: false,
+      sortOrder: coverImageUrl ? 2 : 1,
+    });
 
     if (cardSlug) {
       const { data: card, error: cardError } = await supabase
@@ -895,18 +900,13 @@ export async function createStoryBundle(formData: FormData) {
     revalidatePath("/admin/stories");
     revalidatePath("/stories");
   } catch (error) {
-    console.error("[createStoryBundle] fatal error:", error);
-
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
 
     errorRedirectUrl = `/admin/stories/new?error=${encodeURIComponent(message)}`;
   }
 
-  if (errorRedirectUrl) {
-    redirect(errorRedirectUrl);
-  }
-
+  if (errorRedirectUrl) redirect(errorRedirectUrl);
   redirect(`/stories/${successSlug}`);
 }
 
@@ -928,16 +928,19 @@ export async function updateStoryBundle(formData: FormData) {
     const releaseDate = String(formData.get("releaseDate") || "").trim();
     const summary = String(formData.get("summary") || "").trim();
 
-    const translationCnId = String(formData.get("translationCnId") || "");
-const translationKrId = String(formData.get("translationKrId") || "");
+    const translationCnId = String(formData.get("translationCnId") || "").trim();
+    const translationKrId = String(formData.get("translationKrId") || "").trim();
 
-const translationTitleCn = String(formData.get("translationTitleCn") || "");
-const translationBodyCn = String(formData.get("translationBodyCn") || "");
-const translationTitleKr = String(formData.get("translationTitleKr") || "");
-const translationBodyKr = String(formData.get("translationBodyKr") || "");
+    const translationTitleCn = String(formData.get("translationTitleCn") || "");
+    const translationBodyCn = String(formData.get("translationBodyCn") || "");
+    const translationTitleKr = String(formData.get("translationTitleKr") || "");
+    const translationBodyKr = String(formData.get("translationBodyKr") || "");
 
-    const mediaId = String(formData.get("mediaId") || "").trim();
-    const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
+    const mediaCnId = String(formData.get("mediaCnId") || "").trim();
+    const mediaKrId = String(formData.get("mediaKrId") || "").trim();
+
+    const youtubeUrlCn = String(formData.get("youtubeUrlCn") || "").trim();
+    const youtubeUrlKr = String(formData.get("youtubeUrlKr") || "").trim();
 
     const coverMediaId = String(formData.get("coverMediaId") || "").trim();
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
@@ -990,39 +993,68 @@ const translationBodyKr = String(formData.get("translationBodyKr") || "");
 
     await syncStoryCharacters(storyId, meta.appearingCharacterIds);
 
-  const hasCn = translationTitleCn.trim() || translationBodyCn.trim();
-const hasKr = translationTitleKr.trim() || translationBodyKr.trim();
+    const hasCn = translationTitleCn.trim() || translationBodyCn.trim();
+    const hasKr = translationTitleKr.trim() || translationBodyKr.trim();
 
-await upsertStoryTranslation({
-  translationId: translationCnId || undefined,
-  storyId,
-  languageCode: "zh-CN",
-  title: translationTitleCn,
-  body: translationBodyCn,
-  isPrimary: Boolean(hasCn),
-});
+    await upsertStoryTranslation({
+      translationId: translationCnId || undefined,
+      storyId,
+      languageCode: "zh-CN",
+      title: translationTitleCn,
+      body: translationBodyCn,
+      isPrimary: Boolean(hasCn),
+    });
 
-await upsertStoryTranslation({
-  translationId: translationKrId || undefined,
-  storyId,
-  languageCode: "ko",
-  title: translationTitleKr,
-  body: translationBodyKr,
-  isPrimary: !hasCn && Boolean(hasKr),
-});
+    await upsertStoryTranslation({
+      translationId: translationKrId || undefined,
+      storyId,
+      languageCode: "ko",
+      title: translationTitleKr,
+      body: translationBodyKr,
+      isPrimary: !hasCn && Boolean(hasKr),
+    });
+
+    await upsertStoryYoutubeMedia({
+      mediaId: mediaCnId || undefined,
+      storyId,
+      title: `${title} PV CN`,
+      usageType: "pv_cn",
+      url: youtubeUrlCn,
+      isPrimary: !coverImageUrl,
+      sortOrder: coverImageUrl ? 1 : 0,
+    });
+
+    await upsertStoryYoutubeMedia({
+      mediaId: mediaKrId || undefined,
+      storyId,
+      title: `${title} PV KR`,
+      usageType: "pv_kr",
+      url: youtubeUrlKr,
+      isPrimary: false,
+      sortOrder: coverImageUrl ? 2 : 1,
+    });
 
     if (coverMediaId) {
-      const { error } = await supabase
-        .from("media_assets")
-        .update({
-          url: coverImageUrl,
-          usage_type: "cover",
-          media_type: "image",
-          title: `${title} 대표 이미지`,
-        })
-        .eq("id", coverMediaId);
+      if (coverImageUrl) {
+        const { error } = await supabase
+          .from("media_assets")
+          .update({
+            url: coverImageUrl,
+            usage_type: "cover",
+            media_type: "image",
+            title: `${title} 대표 이미지`,
+          })
+          .eq("id", coverMediaId);
 
-      if (error) throw new Error(error.message);
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await supabase
+          .from("media_assets")
+          .delete()
+          .eq("id", coverMediaId);
+
+        if (error) throw new Error(error.message);
+      }
     } else if (coverImageUrl) {
       const { error } = await supabase.from("media_assets").insert({
         parent_type: "story",
@@ -1033,32 +1065,6 @@ await upsertStoryTranslation({
         title: `${title} 대표 이미지`,
         is_primary: true,
         sort_order: 0,
-      });
-
-      if (error) throw new Error(error.message);
-    }
-
-    if (mediaId) {
-      const { error } = await supabase
-        .from("media_assets")
-        .update({
-          url: youtubeUrl,
-          youtube_video_id: extractYoutubeVideoId(youtubeUrl),
-        })
-        .eq("id", mediaId);
-
-      if (error) throw new Error(error.message);
-    } else if (youtubeUrl) {
-      const { error } = await supabase.from("media_assets").insert({
-        parent_type: "story",
-        parent_id: storyId,
-        media_type: "youtube",
-        usage_type: "pv",
-        url: youtubeUrl,
-        youtube_video_id: extractYoutubeVideoId(youtubeUrl),
-        title: `${title} PV`,
-        is_primary: !coverImageUrl,
-        sort_order: coverImageUrl ? 1 : 0,
       });
 
       if (error) throw new Error(error.message);
@@ -1102,13 +1108,19 @@ await upsertStoryTranslation({
       });
 
       if (error) throw new Error(error.message);
+    } else if (relationId && !cardSlug) {
+      const { error } = await supabase
+        .from("item_relations")
+        .delete()
+        .eq("id", relationId);
+
+      if (error) throw new Error(error.message);
     }
 
     revalidatePath("/admin/stories");
     revalidatePath("/stories");
     revalidatePath(`/stories/${rawSlug}`);
   } catch (error) {
-    console.error("[updateStoryBundle] fatal error:", error);
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
 
@@ -1117,6 +1129,7 @@ await upsertStoryTranslation({
 
   redirect(`/admin/stories/${safeSlug}/edit?saved=1`);
 }
+
 export async function deleteStoryBundle(formData: FormData) {
   await requireAdmin();
   const storyId = String(formData.get("storyId") ?? "").trim();
@@ -2065,6 +2078,68 @@ async function upsertStoryTranslation({
     body,
     is_primary: isPrimary,
     is_published: true,
+  });
+
+  if (error) throw new Error(error.message);
+}
+
+async function upsertStoryYoutubeMedia({
+  mediaId,
+  storyId,
+  title,
+  usageType,
+  url,
+  isPrimary,
+  sortOrder,
+}: {
+  mediaId?: string;
+  storyId: string;
+  title: string;
+  usageType: "pv_cn" | "pv_kr";
+  url: string;
+  isPrimary: boolean;
+  sortOrder: number;
+}) {
+  if (mediaId) {
+    if (!url) {
+      const { error } = await supabase
+        .from("media_assets")
+        .delete()
+        .eq("id", mediaId);
+
+      if (error) throw new Error(error.message);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("media_assets")
+      .update({
+        url,
+        youtube_video_id: extractYoutubeVideoId(url),
+        media_type: "youtube",
+        usage_type: usageType,
+        title,
+        is_primary: isPrimary,
+        sort_order: sortOrder,
+      })
+      .eq("id", mediaId);
+
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  if (!url) return;
+
+  const { error } = await supabase.from("media_assets").insert({
+    parent_type: "story",
+    parent_id: storyId,
+    media_type: "youtube",
+    usage_type: usageType,
+    url,
+    youtube_video_id: extractYoutubeVideoId(url),
+    title,
+    is_primary: isPrimary,
+    sort_order: sortOrder,
   });
 
   if (error) throw new Error(error.message);
