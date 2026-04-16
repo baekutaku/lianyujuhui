@@ -9,6 +9,15 @@ type PageProps = {
   params: Promise<{
     slug: string;
   }>;
+  searchParams?: Promise<{
+    q?: string;
+    rarity?: string;
+    category?: string;
+    character?: string;
+    year?: string;
+    tag?: string;
+    sort?: string;
+  }>;
 };
 
 const RARITY_LABEL_MAP: Record<string, string> = {
@@ -60,6 +69,27 @@ const PHONE_SUBTYPE_LABEL_MAP: Record<string, string> = {
   article: "기사",
 };
 
+const SORT_LABEL_MAP: Record<string, string> = {
+  latest: "최신 등록순",
+  oldest: "오래된 순",
+  year_desc: "연도 높은 순",
+  year_asc: "연도 낮은 순",
+  title: "제목순",
+  rarity: "등급순",
+};
+
+const RARITY_SORT_ORDER: Record<string, number> = {
+  nh: 0,
+  n: 1,
+  r: 2,
+  sr: 3,
+  er: 4,
+  ser: 5,
+  ssr: 6,
+  sp: 7,
+  ur: 8,
+};
+
 function safeDecodeSlug(value: string) {
   try {
     return decodeURIComponent(value);
@@ -98,7 +128,6 @@ function getEventSubtypeLabel(value: string | null | undefined) {
   return value;
 }
 
-/* 실제 공개 경로가 다르면 여기만 수정 */
 function getStoryHref(slug: string, from: string) {
   return `/stories/${slug}?from=${encodeURIComponent(from)}`;
 }
@@ -111,15 +140,39 @@ function getEventHref(slug: string, from: string) {
   return `/events/${slug}?from=${encodeURIComponent(from)}`;
 }
 
-export default async function CardDetailPage({ params }: PageProps) {
+export default async function CardDetailPage({
+  params,
+  searchParams,
+}: PageProps) {
   const admin = await isAdmin();
   const rawSlug = (await params).slug;
   const slug = safeDecodeSlug(rawSlug);
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+
+  const q = String(resolvedSearchParams?.q || "").trim().toLowerCase();
+  const rarity = String(resolvedSearchParams?.rarity || "").trim().toLowerCase();
+  const category = String(resolvedSearchParams?.category || "").trim();
+  const character = String(resolvedSearchParams?.character || "").trim();
+  const year = String(resolvedSearchParams?.year || "").trim();
+  const tag = String(resolvedSearchParams?.tag || "").trim();
+  const sort = String(resolvedSearchParams?.sort || "latest").trim();
+
+  const listParams = new URLSearchParams();
+  if (q) listParams.set("q", q);
+  if (rarity) listParams.set("rarity", rarity);
+  if (category) listParams.set("category", category);
+  if (character) listParams.set("character", character);
+  if (year) listParams.set("year", year);
+  if (tag) listParams.set("tag", tag);
+  if (sort) listParams.set("sort", sort);
+
+  const listQueryString = listParams.toString();
+  const cardsListHref = listQueryString ? `/cards?${listQueryString}` : "/cards";
 
   const { data: card, error } = await supabase
     .from("cards")
     .select(
-      "id, title, slug, rarity, attribute, release_year, release_date, thumbnail_url, cover_image_url, summary, card_category, is_published"
+      "id, title, slug, rarity, attribute, release_year, release_date, thumbnail_url, cover_image_url, summary, card_category, is_published, created_at, primary_character_id"
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -132,7 +185,192 @@ export default async function CardDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const currentCardPath = `/cards/${encodeURIComponent(card.slug)}`;
+  const [{ data: allCards }, { data: characters }] = await Promise.all([
+    supabase
+      .from("cards")
+      .select(
+        "id, title, slug, rarity, attribute, release_year, release_date, created_at, thumbnail_url, cover_image_url, card_category, primary_character_id"
+      )
+      .eq("is_published", true),
+    supabase.from("characters").select("id, key"),
+  ]);
+
+  const characterKeyMap = new Map(
+    (characters ?? []).map((item: any) => [item.id, item.key])
+  );
+
+  const allVisibleCards =
+    (allCards ?? []).map((item: any) => {
+      const characterKey = characterKeyMap.get(item.primary_character_id) ?? "";
+      return { ...item, characterKey };
+    }) ?? [];
+
+  const baseFilteredCards = allVisibleCards.filter((item: any) => {
+    const matchesQ =
+      !q ||
+      String(item.title || "").toLowerCase().includes(q) ||
+      String(item.slug || "").toLowerCase().includes(q);
+
+    const matchesRarity =
+      !rarity || String(item.rarity || "").toLowerCase() === rarity;
+
+    const normalizedCategory = item.card_category ?? "";
+    const matchesCategory =
+      !category ||
+      (category === "__uncategorized__"
+        ? !normalizedCategory
+        : normalizedCategory === category);
+
+    const matchesCharacter = !character || item.characterKey === character;
+    const matchesYear = !year || String(item.release_year || "") === year;
+
+    return (
+      matchesQ &&
+      matchesRarity &&
+      matchesCategory &&
+      matchesCharacter &&
+      matchesYear
+    );
+  });
+
+  let filteredCards = baseFilteredCards;
+
+  if (tag && baseFilteredCards.length > 0) {
+    const baseCardIds = baseFilteredCards.map((item: any) => item.id);
+
+    const { data: itemTags } = await supabase
+      .from("item_tags")
+      .select("item_id, tag_id")
+      .eq("item_type", "card")
+      .in("item_id", baseCardIds);
+
+    const relatedTagIds = Array.from(
+      new Set((itemTags ?? []).map((row) => row.tag_id))
+    );
+
+    if (relatedTagIds.length > 0) {
+      const { data: relatedTags } = await supabase
+        .from("tags")
+        .select("id, slug, label, name")
+        .in("id", relatedTagIds);
+
+      const normalizedTargetTag = tag.toLowerCase();
+
+      const matchedTagIds = new Set(
+        (relatedTags ?? [])
+          .filter((row) =>
+            [row.slug, row.label, row.name]
+              .filter(Boolean)
+              .some(
+                (value) =>
+                  String(value).trim().toLowerCase() === normalizedTargetTag
+              )
+          )
+          .map((row) => row.id)
+      );
+
+      if (matchedTagIds.size > 0) {
+        const matchedCardIds = new Set(
+          (itemTags ?? [])
+            .filter((row) => matchedTagIds.has(row.tag_id))
+            .map((row) => row.item_id)
+        );
+
+        filteredCards = baseFilteredCards.filter((item: any) =>
+          matchedCardIds.has(item.id)
+        );
+      } else {
+        filteredCards = [];
+      }
+    } else {
+      filteredCards = [];
+    }
+  }
+
+  const sortedCards = [...filteredCards].sort((a: any, b: any) => {
+    const aTitle = String(a.title || "");
+    const bTitle = String(b.title || "");
+
+    const aYear = Number(a.release_year || 0);
+    const bYear = Number(b.release_year || 0);
+
+    const aRelease = a.release_date ? new Date(a.release_date).getTime() : 0;
+    const bRelease = b.release_date ? new Date(b.release_date).getTime() : 0;
+
+    const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
+
+    const aRarity =
+      RARITY_SORT_ORDER[String(a.rarity || "").toLowerCase()] ?? -1;
+    const bRarity =
+      RARITY_SORT_ORDER[String(b.rarity || "").toLowerCase()] ?? -1;
+
+    switch (sort) {
+      case "oldest":
+        return (
+          aCreated - bCreated ||
+          aRelease - bRelease ||
+          aTitle.localeCompare(bTitle, "ko")
+        );
+
+      case "year_desc":
+        return (
+          bYear - aYear ||
+          bRelease - aRelease ||
+          aTitle.localeCompare(bTitle, "ko")
+        );
+
+      case "year_asc":
+        return (
+          aYear - bYear ||
+          aRelease - bRelease ||
+          aTitle.localeCompare(bTitle, "ko")
+        );
+
+      case "title":
+        return aTitle.localeCompare(bTitle, "ko") || bYear - aYear;
+
+      case "rarity":
+        return (
+          bRarity - aRarity ||
+          bYear - aYear ||
+          bRelease - aRelease ||
+          aTitle.localeCompare(bTitle, "ko")
+        );
+
+      case "latest":
+      default:
+        return (
+          bCreated - aCreated ||
+          bRelease - aRelease ||
+          bYear - aYear ||
+          aTitle.localeCompare(bTitle, "ko")
+        );
+    }
+  });
+
+  const currentIndex = sortedCards.findIndex((item: any) => item.id === card.id);
+  const prevCard = currentIndex > 0 ? sortedCards[currentIndex - 1] : null;
+  const nextCard =
+    currentIndex >= 0 && currentIndex < sortedCards.length - 1
+      ? sortedCards[currentIndex + 1]
+      : null;
+
+  const prevHref = prevCard
+    ? listQueryString
+      ? `/cards/${prevCard.slug}?${listQueryString}`
+      : `/cards/${prevCard.slug}`
+    : null;
+
+  const nextHref = nextCard
+    ? listQueryString
+      ? `/cards/${nextCard.slug}?${listQueryString}`
+      : `/cards/${nextCard.slug}`
+    : null;
+
+  const currentCardPath = listQueryString
+    ? `/cards/${encodeURIComponent(card.slug)}?${listQueryString}`
+    : `/cards/${encodeURIComponent(card.slug)}`;
 
   const { data: mediaRows } = await supabase
     .from("media_assets")
@@ -246,15 +484,38 @@ export default async function CardDetailPage({ params }: PageProps) {
             {card.release_year ? (
               <span className="meta-pill">연도: {card.release_year}</span>
             ) : null}
+            <span className="meta-pill">
+              정렬 기준: {SORT_LABEL_MAP[sort] ?? "최신 등록순"}
+            </span>
             {!card.is_published && admin ? (
               <span className="meta-pill">비공개 초안</span>
             ) : null}
           </div>
 
           <div className="story-top-actions">
-            <Link href="/cards" className="story-action-button story-action-muted">
+            <Link href={cardsListHref} className="story-action-button story-action-muted">
               목록으로
             </Link>
+
+            {prevHref ? (
+              <Link href={prevHref} className="story-action-button story-action-muted">
+                ← 이전 카드
+              </Link>
+            ) : (
+              <span className="story-action-button story-action-muted" style={{ opacity: 0.45 }}>
+                ← 이전 카드
+              </span>
+            )}
+
+            {nextHref ? (
+              <Link href={nextHref} className="story-action-button story-action-muted">
+                다음 카드 →
+              </Link>
+            ) : (
+              <span className="story-action-button story-action-muted" style={{ opacity: 0.45 }}>
+                다음 카드 →
+              </span>
+            )}
 
             {admin ? (
               <>
@@ -293,13 +554,13 @@ export default async function CardDetailPage({ params }: PageProps) {
             <h2 className="story-side-title">해시태그</h2>
             {tags.length > 0 ? (
               <div className="card-detail-tags">
-                {tags.map((tag) => (
+                {tags.map((item) => (
                   <Link
-                    key={tag}
-                    href={`/cards?tag=${encodeURIComponent(tag)}`}
+                    key={item}
+                    href={`/cards?tag=${encodeURIComponent(item)}`}
                     className="card-tag-link"
                   >
-                    #{tag}
+                    #{item}
                   </Link>
                 ))}
               </div>

@@ -25,6 +25,7 @@ type RelationPickerProps = {
   categoryOptions?: SelectOption[];
 };
 
+
 export default function RelationPicker({
   label,
   name,
@@ -75,6 +76,7 @@ export default function RelationPicker({
     });
   }, [candidates, query, selected, subtype, character, category]);
 
+
   const serialized = selected.map((item) => item.slug).join("\n");
 
   function addItem(item: RelationCandidate) {
@@ -96,6 +98,13 @@ export default function RelationPicker({
       [next[index], next[target]] = [next[target], next[index]];
       return next;
     });
+  }
+
+  function resetFilters() {
+    setQuery("");
+    setSubtype("all");
+    setCharacter("all");
+    setCategory("all");
   }
 
   return (
@@ -156,8 +165,48 @@ export default function RelationPicker({
         </label>
       </div>
 
-      <div style={{ display: "grid", gap: "12px", marginBottom: "18px" }}>
-        {filtered.slice(0, 30).map((item) => (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "12px",
+          flexWrap: "wrap",
+          marginBottom: "10px",
+          fontSize: "13px",
+          color: "var(--text-sub)",
+        }}
+      >
+        <div>
+          검색 결과 {filtered.length}개
+        </div>
+
+        <button
+          type="button"
+          className="nav-link"
+          style={{
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            padding: 0,
+          }}
+          onClick={resetFilters}
+        >
+          필터 초기화
+        </button>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gap: "12px",
+          marginBottom: "18px",
+          maxHeight: "360px",
+          overflowY: "auto",
+          paddingRight: "4px",
+        }}
+      >
+        {filtered.map((item) => (
           <div
             key={item.slug}
             className="link-card"
@@ -201,7 +250,25 @@ export default function RelationPicker({
         ) : null}
       </div>
 
-      <div style={{ display: "grid", gap: "10px" }}>
+      <div
+        style={{
+          marginBottom: "10px",
+          fontSize: "13px",
+          color: "var(--text-sub)",
+        }}
+      >
+        선택된 항목 {selected.length}개
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gap: "10px",
+          maxHeight: "320px",
+          overflowY: "auto",
+          paddingRight: "4px",
+        }}
+      >
         {selected.map((item, index) => (
           <div
             key={item.slug}

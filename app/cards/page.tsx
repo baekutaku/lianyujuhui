@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import CardsFilterModal from "@/components/cards/CardsFilterModal";
+import CardsSortModal from "@/components/cards/CardsSortModal";
 
 type CardsPageProps = {
   searchParams?: Promise<{
@@ -11,6 +12,7 @@ type CardsPageProps = {
     character?: string;
     year?: string;
     tag?: string;
+    sort?: string;
   }>;
 };
 
@@ -72,6 +74,27 @@ const CATEGORY_LABEL_MAP: Record<string, string> = {
   free: "무료 카드",
 };
 
+const SORT_LABEL_MAP: Record<string, string> = {
+  latest: "최신 등록순",
+  oldest: "오래된 순",
+  year_desc: "연도 높은 순",
+  year_asc: "연도 낮은 순",
+  title: "제목순",
+  rarity: "등급순",
+};
+
+const RARITY_SORT_ORDER: Record<string, number> = {
+  nh: 0,
+  n: 1,
+  r: 2,
+  sr: 3,
+  er: 4,
+  ser: 5,
+  ssr: 6,
+  sp: 7,
+  ur: 8,
+};
+
 function getCategoryLabel(value: string | null | undefined) {
   if (!value) return "미분류";
   return CATEGORY_LABEL_MAP[value] ?? "미분류";
@@ -92,12 +115,13 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   const character = String(params?.character || "").trim();
   const year = String(params?.year || "").trim();
   const tag = String(params?.tag || "").trim();
+  const sort = String(params?.sort || "latest").trim();
 
   const [{ data: cards, error }, { data: characters }] = await Promise.all([
     supabase
       .from("cards")
       .select(
-        "id, title, slug, rarity, attribute, release_year, thumbnail_url, cover_image_url, card_category, primary_character_id"
+        "id, title, slug, rarity, attribute, release_year, release_date, created_at, thumbnail_url, cover_image_url, card_category, primary_character_id"
       )
       .eq("is_published", true)
       .order("release_year", { ascending: false })
@@ -198,7 +222,69 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
     }
   }
 
-  const cardIds = filteredCards.map((card: any) => card.id);
+  const sortedCards = [...filteredCards].sort((a: any, b: any) => {
+    const aTitle = String(a.title || "");
+    const bTitle = String(b.title || "");
+
+    const aYear = Number(a.release_year || 0);
+    const bYear = Number(b.release_year || 0);
+
+    const aRelease = a.release_date ? new Date(a.release_date).getTime() : 0;
+    const bRelease = b.release_date ? new Date(b.release_date).getTime() : 0;
+
+    const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
+
+    const aRarity =
+      RARITY_SORT_ORDER[String(a.rarity || "").toLowerCase()] ?? -1;
+    const bRarity =
+      RARITY_SORT_ORDER[String(b.rarity || "").toLowerCase()] ?? -1;
+
+    switch (sort) {
+      case "oldest":
+        return (
+          aCreated - bCreated ||
+          aRelease - bRelease ||
+          aTitle.localeCompare(bTitle, "ko")
+        );
+
+      case "year_desc":
+        return (
+          bYear - aYear ||
+          bRelease - aRelease ||
+          aTitle.localeCompare(bTitle, "ko")
+        );
+
+      case "year_asc":
+        return (
+          aYear - bYear ||
+          aRelease - bRelease ||
+          aTitle.localeCompare(bTitle, "ko")
+        );
+
+      case "title":
+        return aTitle.localeCompare(bTitle, "ko") || bYear - aYear;
+
+      case "rarity":
+        return (
+          bRarity - aRarity ||
+          bYear - aYear ||
+          bRelease - aRelease ||
+          aTitle.localeCompare(bTitle, "ko")
+        );
+
+      case "latest":
+      default:
+        return (
+          bCreated - aCreated ||
+          bRelease - aRelease ||
+          bYear - aYear ||
+          aTitle.localeCompare(bTitle, "ko")
+        );
+    }
+  });
+
+  const cardIds = sortedCards.map((card: any) => card.id);
   const afterThumbMap = new Map<string, string>();
 
   if (cardIds.length > 0) {
@@ -229,6 +315,18 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
     new Set(allCards.map((card: any) => card.characterKey).filter(Boolean))
   );
 
+  const currentListParams = new URLSearchParams();
+
+if (q) currentListParams.set("q", q);
+if (rarity) currentListParams.set("rarity", rarity);
+if (category) currentListParams.set("category", category);
+if (character) currentListParams.set("character", character);
+if (year) currentListParams.set("year", year);
+if (tag) currentListParams.set("tag", tag);
+if (sort) currentListParams.set("sort", sort);
+
+const currentListQuery = currentListParams.toString();
+
   return (
     <main>
       <header className="page-header">
@@ -247,33 +345,68 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
         </div>
 
         <div className="cards-page-toolbar-right">
-          <CardsFilterModal
-            defaultValues={{
-              q,
-              rarity,
-              category,
-              character,
-              year,
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              flexWrap: "wrap",
             }}
-            yearOptions={yearOptions}
-            characterOptions={characterOptions.map((key) => ({
-              value: key,
-              label: CHARACTER_LABEL_MAP[key] ?? key,
-            }))}
-            rarityOptions={Object.entries(RARITY_LABEL_MAP).map(
-              ([value, label]) => ({
-                value,
-                label,
-              })
-            )}
-            categoryOptions={[
-              { value: "__uncategorized__", label: "미분류" },
-              ...Object.entries(CATEGORY_LABEL_MAP).map(([value, label]) => ({
-                value,
-                label,
-              })),
-            ]}
-          />
+          >
+            <span className="meta-pill">
+              정렬: {SORT_LABEL_MAP[sort] ?? "최신 등록순"}
+            </span>
+
+            <CardsSortModal
+              defaultValue={sort}
+              sortOptions={[
+                { value: "latest", label: "최신 등록순" },
+                { value: "oldest", label: "오래된 순" },
+                { value: "year_desc", label: "연도 높은 순" },
+                { value: "year_asc", label: "연도 낮은 순" },
+                { value: "title", label: "제목순" },
+                { value: "rarity", label: "등급순" },
+              ]}
+              preserveValues={{
+                q,
+                rarity,
+                category,
+                character,
+                year,
+                tag,
+              }}
+            />
+
+            <CardsFilterModal
+              defaultValues={{
+                q,
+                rarity,
+                category,
+                character,
+                year,
+                sort,
+                tag,
+              }}
+              yearOptions={yearOptions}
+              characterOptions={characterOptions.map((key) => ({
+                value: key,
+                label: CHARACTER_LABEL_MAP[key] ?? key,
+              }))}
+              rarityOptions={Object.entries(RARITY_LABEL_MAP).map(
+                ([value, label]) => ({
+                  value,
+                  label,
+                })
+              )}
+              categoryOptions={[
+                { value: "__uncategorized__", label: "미분류" },
+                ...Object.entries(CATEGORY_LABEL_MAP).map(([value, label]) => ({
+                  value,
+                  label,
+                })),
+              ]}
+            />
+          </div>
         </div>
       </div>
 
@@ -286,17 +419,13 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
         </div>
       ) : null}
 
-      {error && (
-        <pre className="error-box">
-          {JSON.stringify(error, null, 2)}
-        </pre>
-      )}
+      {error && <pre className="error-box">{JSON.stringify(error, null, 2)}</pre>}
 
-      {!filteredCards || filteredCards.length === 0 ? (
+      {!sortedCards || sortedCards.length === 0 ? (
         <div className="empty-box">조건에 맞는 카드가 없습니다.</div>
       ) : (
         <ul className="card-thumb-grid">
-          {filteredCards.map((card: any) => {
+          {sortedCards.map((card: any) => {
             const beforeImageUrl =
               card.thumbnail_url || card.cover_image_url || "";
             const afterImageUrl = afterThumbMap.get(card.id) || "";
@@ -305,7 +434,11 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
             return (
               <li key={card.id} className="card-thumb-card">
                 <Link
-                  href={`/cards/${card.slug}`}
+                 href={
+  currentListQuery
+    ? `/cards/${card.slug}?${currentListQuery}`
+    : `/cards/${card.slug}`
+}
                   className={`card-thumb-link ${attrClass}`.trim()}
                 >
                   <div

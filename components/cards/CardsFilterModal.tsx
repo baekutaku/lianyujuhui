@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type Option = {
   value: string;
@@ -14,6 +14,8 @@ type CardsFilterModalProps = {
     category?: string;
     character?: string;
     year?: string;
+    sort?: string;
+    tag?: string;
   };
   yearOptions: string[];
   characterOptions: Option[];
@@ -29,6 +31,21 @@ export default function CardsFilterModal({
   categoryOptions,
 }: CardsFilterModalProps) {
   const [open, setOpen] = useState(false);
+
+  const resetHref = useMemo(() => {
+    const params = new URLSearchParams();
+
+    if (defaultValues.sort) {
+      params.set("sort", defaultValues.sort);
+    }
+
+    if (defaultValues.tag) {
+      params.set("tag", defaultValues.tag);
+    }
+
+    const query = params.toString();
+    return query ? `/cards?${query}` : "/cards";
+  }, [defaultValues.sort, defaultValues.tag]);
 
   return (
     <>
@@ -68,6 +85,14 @@ export default function CardsFilterModal({
             </div>
 
             <form method="get" className="cards-filter-form">
+              {defaultValues.sort ? (
+                <input type="hidden" name="sort" value={defaultValues.sort} />
+              ) : null}
+
+              {defaultValues.tag ? (
+                <input type="hidden" name="tag" value={defaultValues.tag} />
+              ) : null}
+
               <label className="form-field form-field-full">
                 <span>검색</span>
                 <input
@@ -79,7 +104,10 @@ export default function CardsFilterModal({
 
               <label className="form-field">
                 <span>캐릭터</span>
-                <select name="character" defaultValue={defaultValues.character ?? ""}>
+                <select
+                  name="character"
+                  defaultValue={defaultValues.character ?? ""}
+                >
                   <option value="">전체</option>
                   {characterOptions.map((item) => (
                     <option key={item.value} value={item.value}>
@@ -115,7 +143,10 @@ export default function CardsFilterModal({
 
               <label className="form-field">
                 <span>카드 분류</span>
-                <select name="category" defaultValue={defaultValues.category ?? ""}>
+                <select
+                  name="category"
+                  defaultValue={defaultValues.category ?? ""}
+                >
                   <option value="">전체</option>
                   {categoryOptions.map((item) => (
                     <option key={item.value} value={item.value}>
@@ -126,14 +157,17 @@ export default function CardsFilterModal({
               </label>
 
               <div className="cards-filter-actions">
-  <a href="/cards" className="cards-filter-reset">
-    초기화
-  </a>
+                <a href={resetHref} className="cards-filter-reset">
+                  초기화
+                </a>
 
-  <button type="submit" className="primary-button cards-filter-apply">
-    적용
-  </button>
-</div>
+                <button
+                  type="submit"
+                  className="primary-button cards-filter-apply"
+                >
+                  적용
+                </button>
+              </div>
             </form>
           </div>
         </div>
