@@ -11254,3 +11254,36 @@ button,
   margin-top: 8px;
 }
 
+
+
+/* 카드 상세 왼쪽 미디어 영역만 살짝 조이기 */
+.card-detail-media-panel {
+  padding: 14px 16px 16px;
+}
+
+.card-detail-media-shell {
+  gap: 8px;
+}
+
+.card-detail-media-tabs {
+  gap: 6px;
+  margin-top: -2px;
+  margin-bottom: 0;
+  justify-content: center;
+}
+
+.card-detail-tab {
+  min-width: 88px;
+  height: 36px;
+}
+
+.card-detail-media-frame {
+  border-radius: 22px;
+}
+
+.card-detail-main-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+}
