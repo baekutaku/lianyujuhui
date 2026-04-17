@@ -579,6 +579,9 @@ export async function createCard(formData: FormData) {
     const summary = String(formData.get("summary") || "").trim();
     const cardCategory = String(formData.get("cardCategory") || "other").trim();
     const tagLabels = parseTagLabelsFromForm(formData);
+     const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
+    const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
 
     const serverKey = String(formData.get("serverKey") || "kr").trim();
     const characterKey = String(formData.get("characterKey") || "baiqi").trim();
@@ -647,6 +650,30 @@ export async function createCard(formData: FormData) {
     }
 
     await syncCardTags(insertedCard.id, tagLabels);
+
+    await syncRelationsBySlugs({
+      parentType: "card",
+      parentId: insertedCard.id,
+      childType: "story",
+      relationType: "card_story",
+      slugs: linkedStorySlugs,
+    });
+
+    await syncRelationsBySlugs({
+      parentType: "card",
+      parentId: insertedCard.id,
+      childType: "phone_item",
+      relationType: "card_phone",
+      slugs: linkedPhoneItemSlugs,
+    });
+
+    await syncRelationsBySlugs({
+      parentType: "card",
+      parentId: insertedCard.id,
+      childType: "event",
+      relationType: "card_event",
+      slugs: linkedEventSlugs,
+    });
 
     if (thumbnailAfterUrl) {
       const { error: thumbAfterError } = await supabase
