@@ -62,6 +62,9 @@ const FIELD_NAMES = [
 type StoryFormEnhancerProps = {
   storageKey: string;
   showViewButton?: boolean;
+  primarySubmitLabel?: string;
+  primarySubmitIntent?: "view" | "edit";
+  hideSecondarySubmit?: boolean;
 };
 
 type DraftPayload = {
@@ -170,6 +173,9 @@ function StorySubmitButtons({
   onToggleDraftList,
   showDraftList,
   showViewButton,
+  primarySubmitLabel,
+  primarySubmitIntent,
+  hideSecondarySubmit,
 }: {
   savedAtText: string;
   onClearDraft: () => void;
@@ -177,6 +183,9 @@ function StorySubmitButtons({
   onToggleDraftList: () => void;
   showDraftList: boolean;
   showViewButton: boolean;
+  primarySubmitLabel: string;
+  primarySubmitIntent: "view" | "edit";
+  hideSecondarySubmit: boolean;
 }) {
   const { pending } = useFormStatus();
 
@@ -196,32 +205,49 @@ function StorySubmitButtons({
           alignItems: "center",
         }}
       >
-        {showViewButton ? (
+        <button
+          type="submit"
+          name="submitIntent"
+          value={primarySubmitIntent}
+          className="primary-button"
+          disabled={pending}
+        >
+          {pending ? "저장 중..." : primarySubmitLabel}
+        </button>
+
+        {!hideSecondarySubmit && showViewButton ? (
           <button
             type="submit"
             name="submitIntent"
             value="view"
-            className="primary-button"
+            className="nav-link"
+            style={{
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+            }}
             disabled={pending}
           >
             {pending ? "저장 중..." : "저장 후 공개보기"}
           </button>
         ) : null}
 
-        <button
-          type="submit"
-          name="submitIntent"
-          value="edit"
-          className="nav-link"
-          style={{
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-          }}
-          disabled={pending}
-        >
-          {pending ? "저장 중..." : "저장 후 계속 편집"}
-        </button>
+        {!hideSecondarySubmit ? (
+          <button
+            type="submit"
+            name="submitIntent"
+            value="edit"
+            className="nav-link"
+            style={{
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+            }}
+            disabled={pending}
+          >
+            {pending ? "저장 중..." : "저장 후 계속 편집"}
+          </button>
+        ) : null}
 
         <button
           type="button"
@@ -274,10 +300,12 @@ function StorySubmitButtons({
     </div>
   );
 }
-
 export default function StoryFormEnhancer({
   storageKey,
   showViewButton = true,
+  primarySubmitLabel = "저장 후 계속 편집",
+  primarySubmitIntent = "edit",
+  hideSecondarySubmit = false,
 }: StoryFormEnhancerProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
@@ -398,6 +426,9 @@ const next = [payload, ...current].slice(0, MAX_DRAFTS);
   }}
   showDraftList={showDraftList}
   showViewButton={showViewButton}
+  primarySubmitLabel={primarySubmitLabel}
+  primarySubmitIntent={primarySubmitIntent}
+  hideSecondarySubmit={hideSecondarySubmit}
 />
 
       {showDraftList ? (
