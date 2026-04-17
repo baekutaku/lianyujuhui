@@ -304,6 +304,45 @@ function buildStoriesHref({
   const query = params.toString();
   return query ? `/stories?${query}` : "/stories";
 }
+function buildStoryDetailHref({
+  slug,
+  tab,
+  sub,
+  tag,
+  q,
+  years,
+  characters,
+  scope,
+  sort,
+  page,
+}: {
+  slug: string;
+  tab: string;
+  sub?: string;
+  tag?: string;
+  q: string;
+  years: string[];
+  characters: string[];
+  scope: string;
+  sort: string;
+  page?: number;
+}) {
+  const params = new URLSearchParams();
+
+  if (tab) params.set("tab", tab);
+  if (sub && sub !== "all") params.set("sub", sub);
+  if (tag) params.set("tag", tag);
+  if (q) params.set("q", q);
+  years.forEach((year) => params.append("year", year));
+  characters.forEach((characterKey) => params.append("character", characterKey));
+  if (scope) params.set("scope", scope);
+  if (sort && sort !== "latest") params.set("sort", sort);
+  if (page && page > 1) params.set("page", String(page));
+
+  const query = params.toString();
+  return query ? `/stories/${slug}?${query}` : `/stories/${slug}`;
+}
+
 
 function getVisiblePages(totalPages: number, currentPage: number) {
   const raw = new Set<number>([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
@@ -1075,7 +1114,7 @@ const eventIds = events.map((event) => event.id);
                 const visibilityLabel = getVisibilityLabel(event.visibility, admin);
 
                 return (
-               <li key={event.id} className="story-archive-item">
+              <li key={event.id} className="story-archive-item">
   <div className="story-archive-card-shell">
     <Link href={`/events/${event.slug}`} className="story-archive-link">
       <div className="story-archive-media">
@@ -1089,53 +1128,52 @@ const eventIds = events.map((event) => event.id);
           <div className="story-archive-empty">NO IMAGE</div>
         )}
       </div>
+<div className="story-archive-body">
+  <div className="story-archive-meta-row">
+    <span className="story-archive-badge">
+      {getEventSubtypeLabel(event.subtype)}
+    </span>
 
-      <div className="story-archive-body">
-        <div className="story-archive-meta-row">
-          <span className="story-archive-badge">
-            {getEventSubtypeLabel(event.subtype)}
-          </span>
-
-          {visibilityLabel ? (
-            <span className="story-archive-badge">{visibilityLabel}</span>
-          ) : null}
-
-          <span className="story-archive-date">
-            {formatEventDate(event)}
-          </span>
-        </div>
-
-        <h2 className="story-archive-title">{event.title}</h2>
-
-        {event.summary ? (
-          <p className="story-archive-summary">{event.summary}</p>
-        ) : null}
-      </div>
-    </Link>
-
-    {tags.length > 0 ? (
-      <div className="story-archive-tags-inline">
-        {tags.slice(0, 4).map((tag) => (
-          <Link
-            key={tag}
-            href={buildStoriesHref({
-              tab: activeTab.key,
-              sub: sub !== "all" ? sub : undefined,
-              tag,
-              q: "",
-              years: selectedYears,
-              characters: selectedCharacterKeys,
-              scope,
-              sort,
-              page: 1,
-            })}
-            className="story-card-tag"
-          >
-            #{tag}
-          </Link>
-        ))}
-      </div>
+    {visibilityLabel ? (
+      <span className="story-archive-badge">{visibilityLabel}</span>
     ) : null}
+
+    <span className="story-archive-date">
+      {formatEventDate(event)}
+    </span>
+  </div>
+
+  <h2 className="story-archive-title">{event.title}</h2>
+
+  {event.summary ? (
+    <p className="story-archive-summary">{event.summary}</p>
+  ) : null}
+
+  {tags.length > 0 ? (
+    <div className="story-archive-tags-inline">
+      {tags.slice(0, 4).map((tag) => (
+        <Link
+          key={tag}
+          href={buildStoriesHref({
+            tab: activeTab.key,
+            sub: sub !== "all" ? sub : undefined,
+            tag,
+            q: "",
+            years: selectedYears,
+            characters: selectedCharacterKeys,
+            scope,
+            sort,
+            page: 1,
+          })}
+          className="story-card-tag"
+        >
+          #{tag}
+        </Link>
+      ))}
+    </div>
+  ) : null}
+</div>
+    </Link>
   </div>
 </li>
                 );
@@ -1414,7 +1452,21 @@ const eventIds = events.map((event) => event.id);
                   return (
                    <li key={story.id} className="story-archive-item">
   <div className="story-archive-card-shell">
-    <Link href={`/stories/${story.slug}`} className="story-archive-link">
+    <Link
+  href={buildStoryDetailHref({
+    slug: story.slug,
+    tab: activeTab.key,
+    sub: sub !== "all" ? sub : undefined,
+    tag: selectedTag || undefined,
+    q,
+    years: selectedYears,
+    characters: rawSelectedCharacterKeys,
+    scope,
+    sort,
+    page: currentPage,
+  })}
+  className="story-archive-link"
+>
       <div className="story-archive-media">
         {thumb ? (
           <img

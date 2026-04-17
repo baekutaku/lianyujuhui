@@ -472,7 +472,7 @@ export default async function CardDetailPage({
 
   return (
     <main>
-      <section className="detail-panel story-topbar">
+      <section className="detail-panel story-topbar card-detail-topbar">
         <div className="story-topbar-main">
           <p className="page-eyebrow">Archive / Cards</p>
           <h1 className="story-page-title">{card.title}</h1>

@@ -2,9 +2,72 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import SmartEditor from "@/components/editor/SmartEditor";
 import StoryVisibilityFields from "@/components/admin/stories/StoryVisibilityFields";
-import { supabase } from "@/lib/supabase/client";
-import { updateEventBundle, deleteEventBundle } from "@/app/admin/actions";
 import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
+import RelationPicker, {
+  type RelationCandidate,
+} from "@/components/admin/relations/RelationPicker";
+import { supabase } from "@/lib/supabase/server";
+import { updateEventBundle, deleteEventBundle } from "@/app/admin/actions";
+
+const EVENT_SUBTYPE_OPTIONS = [
+  { value: "birthday_baiqi", label: "캐릭터 생일" },
+  { value: "birthday_mc", label: "유저 생일" },
+  { value: "anniversary_event", label: "N주년" },
+  { value: "game_event", label: "명절 / 기념일" },
+  { value: "seasonal_event", label: "시즌 이벤트" },
+  { value: "return_event", label: "복귀 이벤트" },
+] as const;
+
+const CHARACTER_OPTIONS = [
+  { value: "baiqi", label: "백기" },
+  { value: "lizeyan", label: "이택언" },
+  { value: "zhouqiluo", label: "주기락" },
+  { value: "xumo", label: "허묵" },
+  { value: "lingxiao", label: "연시호" },
+] as const;
+
+const CARD_CATEGORY_OPTIONS = [
+  { value: "date", label: "데이트 카드" },
+  { value: "main_story", label: "메인스토리 연계" },
+  { value: "side_story", label: "외전 / 서브" },
+  { value: "birthday", label: "생일 카드" },
+  { value: "charge", label: "누적충전 카드" },
+  { value: "free", label: "무료 카드" },
+] as const;
+
+const STORY_SUBTYPE_OPTIONS = [
+  { value: "card_story", label: "데이트" },
+  { value: "main_story", label: "메인스토리" },
+  { value: "side_story", label: "외전" },
+  { value: "asmr", label: "너의 곁에" },
+  { value: "behind_story", label: "막후의 장" },
+  { value: "xiyue_story", label: "서월국" },
+  { value: "myhome_story", label: "마이홈 스토리" },
+  { value: "company_project", label: "회사 프로젝트" },
+] as const;
+
+const PHONE_CATEGORY_OPTIONS = [
+  { value: "daily", label: "일상" },
+  { value: "companion", label: "동반" },
+  { value: "card_story", label: "카드" },
+  { value: "main_story", label: "메인스토리" },
+  { value: "tangle", label: "얽힘" },
+] as const;
+
+const PHONE_SUBTYPE_OPTIONS = [
+  { value: "message", label: "메시지" },
+  { value: "moment", label: "모멘트" },
+  { value: "call", label: "전화" },
+  { value: "video_call", label: "영상통화" },
+  { value: "article", label: "기사" },
+] as const;
+
+type EditEventPageProps = {
+  params: Promise<{
+    slug: string;
+  }>;
+  searchParams?: Promise<{ error?: string; saved?: string }>;
+};
 
 function safeDecode(value: string) {
   try {
@@ -22,23 +85,6 @@ function safeDecodeSlug(value: string) {
   }
 }
 
-const EVENT_SUBTYPE_OPTIONS = [
-  { value: "birthday_baiqi", label: "캐릭터 생일" },
-  { value: "birthday_mc", label: "유저 생일" },
-  { value: "anniversary_event", label: "N주년" },
-  { value: "game_event", label: "명절 / 기념일" },
-  { value: "seasonal_event", label: "시즌 이벤트" },
-  { value: "game_event", label: "콜라보" },
-  { value: "return_event", label: "복귀 이벤트" },
-] as const;
-
-type EditEventPageProps = {
-  params: Promise<{
-    slug: string;
-  }>;
-  searchParams?: Promise<{ error?: string }>;
-};
-
 export default async function EditEventPage({
   params,
   searchParams,
@@ -47,92 +93,170 @@ export default async function EditEventPage({
   const slug = safeDecodeSlug(rawSlug);
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const error = resolvedSearchParams?.error ?? "";
+  const saved = resolvedSearchParams?.saved === "1";
 
   const { data: event, error: eventError } = await supabase
     .from("events")
-    .select(
-      "id, title, slug, subtype, release_year, start_date, end_date, summary, server_id, primary_character_id, thumbnail_url, is_published, visibility, access_hint"
-    )
+    .select("*")
     .eq("slug", slug)
     .maybeSingle();
 
-  if (eventError) {
-    console.error("[admin/events/[slug]/edit] event fetch error:", eventError);
-  }
-
-  if (!event) {
+  if (eventError || !event) {
     notFound();
   }
 
-  const { data: translation } = await supabase
-    .from("translations")
-    .select("id, title, body")
-    .eq("parent_type", "event")
-    .eq("parent_id", event.id)
-    .eq("is_primary", true)
-    .maybeSingle();
+  const [
+    { data: translation },
+    { data: relations },
+    { data: cards },
+    { data: stories },
+    { data: phoneItems },
+    { data: characters },
+    { data: itemTagRows },
+  ] = await Promise.all([
+    supabase
+      .from("translations")
+      .select("id, title, body")
+      .eq("parent_type", "event")
+      .eq("parent_id", event.id)
+      .maybeSingle(),
 
-  const { data: media } = await supabase
-    .from("media_assets")
-    .select("id, url, media_type, usage_type")
-    .eq("parent_type", "event")
-    .eq("parent_id", event.id)
-    .order("is_primary", { ascending: false })
-    .order("sort_order", { ascending: true });
+    supabase
+      .from("item_relations")
+      .select("parent_type, parent_id, sort_order")
+      .eq("child_type", "event")
+      .eq("child_id", event.id)
+      .order("sort_order", { ascending: true }),
 
-  const primaryMedia = media?.[0] ?? null;
+    supabase
+      .from("cards")
+      .select("id, title, slug, primary_character_id, card_category")
+      .order("release_year", { ascending: false }),
 
-  const { data: servers } = await supabase
-    .from("servers")
-    .select("id, key, name")
-    .order("sort_order", { ascending: true });
+    supabase
+      .from("stories")
+      .select("id, title, slug, subtype, primary_character_id")
+      .order("release_year", { ascending: false }),
 
-  const { data: characters } = await supabase
-    .from("characters")
-    .select("id, key, name_ko")
-    .order("sort_order", { ascending: true });
+    supabase
+      .from("phone_items")
+      .select("id, title, slug, subtype, content_json")
+      .order("release_year", { ascending: false }),
 
-  const serverKey =
-    servers?.find((server) => server.id === event.server_id)?.key ?? "kr";
+    supabase
+      .from("characters")
+      .select("id, key, name_ko")
+      .order("sort_order", { ascending: true }),
 
-  const characterKey =
-    characters?.find((character) => character.id === event.primary_character_id)?.key ??
-    "baiqi";
+    supabase
+      .from("item_tags")
+      .select("tag_id, sort_order")
+      .eq("item_type", "event")
+      .eq("item_id", event.id)
+      .order("sort_order", { ascending: true }),
+  ]);
 
-  const { data: itemTagRows } = await supabase
-    .from("item_tags")
-    .select("tag_id, sort_order")
-    .eq("item_type", "event")
-    .eq("item_id", event.id)
-    .order("sort_order", { ascending: true });
-
-  const tagIds = Array.from(new Set((itemTagRows ?? []).map((row) => row.tag_id)));
-
+  const tagIds = Array.from(new Set((itemTagRows ?? []).map((row: any) => row.tag_id)));
   let defaultTagText = "";
 
   if (tagIds.length > 0) {
     const { data: tagRows } = await supabase
       .from("tags")
-      .select("id, label, name, slug")
+      .select("id, label")
       .in("id", tagIds);
 
     const tagNameMap = new Map(
-      (tagRows ?? []).map((row) => [row.id, row.label ?? row.name ?? row.slug])
+      (tagRows ?? []).map((row: any) => [row.id, row.label])
     );
 
     defaultTagText = (itemTagRows ?? [])
-      .map((row) => tagNameMap.get(row.tag_id))
+      .map((row: any) => tagNameMap.get(row.tag_id))
       .filter(Boolean)
       .join(", ");
   }
+
+  const characterKeyMap = new Map(
+    (characters ?? []).map((item: any) => [item.id, item.key])
+  );
+
+  const cardCandidates: RelationCandidate[] =
+    (cards ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+      category: item.card_category ?? null,
+    })) ?? [];
+
+  const storyCandidates: RelationCandidate[] =
+    (stories ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype ?? null,
+      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    })) ?? [];
+
+  const phoneCandidates: RelationCandidate[] =
+    (phoneItems ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype ?? null,
+      characterKey: item.content_json?.characterKey ?? null,
+      category:
+        item.content_json?.historyCategory ??
+        item.content_json?.momentCategory ??
+        null,
+    })) ?? [];
+
+  const cardIdToCandidate = new Map(
+    (cards ?? []).map((item: any) => [
+      item.id,
+      cardCandidates.find((c) => c.slug === item.slug),
+    ])
+  );
+
+  const storyIdToCandidate = new Map(
+    (stories ?? []).map((item: any) => [
+      item.id,
+      storyCandidates.find((c) => c.slug === item.slug),
+    ])
+  );
+
+  const phoneIdToCandidate = new Map(
+    (phoneItems ?? []).map((item: any) => [
+      item.id,
+      phoneCandidates.find((c) => c.slug === item.slug),
+    ])
+  );
+
+  const initialCards =
+    (relations ?? [])
+      .filter((rel: any) => rel.parent_type === "card")
+      .map((rel: any) => cardIdToCandidate.get(rel.parent_id))
+      .filter(Boolean) as RelationCandidate[];
+
+  const initialStories =
+    (relations ?? [])
+      .filter((rel: any) => rel.parent_type === "story")
+      .map((rel: any) => storyIdToCandidate.get(rel.parent_id))
+      .filter(Boolean) as RelationCandidate[];
+
+  const initialPhoneItems =
+    (relations ?? [])
+      .filter((rel: any) => rel.parent_type === "phone_item")
+      .map((rel: any) => phoneIdToCandidate.get(rel.parent_id))
+      .filter(Boolean) as RelationCandidate[];
+
+  const characterKey =
+    (characters ?? []).find((item: any) => item.id === event.primary_character_id)?.key ??
+    "baiqi";
 
   return (
     <main>
       <header className="page-header">
         <div className="page-eyebrow">Admin / Events / Edit</div>
-        <h1 className="page-title">이벤트 수정</h1>
+        <h1 className="page-title">이벤트 통합 수정</h1>
         <p className="page-desc">
-          이벤트 기본 정보, 번역, 영상, 관련 연결을 수정합니다.
+          이벤트 기본 정보, 번역, 영상, 연결 카드/스토리/휴대폰을 한 화면에서 수정합니다.
         </p>
       </header>
 
@@ -152,11 +276,25 @@ export default async function EditEventPage({
         </p>
       ) : null}
 
+      {saved ? (
+        <p
+          style={{
+            marginBottom: "16px",
+            padding: "12px 14px",
+            borderRadius: "10px",
+            background: "#1f3529",
+            color: "#b6f5cb",
+            border: "1px solid #2f6b46",
+          }}
+        >
+          저장되었습니다.
+        </p>
+      ) : null}
+
       <form action={updateEventBundle} className="form-panel">
         <input type="hidden" name="eventId" value={event.id} />
         <input type="hidden" name="slug" value={event.slug} />
         <input type="hidden" name="translationId" value={translation?.id ?? ""} />
-        <input type="hidden" name="mediaId" value={primaryMedia?.id ?? ""} />
 
         <div className="form-grid">
           <label className="form-field form-field-full">
@@ -166,12 +304,9 @@ export default async function EditEventPage({
 
           <label className="form-field">
             <span>카테고리</span>
-            <select name="subtype" defaultValue={event.subtype ?? "seasonal_event"}>
+            <select name="subtype" defaultValue={event.subtype}>
               {EVENT_SUBTYPE_OPTIONS.map((item) => (
-                <option
-                  key={`${item.value}-${item.label}`}
-                  value={item.value}
-                >
+                <option key={`${item.value}-${item.label}`} value={item.value}>
                   {item.label}
                 </option>
               ))}
@@ -183,7 +318,7 @@ export default async function EditEventPage({
             <input
               name="releaseYear"
               type="number"
-              defaultValue={event.release_year ?? ""}
+              defaultValue={event.release_year}
               required
             />
           </label>
@@ -208,23 +343,31 @@ export default async function EditEventPage({
 
           <label className="form-field">
             <span>서버</span>
-            <select name="serverKey" defaultValue={serverKey}>
-              {servers?.map((server) => (
-                <option key={server.id} value={server.key}>
-                  {server.key}
-                </option>
-              ))}
+            <select name="serverKey" defaultValue="kr">
+              <option value="kr">한국</option>
+              <option value="cn">중국</option>
             </select>
           </label>
 
           <label className="form-field">
             <span>캐릭터</span>
             <select name="characterKey" defaultValue={characterKey}>
-              {characters?.map((character) => (
-                <option key={character.id} value={character.key}>
-                  {character.key}
+              {CHARACTER_OPTIONS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
                 </option>
               ))}
+            </select>
+          </label>
+
+          <label className="form-field">
+            <span>게시 여부</span>
+            <select
+              name="isPublished"
+              defaultValue={event.is_published ? "true" : "false"}
+            >
+              <option value="true">공개</option>
+              <option value="false">비공개</option>
             </select>
           </label>
 
@@ -238,10 +381,6 @@ export default async function EditEventPage({
             <input
               name="tagLabels"
               defaultValue={defaultTagText}
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck={false}
               placeholder="예: 생일, 한정, 복각"
             />
           </label>
@@ -250,9 +389,7 @@ export default async function EditEventPage({
             <span>유튜브 URL</span>
             <input
               name="youtubeUrl"
-              defaultValue={
-                primaryMedia?.media_type === "youtube" ? primaryMedia.url ?? "" : ""
-              }
+              defaultValue=""
               placeholder="https://www.youtube.com/watch?v=..."
             />
           </label>
@@ -280,20 +417,37 @@ export default async function EditEventPage({
             initialValue={translation?.body ?? ""}
             height="700px"
           />
-
-          <label className="form-field form-field-full">
-            <span>게시 여부</span>
-            <select
-              name="isPublished"
-              defaultValue={event.is_published ? "true" : "false"}
-            >
-              <option value="true">true</option>
-              <option value="false">false</option>
-            </select>
-          </label>
         </div>
 
-         <div className="admin-subpanel">
+        <RelationPicker
+          label="연결 카드"
+          name="linkedCardSlugs"
+          candidates={cardCandidates}
+          initialSelected={initialCards}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          categoryOptions={[...CARD_CATEGORY_OPTIONS]}
+        />
+
+        <RelationPicker
+          label="연결 스토리"
+          name="linkedStorySlugs"
+          candidates={storyCandidates}
+          initialSelected={initialStories}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          subtypeOptions={[...STORY_SUBTYPE_OPTIONS]}
+        />
+
+        <RelationPicker
+          label="연결 휴대폰"
+          name="linkedPhoneItemSlugs"
+          candidates={phoneCandidates}
+          initialSelected={initialPhoneItems}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          categoryOptions={[...PHONE_CATEGORY_OPTIONS]}
+          subtypeOptions={[...PHONE_SUBTYPE_OPTIONS]}
+        />
+
+        <div className="admin-subpanel">
           <StoryVisibilityFields
             values={{
               visibility: event.visibility ?? "public",
@@ -305,8 +459,6 @@ export default async function EditEventPage({
         <div className="admin-subpanel">
           <StoryFormEnhancer storageKey={`event-draft:${event.slug}`} />
         </div>
-
-        
       </form>
 
       <div
@@ -327,15 +479,7 @@ export default async function EditEventPage({
 
         <form action={deleteEventBundle}>
           <input type="hidden" name="eventId" value={event.id} />
-          <button
-            type="submit"
-            className="nav-link"
-            style={{
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-            }}
-          >
+          <button type="submit" className="nav-link" style={{ cursor: "pointer" }}>
             삭제
           </button>
         </form>

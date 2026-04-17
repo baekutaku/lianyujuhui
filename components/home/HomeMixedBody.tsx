@@ -12,6 +12,7 @@ type StoryRow = {
   subtype: string;
   release_year: number | null;
   release_date: string | null;
+  created_at: string;
 };
 
 type EventRow = {
@@ -22,6 +23,7 @@ type EventRow = {
   release_year: number | null;
   start_date: string | null;
   thumbnail_url: string | null;
+  created_at: string;
 };
 
 type MediaRow = {
@@ -178,12 +180,10 @@ async function getLatestStoriesBySubtype(
 ): Promise<HomeSection> {
   const { data: stories, error } = await supabase
     .from("stories")
-    .select("id, title, slug, subtype, release_year, release_date")
+    .select("id, title, slug, subtype, release_year, release_date, created_at")
     .eq("is_published", true)
     .eq("subtype", subtype)
-    .order("release_date", { ascending: false })
-    .order("release_year", { ascending: false })
-    .order("title", { ascending: true })
+    .order("created_at", { ascending: false })
     .limit(10);
 
   if (error) {
@@ -191,37 +191,15 @@ async function getLatestStoriesBySubtype(
     return { title, href, items: [] };
   }
 
-  const rows = (stories as StoryRow[] | null) ?? [];
-  if (rows.length === 0) return { title, href, items: [] };
-
-  const ids = rows.map((row) => row.id);
-
-  const { data: mediaAssets } = await supabase
-    .from("media_assets")
-    .select(
-      "parent_id, media_type, usage_type, url, youtube_video_id, thumbnail_url, is_primary, sort_order"
-    )
-    .eq("parent_type", "story")
-    .in("parent_id", ids)
-    .order("is_primary", { ascending: false })
-    .order("sort_order", { ascending: true });
-
-  const grouped = new Map<string, MediaRow[]>();
-  (mediaAssets as MediaRow[] | null)?.forEach((item) => {
-    const arr = grouped.get(item.parent_id) ?? [];
-    arr.push(item);
-    grouped.set(item.parent_id, arr);
-  });
-
   return {
     title,
     href,
-    items: rows.map((row) => ({
-      id: row.id,
-      title: row.title,
-      href: `/stories/${encodeURIComponent(row.slug)}`,
-      thumb: pickMediaThumb(grouped.get(row.id) ?? []),
-      meta: formatStoryMeta(row),
+    items: (stories ?? []).map((story) => ({
+      id: story.id,
+      title: story.title,
+      href: `/stories/${story.slug}`,
+      thumb: "",
+      meta: story.created_at?.slice(0, 10) ?? "",
     })),
   };
 }
@@ -237,70 +215,46 @@ async function getLatestPhoneSection(): Promise<HomeSection> {
 
   if (error) {
     console.error("[HomeMixedBody] phone_items fetch error:", error);
-    return { title: "모멘트 / 문자 / 통화", href: "/phone-items", items: [] };
+    return { title: "휴대폰", href: "/phone-items", items: [] };
   }
 
   const rows = (data as PhoneItemRow[] | null) ?? [];
 
   return {
-    title: "모멘트 / 문자 / 통화",
-    href: "/phone-items",
-    items: rows.map((row) => ({
-      id: row.id,
-      title: row.title?.trim() || "제목 없음",
-      href: getPhoneHref(row),
-      thumb: getPhoneThumb(row),
-      meta: getPhoneMeta(row.subtype),
-    })),
-  };
+  title: "휴대폰",
+  href: "/phone-items",
+  items: rows.map((row) => ({
+    id: row.id,
+    title: row.title?.trim() || "제목 없음",
+    href: getPhoneHref(row),
+    thumb: getPhoneThumb(row),
+    meta: getPhoneMeta(row.subtype),
+  })),
+};
 }
 
 async function getLatestEventSection(): Promise<HomeSection> {
-  const { data: events, error } = await supabase
+  const { data: rows, error } = await supabase
     .from("events")
-    .select("id, title, slug, subtype, release_year, start_date, thumbnail_url")
+    .select("id, title, slug, subtype, release_year, start_date, thumbnail_url, created_at")
     .eq("is_published", true)
-    .order("start_date", { ascending: false })
-    .order("release_year", { ascending: false })
-    .order("title", { ascending: true })
+    .order("created_at", { ascending: false })
     .limit(10);
 
   if (error) {
-    console.error("[HomeMixedBody] events fetch error:", error);
-    return { title: "이벤트", href: "/events", items: [] };
+    console.error("[HomeMixedBody] event fetch error:", error);
+    return { title: "이벤트", href: "/stories?tab=event", items: [] };
   }
-
-  const rows = (events as EventRow[] | null) ?? [];
-  if (rows.length === 0) return { title: "이벤트", href: "/events", items: [] };
-
-  const ids = rows.map((row) => row.id);
-
-  const { data: mediaAssets } = await supabase
-    .from("media_assets")
-    .select(
-      "parent_id, media_type, usage_type, url, youtube_video_id, thumbnail_url, is_primary, sort_order"
-    )
-    .eq("parent_type", "event")
-    .in("parent_id", ids)
-    .order("is_primary", { ascending: false })
-    .order("sort_order", { ascending: true });
-
-  const grouped = new Map<string, MediaRow[]>();
-  (mediaAssets as MediaRow[] | null)?.forEach((item) => {
-    const arr = grouped.get(item.parent_id) ?? [];
-    arr.push(item);
-    grouped.set(item.parent_id, arr);
-  });
 
   return {
     title: "이벤트",
-    href: "/events",
-    items: rows.map((row) => ({
+    href: "/stories?tab=event",
+    items: (rows ?? []).map((row) => ({
       id: row.id,
       title: row.title,
-      href: `/events/${encodeURIComponent(row.slug)}`,
-      thumb: row.thumbnail_url?.trim() || pickMediaThumb(grouped.get(row.id) ?? []),
-      meta: formatEventMeta(row),
+      href: `/events/${row.slug}`,
+      thumb: row.thumbnail_url ?? "",
+      meta: row.created_at?.slice(0, 10) ?? "",
     })),
   };
 }
@@ -322,25 +276,23 @@ async function getCalendarEntries(): Promise<CalendarEntryRow[]> {
   return (data as CalendarEntryRow[] | null) ?? [];
 }
 export default async function HomeMixedBody() {
-  const [
-    mainStory,
-    sideStory,
-    dateStory,
-    phoneSection,
-    eventSection,
-    calendarEntries,
-    admin,
-  ] = await Promise.all([
-    getLatestStoriesBySubtype("메인스토리", "/stories?subtype=main_story", "main_story"),
-    getLatestStoriesBySubtype("외전", "/stories?subtype=side_story", "side_story"),
-    getLatestStoriesBySubtype("데이트", "/stories?subtype=card_story", "card_story"),
-    getLatestPhoneSection(),
-    getLatestEventSection(),
-    getCalendarEntries(),
-    isAdmin(),
-  ]);
+ const [
+  mainStory,
+  sideStory,
+  eventSection,
+  phoneSection,
+  calendarEntries,
+  admin,
+] = await Promise.all([
+  getLatestStoriesBySubtype("메인스토리", "/stories?tab=main", "main_story"),
+  getLatestStoriesBySubtype("외전", "/stories?tab=side", "side_story"),
+  getLatestEventSection(),
+  getLatestPhoneSection(),
+  getCalendarEntries(),
+  isAdmin(),
+]);
 
-  const sections = [mainStory, sideStory, dateStory, eventSection, phoneSection];
+const sections = [mainStory, sideStory, eventSection, phoneSection];
 
   return (
     <section className="home-classic-layout">

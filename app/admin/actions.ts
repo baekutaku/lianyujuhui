@@ -933,6 +933,81 @@ async function syncRelationsBySlugs(params: {
     throw new Error(insertError.message);
   }
 }
+async function syncIncomingRelationsBySlugs(params: {
+  childType: "card" | "story" | "event" | "phone_item";
+  childId: string;
+  parentType: "card" | "story" | "event" | "phone_item";
+  relationType: string;
+  slugs: string[];
+}) {
+  const parentTable = getTableNameByItemType(params.parentType);
+  const uniqueSlugs = Array.from(new Set(params.slugs));
+
+  const { data: existingRelations, error: existingRelationsError } = await supabase
+    .from("item_relations")
+    .select("id")
+    .eq("child_type", params.childType)
+    .eq("child_id", params.childId)
+    .eq("parent_type", params.parentType)
+    .eq("relation_type", params.relationType);
+
+  if (existingRelationsError) {
+    throw new Error(existingRelationsError.message);
+  }
+
+  if (existingRelations && existingRelations.length > 0) {
+    const relationIds = existingRelations.map((item) => item.id);
+
+    const { error: deleteError } = await supabase
+      .from("item_relations")
+      .delete()
+      .in("id", relationIds);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+  }
+
+  if (uniqueSlugs.length === 0) {
+    return;
+  }
+
+  const { data: parents, error: parentLookupError } = await supabase
+    .from(parentTable)
+    .select("id, slug")
+    .in("slug", uniqueSlugs);
+
+  if (parentLookupError) {
+    throw new Error(parentLookupError.message);
+  }
+
+  const foundParents = parents ?? [];
+  const foundSlugSet = new Set(foundParents.map((item) => item.slug));
+  const missingSlugs = uniqueSlugs.filter((slug) => !foundSlugSet.has(slug));
+
+  if (missingSlugs.length > 0) {
+    throw new Error(
+      `${params.parentType} slug를 찾을 수 없습니다:\n${missingSlugs.join("\n")}`
+    );
+  }
+
+  const rows = foundParents.map((parent, index) => ({
+    parent_type: params.parentType,
+    parent_id: parent.id,
+    child_type: params.childType,
+    child_id: params.childId,
+    relation_type: params.relationType,
+    sort_order: index,
+  }));
+
+  const { error: insertError } = await supabase
+    .from("item_relations")
+    .insert(rows);
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+}
 
 export async function updateCard(formData: FormData) {
   await requireAdmin();
@@ -1144,6 +1219,7 @@ const ALLOWED_STORY_SUBTYPES = new Set([
 export async function createStoryBundle(formData: FormData) {
   let successSlug = "";
   let errorRedirectUrl: string | null = null;
+  const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
     await requireAdmin();
@@ -1157,9 +1233,7 @@ export async function createStoryBundle(formData: FormData) {
 
     const releaseYear = Number(formData.get("releaseYear") || 2025);
     const releaseDate = String(formData.get("releaseDate") || "").trim();
-    console.log("[createStoryBundle] raw =", formData.get("tagLabels"));
     const tagLabels = parseTagLabelsFromForm(formData);
-    console.log("[createStoryBundle] parsed =", tagLabels);
     const serverKey = String(formData.get("serverKey") || "kr").trim();
     const characterKey = String(formData.get("characterKey") || "baiqi").trim();
 
@@ -1171,7 +1245,10 @@ export async function createStoryBundle(formData: FormData) {
     const youtubeUrlCn = String(formData.get("youtubeUrlCn") || "").trim();
     const youtubeUrlKr = String(formData.get("youtubeUrlKr") || "").trim();
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
-    const cardSlug = String(formData.get("cardSlug") || "").trim();
+
+    const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
+    const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
 
     const meta = await resolveStoryMetaFromForm(formData);
 
@@ -1233,7 +1310,7 @@ export async function createStoryBundle(formData: FormData) {
         episode_title: meta.episodeTitle,
         is_published: true,
       })
-      .select("id")
+      .select("id, slug")
       .single();
 
     if (storyError || !insertedStory) {
@@ -1276,7 +1353,9 @@ export async function createStoryBundle(formData: FormData) {
           sort_order: 0,
         });
 
-      if (imageError) throw new Error(imageError.message);
+      if (imageError) {
+        throw new Error(imageError.message);
+      }
     }
 
     await upsertStoryYoutubeMedia({
@@ -1297,33 +1376,33 @@ export async function createStoryBundle(formData: FormData) {
       sortOrder: coverImageUrl ? 2 : 1,
     });
 
-    if (cardSlug) {
-      const { data: card, error: cardError } = await supabase
-        .from("cards")
-        .select("id")
-        .eq("slug", cardSlug)
-        .single();
+    await syncIncomingRelationsBySlugs({
+      childType: "story",
+      childId: insertedStory.id,
+      parentType: "card",
+      relationType: "card_story",
+      slugs: linkedCardSlugs,
+    });
 
-      if (cardError || !card) {
-        throw new Error(`카드를 찾을 수 없습니다: ${cardSlug}`);
-      }
+    await syncIncomingRelationsBySlugs({
+      childType: "story",
+      childId: insertedStory.id,
+      parentType: "phone_item",
+      relationType: "phone_story",
+      slugs: linkedPhoneItemSlugs,
+    });
 
-      const { error: relationError } = await supabase
-        .from("item_relations")
-        .insert({
-          parent_type: "card",
-          parent_id: card.id,
-          child_type: "story",
-          child_id: insertedStory.id,
-          relation_type: "card_story",
-          sort_order: 0,
-        });
-
-      if (relationError) throw new Error(relationError.message);
-    }
+    await syncIncomingRelationsBySlugs({
+      childType: "story",
+      childId: insertedStory.id,
+      parentType: "event",
+      relationType: "event_story",
+      slugs: linkedEventSlugs,
+    });
 
     revalidatePath("/admin/stories");
     revalidatePath("/stories");
+    revalidatePath(`/stories/${insertedStory.slug}`);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
@@ -1331,7 +1410,14 @@ export async function createStoryBundle(formData: FormData) {
     errorRedirectUrl = `/admin/stories/new?error=${encodeURIComponent(message)}`;
   }
 
-  if (errorRedirectUrl) redirect(errorRedirectUrl);
+  if (errorRedirectUrl) {
+    redirect(errorRedirectUrl);
+  }
+
+  if (submitIntent === "view") {
+    redirect(`/stories/${encodeURIComponent(successSlug)}`);
+  }
+
   redirect(`/admin/stories/${encodeURIComponent(successSlug)}/edit?saved=1`);
 }
 export async function updateStoryBundle(formData: FormData) {
@@ -1339,9 +1425,11 @@ export async function updateStoryBundle(formData: FormData) {
 
   const rawSlug = String(formData.get("slug") || "").trim();
   const safeSlug = encodeURIComponent(rawSlug);
+  const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
     const storyId = String(formData.get("storyId") || "").trim();
+
     if (!storyId) {
       throw new Error("storyId가 없습니다.");
     }
@@ -1349,12 +1437,10 @@ export async function updateStoryBundle(formData: FormData) {
     const title = String(formData.get("title") || "").trim();
     const subtype = String(formData.get("subtype") || "card_story").trim();
     const releaseYear = Number(formData.get("releaseYear") || 2025);
-   const releaseDate = String(formData.get("releaseDate") || "").trim();
-console.log("[updateStoryBundle] raw =", formData.get("tagLabels"));
-const tagLabels = parseTagLabelsFromForm(formData);
-console.log("[updateStoryBundle] parsed =", tagLabels);
+    const releaseDate = String(formData.get("releaseDate") || "").trim();
+    const tagLabels = parseTagLabelsFromForm(formData);
 
-const translationCnId = String(formData.get("translationCnId") || "").trim();
+    const translationCnId = String(formData.get("translationCnId") || "").trim();
     const translationKrId = String(formData.get("translationKrId") || "").trim();
 
     const translationTitleCn = String(formData.get("translationTitleCn") || "");
@@ -1371,8 +1457,9 @@ const translationCnId = String(formData.get("translationCnId") || "").trim();
     const coverMediaId = String(formData.get("coverMediaId") || "").trim();
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
 
-    const relationId = String(formData.get("relationId") || "").trim();
-    const cardSlug = String(formData.get("cardSlug") || "").trim();
+    const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
+    const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
 
     const { data: currentStory, error: currentStoryError } = await supabase
       .from("stories")
@@ -1473,14 +1560,18 @@ const translationCnId = String(formData.get("translationCnId") || "").trim();
           })
           .eq("id", coverMediaId);
 
-        if (error) throw new Error(error.message);
+        if (error) {
+          throw new Error(error.message);
+        }
       } else {
         const { error } = await supabase
           .from("media_assets")
           .delete()
           .eq("id", coverMediaId);
 
-        if (error) throw new Error(error.message);
+        if (error) {
+          throw new Error(error.message);
+        }
       }
     } else if (coverImageUrl) {
       const { error } = await supabase.from("media_assets").insert({
@@ -1494,55 +1585,34 @@ const translationCnId = String(formData.get("translationCnId") || "").trim();
         sort_order: 0,
       });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        throw new Error(error.message);
+      }
     }
 
-    if (relationId && cardSlug) {
-      const { data: card, error: cardError } = await supabase
-        .from("cards")
-        .select("id")
-        .eq("slug", cardSlug)
-        .single();
+    await syncIncomingRelationsBySlugs({
+      childType: "story",
+      childId: storyId,
+      parentType: "card",
+      relationType: "card_story",
+      slugs: linkedCardSlugs,
+    });
 
-      if (cardError || !card) {
-        throw new Error(`카드를 찾을 수 없습니다: ${cardSlug}`);
-      }
+    await syncIncomingRelationsBySlugs({
+      childType: "story",
+      childId: storyId,
+      parentType: "phone_item",
+      relationType: "phone_story",
+      slugs: linkedPhoneItemSlugs,
+    });
 
-      const { error } = await supabase
-        .from("item_relations")
-        .update({ parent_id: card.id })
-        .eq("id", relationId);
-
-      if (error) throw new Error(error.message);
-    } else if (!relationId && cardSlug) {
-      const { data: card, error: cardError } = await supabase
-        .from("cards")
-        .select("id")
-        .eq("slug", cardSlug)
-        .single();
-
-      if (cardError || !card) {
-        throw new Error(`카드를 찾을 수 없습니다: ${cardSlug}`);
-      }
-
-      const { error } = await supabase.from("item_relations").insert({
-        parent_type: "card",
-        parent_id: card.id,
-        child_type: "story",
-        child_id: storyId,
-        relation_type: "card_story",
-        sort_order: 0,
-      });
-
-      if (error) throw new Error(error.message);
-    } else if (relationId && !cardSlug) {
-      const { error } = await supabase
-        .from("item_relations")
-        .delete()
-        .eq("id", relationId);
-
-      if (error) throw new Error(error.message);
-    }
+    await syncIncomingRelationsBySlugs({
+      childType: "story",
+      childId: storyId,
+      parentType: "event",
+      relationType: "event_story",
+      slugs: linkedEventSlugs,
+    });
 
     revalidatePath("/admin/stories");
     revalidatePath("/stories");
@@ -1552,6 +1622,10 @@ const translationCnId = String(formData.get("translationCnId") || "").trim();
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
 
     redirect(`/admin/stories/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
+  }
+
+  if (submitIntent === "view") {
+    redirect(`/stories/${safeSlug}`);
   }
 
   redirect(`/admin/stories/${safeSlug}/edit?saved=1`);
@@ -1614,6 +1688,8 @@ export async function createEventBundle(formData: FormData) {
   const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
+    await requireAdmin();
+
     const title = String(formData.get("title") || "").trim();
     const subtype = String(formData.get("subtype") || "game_event").trim();
     const releaseYear = Number(formData.get("releaseYear") || 2025);
@@ -1628,8 +1704,11 @@ export async function createEventBundle(formData: FormData) {
 
     const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
     const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
-    const cardSlug = String(formData.get("cardSlug") || "").trim();
-    const relatedEventSlug = String(formData.get("relatedEventSlug") || "").trim();
+
+    const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
+    const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
+    const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+
     const tagLabels = parseTagLabelsFromForm(formData);
     const meta = await resolveStoryMetaFromForm(formData);
 
@@ -1642,29 +1721,29 @@ export async function createEventBundle(formData: FormData) {
     }
 
     const { slug, originKey, contentId } = buildEventKeys({
-  subtype,
-  characterKey,
-  title,
-  year: releaseYear,
-  serverKey,
-  startDate,
-});
+      subtype,
+      characterKey,
+      title,
+      year: releaseYear,
+      serverKey,
+      startDate,
+    });
 
     targetSlug = slug;
 
     const { data: existingEvent } = await supabase
-  .from("events")
-  .select("id, slug")
-  .eq("content_id", contentId)
-  .maybeSingle();
+      .from("events")
+      .select("id, slug")
+      .eq("content_id", contentId)
+      .maybeSingle();
 
-if (existingEvent) {
-  redirect(
-    `/admin/events/${encodeURIComponent(existingEvent.slug)}/edit?error=${encodeURIComponent(
-      "이미 등록된 이벤트입니다."
-    )}`
-  );
-}
+    if (existingEvent) {
+      redirect(
+        `/admin/events/${encodeURIComponent(existingEvent.slug)}/edit?error=${encodeURIComponent(
+          "이미 등록된 이벤트입니다."
+        )}`
+      );
+    }
 
     const { data: server, error: serverError } = await supabase
       .from("servers")
@@ -1714,6 +1793,7 @@ if (existingEvent) {
     }
 
     createdEventId = insertedEvent.id;
+
     await syncEventTags(insertedEvent.id, tagLabels);
 
     if (translationBody) {
@@ -1776,62 +1856,33 @@ if (existingEvent) {
       }
     }
 
-    if (cardSlug) {
-      const { data: card, error: cardError } = await supabase
-        .from("cards")
-        .select("id")
-        .eq("slug", cardSlug)
-        .single();
+    await syncIncomingRelationsBySlugs({
+      childType: "event",
+      childId: insertedEvent.id,
+      parentType: "card",
+      relationType: "card_event",
+      slugs: linkedCardSlugs,
+    });
 
-      if (cardError || !card) {
-        throw new Error(`card 조회 실패: ${cardError?.message || cardSlug}`);
-      }
+    await syncIncomingRelationsBySlugs({
+      childType: "event",
+      childId: insertedEvent.id,
+      parentType: "story",
+      relationType: "story_event",
+      slugs: linkedStorySlugs,
+    });
 
-      const { error: relationError } = await supabase
-        .from("item_relations")
-        .insert({
-          parent_type: "card",
-          parent_id: card.id,
-          child_type: "event",
-          child_id: insertedEvent.id,
-          relation_type: "related_card",
-          sort_order: 0,
-        });
-
-      if (relationError) {
-        throw new Error(`card relation 저장 실패: ${relationError.message}`);
-      }
-    }
-
-    if (relatedEventSlug) {
-      const { data: relatedEvent, error: relatedEventError } = await supabase
-        .from("events")
-        .select("id")
-        .eq("slug", relatedEventSlug)
-        .single();
-
-      if (relatedEventError || !relatedEvent) {
-        throw new Error(`related event 조회 실패: ${relatedEventError?.message || relatedEventSlug}`);
-      }
-
-      const { error: relationError } = await supabase
-        .from("item_relations")
-        .insert({
-          parent_type: "event",
-          parent_id: relatedEvent.id,
-          child_type: "event",
-          child_id: insertedEvent.id,
-          relation_type: "related_event",
-          sort_order: 0,
-        });
-
-      if (relationError) {
-        throw new Error(`event relation 저장 실패: ${relationError.message}`);
-      }
-    }
+    await syncIncomingRelationsBySlugs({
+      childType: "event",
+      childId: insertedEvent.id,
+      parentType: "phone_item",
+      relationType: "phone_event",
+      slugs: linkedPhoneItemSlugs,
+    });
 
     revalidatePath("/admin/events");
     revalidatePath("/events");
+    revalidatePath(`/events/${encodeURIComponent(targetSlug)}`);
   } catch (error) {
     console.error("[createEventBundle] fatal error:", error);
 
@@ -1858,342 +1909,267 @@ if (existingEvent) {
 }
 
 export async function updateEventBundle(formData: FormData) {
+  await requireAdmin();
+
   const eventId = String(formData.get("eventId") || "").trim();
-  const title = String(formData.get("title") || "").trim();
   const slug = String(formData.get("slug") || "").trim();
-const submitIntent = String(formData.get("submitIntent") || "edit").trim();
-  const subtype = String(formData.get("subtype") || "game_event").trim();
-  const releaseYear = Number(formData.get("releaseYear") || 2025);
-  const startDate = String(formData.get("startDate") || "").trim();
-  const endDate = String(formData.get("endDate") || "").trim();
-  const summary = String(formData.get("summary") || "").trim();
-  const serverKey = String(formData.get("serverKey") || "kr").trim();
-  const characterKey = String(formData.get("characterKey") || "baiqi").trim();
-
-  const translationId = String(formData.get("translationId") || "").trim();
-  const translationTitle = String(formData.get("translationTitle") || "").trim();
-  const translationBody = String(formData.get("translationBody") || "").trim();
-
-  const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
-  const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
-  const isPublished = String(formData.get("isPublished") || "true").trim() === "true";
-
-  const hasCardSlugField = formData.has("cardSlug");
-  const hasRelatedEventSlugField = formData.has("relatedEventSlug");
-  const cardSlug = String(formData.get("cardSlug") || "").trim();
-  const relatedEventSlug = String(formData.get("relatedEventSlug") || "").trim();
-
-  const tagLabels = parseTagLabelsFromForm(formData);
-
-  if (!eventId) {
-    throw new Error("eventId가 없습니다.");
-  }
-const { data: currentEvent, error: currentEventError } = await supabase
-  .from("events")
-  .select("access_password_hash")
-  .eq("id", eventId)
-  .single();
-
-if (currentEventError) {
-  throw new Error(currentEventError.message);
-}
-
-const meta = await resolveStoryMetaFromForm(
-  formData,
-  currentEvent?.access_password_hash ?? null
-);
-
-  const { data: server, error: serverError } = await supabase
-    .from("servers")
-    .select("id")
-    .eq("key", serverKey)
-    .single();
-
-  if (serverError || !server) {
-    throw new Error(`server 조회 실패: ${serverError?.message || serverKey}`);
-  }
-
-  const { data: character, error: characterError } = await supabase
-    .from("characters")
-    .select("id")
-    .eq("key", characterKey)
-    .single();
-
-  if (characterError || !character) {
-    throw new Error(`character 조회 실패: ${characterError?.message || characterKey}`);
-  }
-
-  const { error: eventError } = await supabase
-    .from("events")
-    .update({
-  title,
-  subtype,
-  release_year: releaseYear,
-  start_date: startDate || null,
-  end_date: endDate || null,
-  summary,
-  server_id: server.id,
-  primary_character_id: character.id,
-  thumbnail_url: thumbnailUrl || null,
-  visibility: meta.visibility,
-  access_password_hash: meta.accessPasswordHash,
-  access_hint: meta.accessHint,
-  is_published: isPublished,
-})
-    .eq("id", eventId);
-
-  if (eventError) {
-    throw new Error(eventError.message);
-  }
-await syncEventTags(eventId, tagLabels);
-  if (translationId) {
-    const { error: translationError } = await supabase
-      .from("translations")
-      .update({
-        title: translationTitle || null,
-        body: translationBody,
-      })
-      .eq("id", translationId);
-
-    if (translationError) {
-      throw new Error(translationError.message);
-    }
-  } else if (translationBody) {
-    const { error: translationInsertError } = await supabase
-      .from("translations")
-      .insert({
-        parent_type: "event",
-        parent_id: eventId,
-        language_code: "ko",
-        translation_type: "full",
-        title: translationTitle || null,
-        body: translationBody,
-        is_primary: true,
-        is_published: true,
-      });
-
-    if (translationInsertError) {
-      throw new Error(translationInsertError.message);
-    }
-  }
-
-  const { data: existingYoutube } = await supabase
-    .from("media_assets")
-    .select("id")
-    .eq("parent_type", "event")
-    .eq("parent_id", eventId)
-    .eq("media_type", "youtube")
-    .limit(1)
-    .maybeSingle();
-
-  const { data: existingImage } = await supabase
-    .from("media_assets")
-    .select("id")
-    .eq("parent_type", "event")
-    .eq("parent_id", eventId)
-    .eq("media_type", "image")
-    .limit(1)
-    .maybeSingle();
-
-  if (existingYoutube?.id && youtubeUrl) {
-    const { error } = await supabase
-      .from("media_assets")
-      .update({
-        url: youtubeUrl,
-        youtube_video_id: extractYoutubeVideoId(youtubeUrl),
-        usage_type: "pv",
-        media_type: "youtube",
-        title: `${title} PV`,
-        is_primary: true,
-        sort_order: 0,
-      })
-      .eq("id", existingYoutube.id);
-
-    if (error) throw new Error(error.message);
-  } else if (!existingYoutube?.id && youtubeUrl) {
-    const { error } = await supabase
-      .from("media_assets")
-      .insert({
-        parent_type: "event",
-        parent_id: eventId,
-        media_type: "youtube",
-        usage_type: "pv",
-        url: youtubeUrl,
-        youtube_video_id: extractYoutubeVideoId(youtubeUrl),
-        title: `${title} PV`,
-        is_primary: true,
-        sort_order: 0,
-      });
-
-    if (error) throw new Error(error.message);
-  } else if (existingYoutube?.id && !youtubeUrl) {
-    const { error } = await supabase
-      .from("media_assets")
-      .delete()
-      .eq("id", existingYoutube.id);
-
-    if (error) throw new Error(error.message);
-  }
-
-  if (existingImage?.id && thumbnailUrl) {
-    const { error } = await supabase
-      .from("media_assets")
-      .update({
-        url: thumbnailUrl,
-        usage_type: "thumbnail",
-        media_type: "image",
-        title: `${title} 썸네일`,
-        is_primary: !youtubeUrl,
-        sort_order: youtubeUrl ? 1 : 0,
-      })
-      .eq("id", existingImage.id);
-
-    if (error) throw new Error(error.message);
-  } else if (!existingImage?.id && thumbnailUrl) {
-    const { error } = await supabase
-      .from("media_assets")
-      .insert({
-        parent_type: "event",
-        parent_id: eventId,
-        media_type: "image",
-        usage_type: "thumbnail",
-        url: thumbnailUrl,
-        title: `${title} 썸네일`,
-        is_primary: !youtubeUrl,
-        sort_order: youtubeUrl ? 1 : 0,
-      });
-
-    if (error) throw new Error(error.message);
-  } else if (existingImage?.id && !thumbnailUrl) {
-    const { error } = await supabase
-      .from("media_assets")
-      .delete()
-      .eq("id", existingImage.id);
-
-    if (error) throw new Error(error.message);
-  }
-
-  if (hasCardSlugField) {
-    const { data: existingCardRelation } = await supabase
-      .from("item_relations")
-      .select("id")
-      .eq("child_type", "event")
-      .eq("child_id", eventId)
-      .eq("parent_type", "card")
-      .limit(1)
-      .maybeSingle();
-
-    if (cardSlug) {
-      const { data: card, error: cardError } = await supabase
-        .from("cards")
-        .select("id")
-        .eq("slug", cardSlug)
-        .single();
-
-      if (cardError || !card) {
-        throw new Error(`card 조회 실패: ${cardError?.message || cardSlug}`);
-      }
-
-      if (existingCardRelation?.id) {
-        const { error } = await supabase
-          .from("item_relations")
-          .update({
-            parent_id: card.id,
-            relation_type: "related_card",
-          })
-          .eq("id", existingCardRelation.id);
-
-        if (error) throw new Error(error.message);
-      } else {
-        const { error } = await supabase
-          .from("item_relations")
-          .insert({
-            parent_type: "card",
-            parent_id: card.id,
-            child_type: "event",
-            child_id: eventId,
-            relation_type: "related_card",
-            sort_order: 0,
-          });
-
-        if (error) throw new Error(error.message);
-      }
-    } else if (existingCardRelation?.id) {
-      const { error } = await supabase
-        .from("item_relations")
-        .delete()
-        .eq("id", existingCardRelation.id);
-
-      if (error) throw new Error(error.message);
-    }
-  }
-
-  if (hasRelatedEventSlugField) {
-    const { data: existingEventRelation } = await supabase
-      .from("item_relations")
-      .select("id")
-      .eq("child_type", "event")
-      .eq("child_id", eventId)
-      .eq("parent_type", "event")
-      .limit(1)
-      .maybeSingle();
-
-    if (relatedEventSlug) {
-      const { data: relatedEvent, error: relatedEventError } = await supabase
-        .from("events")
-        .select("id")
-        .eq("slug", relatedEventSlug)
-        .single();
-
-      if (relatedEventError || !relatedEvent) {
-        throw new Error(
-          `related event 조회 실패: ${relatedEventError?.message || relatedEventSlug}`
-        );
-      }
-
-      if (existingEventRelation?.id) {
-        const { error } = await supabase
-          .from("item_relations")
-          .update({
-            parent_id: relatedEvent.id,
-            relation_type: "related_event",
-          })
-          .eq("id", existingEventRelation.id);
-
-        if (error) throw new Error(error.message);
-      } else {
-        const { error } = await supabase
-          .from("item_relations")
-          .insert({
-            parent_type: "event",
-            parent_id: relatedEvent.id,
-            child_type: "event",
-            child_id: eventId,
-            relation_type: "related_event",
-            sort_order: 0,
-          });
-
-        if (error) throw new Error(error.message);
-      }
-    } else if (existingEventRelation?.id) {
-      const { error } = await supabase
-        .from("item_relations")
-        .delete()
-        .eq("id", existingEventRelation.id);
-
-      if (error) throw new Error(error.message);
-    }
-  }
-
-  revalidatePath("/admin/events");
-  revalidatePath("/events");
   const safeSlug = encodeURIComponent(slug);
+  const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
-if (submitIntent === "view") {
-  redirect(`/events/${safeSlug}`);
-}
+  try {
+    const title = String(formData.get("title") || "").trim();
+    const subtype = String(formData.get("subtype") || "game_event").trim();
+    const releaseYear = Number(formData.get("releaseYear") || 2025);
+    const startDate = String(formData.get("startDate") || "").trim();
+    const endDate = String(formData.get("endDate") || "").trim();
+    const summary = String(formData.get("summary") || "").trim();
+    const serverKey = String(formData.get("serverKey") || "kr").trim();
+    const characterKey = String(formData.get("characterKey") || "baiqi").trim();
 
-redirect(`/admin/events/${safeSlug}/edit?saved=1`);
+    const translationId = String(formData.get("translationId") || "").trim();
+    const translationTitle = String(formData.get("translationTitle") || "").trim();
+    const translationBody = String(formData.get("translationBody") || "").trim();
+
+    const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
+    const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
+    const isPublished = String(formData.get("isPublished") || "true").trim() === "true";
+
+    const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
+    const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
+    const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+
+    const tagLabels = parseTagLabelsFromForm(formData);
+
+    if (!eventId) {
+      throw new Error("eventId가 없습니다.");
+    }
+
+    const { data: currentEvent, error: currentEventError } = await supabase
+      .from("events")
+      .select("access_password_hash")
+      .eq("id", eventId)
+      .single();
+
+    if (currentEventError) {
+      throw new Error(currentEventError.message);
+    }
+
+    const meta = await resolveStoryMetaFromForm(
+      formData,
+      currentEvent?.access_password_hash ?? null
+    );
+
+    const { data: server, error: serverError } = await supabase
+      .from("servers")
+      .select("id")
+      .eq("key", serverKey)
+      .single();
+
+    if (serverError || !server) {
+      throw new Error(`server 조회 실패: ${serverError?.message || serverKey}`);
+    }
+
+    const { data: character, error: characterError } = await supabase
+      .from("characters")
+      .select("id")
+      .eq("key", characterKey)
+      .single();
+
+    if (characterError || !character) {
+      throw new Error(`character 조회 실패: ${characterError?.message || characterKey}`);
+    }
+
+    const { error: eventError } = await supabase
+      .from("events")
+      .update({
+        title,
+        subtype,
+        release_year: releaseYear,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        summary,
+        server_id: server.id,
+        primary_character_id: character.id,
+        thumbnail_url: thumbnailUrl || null,
+        visibility: meta.visibility,
+        access_password_hash: meta.accessPasswordHash,
+        access_hint: meta.accessHint,
+        is_published: isPublished,
+      })
+      .eq("id", eventId);
+
+    if (eventError) {
+      throw new Error(eventError.message);
+    }
+
+    await syncEventTags(eventId, tagLabels);
+
+    if (translationId) {
+      const { error: translationError } = await supabase
+        .from("translations")
+        .update({
+          title: translationTitle || null,
+          body: translationBody,
+        })
+        .eq("id", translationId);
+
+      if (translationError) {
+        throw new Error(translationError.message);
+      }
+    } else if (translationBody) {
+      const { error: translationInsertError } = await supabase
+        .from("translations")
+        .insert({
+          parent_type: "event",
+          parent_id: eventId,
+          language_code: "ko",
+          translation_type: "full",
+          title: translationTitle || null,
+          body: translationBody,
+          is_primary: true,
+          is_published: true,
+        });
+
+      if (translationInsertError) {
+        throw new Error(translationInsertError.message);
+      }
+    }
+
+    const { data: existingYoutube } = await supabase
+      .from("media_assets")
+      .select("id")
+      .eq("parent_type", "event")
+      .eq("parent_id", eventId)
+      .eq("media_type", "youtube")
+      .limit(1)
+      .maybeSingle();
+
+    const { data: existingImage } = await supabase
+      .from("media_assets")
+      .select("id")
+      .eq("parent_type", "event")
+      .eq("parent_id", eventId)
+      .eq("media_type", "image")
+      .limit(1)
+      .maybeSingle();
+
+    if (existingYoutube?.id && youtubeUrl) {
+      const { error } = await supabase
+        .from("media_assets")
+        .update({
+          url: youtubeUrl,
+          youtube_video_id: extractYoutubeVideoId(youtubeUrl),
+          usage_type: "pv",
+          media_type: "youtube",
+          title: `${title} PV`,
+          is_primary: true,
+          sort_order: 0,
+        })
+        .eq("id", existingYoutube.id);
+
+      if (error) throw new Error(error.message);
+    } else if (!existingYoutube?.id && youtubeUrl) {
+      const { error } = await supabase
+        .from("media_assets")
+        .insert({
+          parent_type: "event",
+          parent_id: eventId,
+          media_type: "youtube",
+          usage_type: "pv",
+          url: youtubeUrl,
+          youtube_video_id: extractYoutubeVideoId(youtubeUrl),
+          title: `${title} PV`,
+          is_primary: true,
+          sort_order: 0,
+        });
+
+      if (error) throw new Error(error.message);
+    } else if (existingYoutube?.id && !youtubeUrl) {
+      const { error } = await supabase
+        .from("media_assets")
+        .delete()
+        .eq("id", existingYoutube.id);
+
+      if (error) throw new Error(error.message);
+    }
+
+    if (existingImage?.id && thumbnailUrl) {
+      const { error } = await supabase
+        .from("media_assets")
+        .update({
+          url: thumbnailUrl,
+          usage_type: "thumbnail",
+          media_type: "image",
+          title: `${title} 썸네일`,
+          is_primary: !youtubeUrl,
+          sort_order: youtubeUrl ? 1 : 0,
+        })
+        .eq("id", existingImage.id);
+
+      if (error) throw new Error(error.message);
+    } else if (!existingImage?.id && thumbnailUrl) {
+      const { error } = await supabase
+        .from("media_assets")
+        .insert({
+          parent_type: "event",
+          parent_id: eventId,
+          media_type: "image",
+          usage_type: "thumbnail",
+          url: thumbnailUrl,
+          title: `${title} 썸네일`,
+          is_primary: !youtubeUrl,
+          sort_order: youtubeUrl ? 1 : 0,
+        });
+
+      if (error) throw new Error(error.message);
+    } else if (existingImage?.id && !thumbnailUrl) {
+      const { error } = await supabase
+        .from("media_assets")
+        .delete()
+        .eq("id", existingImage.id);
+
+      if (error) throw new Error(error.message);
+    }
+
+    await syncIncomingRelationsBySlugs({
+      childType: "event",
+      childId: eventId,
+      parentType: "card",
+      relationType: "card_event",
+      slugs: linkedCardSlugs,
+    });
+
+    await syncIncomingRelationsBySlugs({
+      childType: "event",
+      childId: eventId,
+      parentType: "story",
+      relationType: "story_event",
+      slugs: linkedStorySlugs,
+    });
+
+    await syncIncomingRelationsBySlugs({
+      childType: "event",
+      childId: eventId,
+      parentType: "phone_item",
+      relationType: "phone_event",
+      slugs: linkedPhoneItemSlugs,
+    });
+
+    revalidatePath("/admin/events");
+    revalidatePath("/events");
+    revalidatePath(`/events/${slug}`);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+
+    redirect(`/admin/events/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
+  }
+
+  if (submitIntent === "view") {
+    redirect(`/events/${safeSlug}`);
+  }
+
+  redirect(`/admin/events/${safeSlug}/edit?saved=1`);
 }
 
 export async function deleteEventBundle(formData: FormData) {

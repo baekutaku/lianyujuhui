@@ -35,24 +35,22 @@ const shortcutItems = [
       "/images/home/home-card-03.jpg",
     chips: ["문자", "모멘트", "통화"],
   },
-  {
-    id: "events",
-    href: "/events",
-    title: "이벤트 아카이브",
-    desc: "기간 한정 이벤트와 관련 자료 모음",
-    image:
-      "/images/home/home-card-04.jpg",
-    chips: ["이벤트", "백업"],
-  },
-  {
-    id: "pv",
-    href: "/pv",
-    title: "PV 아카이브",
-    desc: "프로모션 영상 및 PV 정리",
-    image:
-      "/images/home/home-card-05.jpg",
-    chips: ["PV", "영상"],
-  },
+{
+  id: "events",
+  href: "/stories?tab=event",
+  title: "이벤트 아카이브",
+  desc: "기간 한정 이벤트와 관련 자료 모음",
+  image: "/images/home/home-card-04.jpg",
+  chips: ["이벤트", "백업"],
+},
+{
+  id: "pv",
+  href: "/stories?tab=event",
+  title: "PV 아카이브",
+  desc: "프로모션 영상 및 PV 정리",
+  image: "/images/home/home-card-05.jpg",
+  chips: ["PV", "영상"],
+},
 ];
 export default function HomePage() {
   return (

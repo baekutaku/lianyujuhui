@@ -4,6 +4,9 @@ import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 import StoryMainMetaFields from "@/components/admin/stories/StoryMainMetaFields";
 import StoryVisibilityFields from "@/components/admin/stories/StoryVisibilityFields";
 import StoryTranslationFields from "@/components/admin/stories/StoryTranslationFields";
+import RelationPicker, {
+  type RelationCandidate,
+} from "@/components/admin/relations/RelationPicker";
 
 const STORY_SUBTYPE_OPTIONS = [
   { value: "card_story", label: "데이트" },
@@ -14,6 +17,39 @@ const STORY_SUBTYPE_OPTIONS = [
   { value: "xiyue_story", label: "서월국" },
   { value: "myhome_story", label: "마이홈 스토리" },
   { value: "company_project", label: "회사 프로젝트" },
+] as const;
+
+const CHARACTER_OPTIONS = [
+  { value: "baiqi", label: "백기" },
+  { value: "lizeyan", label: "이택언" },
+  { value: "zhouqiluo", label: "주기락" },
+  { value: "xumo", label: "허묵" },
+  { value: "lingxiao", label: "연시호" },
+] as const;
+
+const CARD_CATEGORY_OPTIONS = [
+  { value: "date", label: "데이트 카드" },
+  { value: "main_story", label: "메인스토리 연계" },
+  { value: "side_story", label: "외전 / 서브" },
+  { value: "birthday", label: "생일 카드" },
+  { value: "charge", label: "누적충전 카드" },
+  { value: "free", label: "무료 카드" },
+] as const;
+
+const PHONE_CATEGORY_OPTIONS = [
+  { value: "daily", label: "일상" },
+  { value: "companion", label: "동반" },
+  { value: "card_story", label: "카드" },
+  { value: "main_story", label: "메인스토리" },
+  { value: "tangle", label: "얽힘" },
+] as const;
+
+const PHONE_SUBTYPE_OPTIONS = [
+  { value: "message", label: "메시지" },
+  { value: "moment", label: "모멘트" },
+  { value: "call", label: "전화" },
+  { value: "video_call", label: "영상통화" },
+  { value: "article", label: "기사" },
 ] as const;
 
 function safeDecode(value: string) {
@@ -32,12 +68,65 @@ export default async function NewStoryPage({
   const params = searchParams ? await searchParams : undefined;
   const error = params?.error ?? "";
 
-  const { data: characters } = await supabase
-    .from("characters")
-    .select("id, key, name_ko")
-    .order("sort_order", { ascending: true });
+  const [
+    { data: characters },
+    { data: cards },
+    { data: phoneItems },
+    { data: events },
+  ] = await Promise.all([
+    supabase
+      .from("characters")
+      .select("id, key, name_ko")
+      .order("sort_order", { ascending: true }),
+
+    supabase
+      .from("cards")
+      .select("id, title, slug, primary_character_id, card_category")
+      .order("release_year", { ascending: false }),
+
+    supabase
+      .from("phone_items")
+      .select("id, title, slug, subtype, content_json")
+      .order("release_year", { ascending: false }),
+
+    supabase
+      .from("events")
+      .select("id, title, slug, subtype, primary_character_id")
+      .order("release_year", { ascending: false }),
+  ]);
 
   const characterRows = characters ?? [];
+  const characterKeyMap = new Map(
+    characterRows.map((item: any) => [item.id, item.key])
+  );
+
+  const cardCandidates: RelationCandidate[] =
+    (cards ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+      category: item.card_category ?? null,
+    })) ?? [];
+
+  const phoneCandidates: RelationCandidate[] =
+    (phoneItems ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype ?? null,
+      characterKey: item.content_json?.characterKey ?? null,
+      category:
+        item.content_json?.historyCategory ??
+        item.content_json?.momentCategory ??
+        null,
+    })) ?? [];
+
+  const eventCandidates: RelationCandidate[] =
+    (events ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype ?? null,
+      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    })) ?? [];
 
   return (
     <main>
@@ -45,7 +134,7 @@ export default async function NewStoryPage({
         <div className="page-eyebrow">Admin / Stories</div>
         <h1 className="page-title">스토리 통합 등록</h1>
         <p className="page-desc">
-          스토리 기본 정보, 메인 정렬 메타, 공개 범위, 번역, 영상, 카드 연결을 한 화면에서 등록합니다.
+          스토리 기본 정보, 메인 정렬 메타, 공개 범위, 번역, 영상, 연결 콘텐츠를 한 화면에서 등록합니다.
         </p>
       </header>
 
@@ -109,25 +198,26 @@ export default async function NewStoryPage({
           <label className="form-field">
             <span>대표 캐릭터</span>
             <select name="characterKey" defaultValue="baiqi">
-              <option value="baiqi">백기</option>
-              <option value="lizeyan">이택언</option>
-              <option value="zhouqiluo">주기락</option>
-              <option value="lingxiao">연시호</option>
-              <option value="xumo">허묵</option>
+              {CHARACTER_OPTIONS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
             </select>
           </label>
 
-<label className="form-field form-field-full">
-  <span>해시태그</span>
-  <input
-  name="tagLabels"
-  autoComplete="off"
-  autoCorrect="off"
-  autoCapitalize="off"
-  spellCheck={false}
-  placeholder="예: 러브레터, 워시환니, 키스"
-/>
-</label>
+          <label className="form-field form-field-full">
+            <span>해시태그</span>
+            <input
+              name="tagLabels"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              placeholder="예: 러브레터, 워시환니, 키스"
+            />
+          </label>
+
           <label className="form-field form-field-full">
             <span>CN 유튜브 링크</span>
             <input
@@ -150,15 +240,31 @@ export default async function NewStoryPage({
           </label>
 
           <StoryTranslationFields />
-
-          <label className="form-field form-field-full">
-            <span>연결 카드 slug (선택)</span>
-            <input
-              name="cardSlug"
-              placeholder="예: baiqi-ssr-some-card"
-            />
-          </label>
         </div>
+
+        <RelationPicker
+          label="연결 카드"
+          name="linkedCardSlugs"
+          candidates={cardCandidates}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          categoryOptions={[...CARD_CATEGORY_OPTIONS]}
+        />
+
+        <RelationPicker
+          label="연결 휴대폰"
+          name="linkedPhoneItemSlugs"
+          candidates={phoneCandidates}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          categoryOptions={[...PHONE_CATEGORY_OPTIONS]}
+          subtypeOptions={[...PHONE_SUBTYPE_OPTIONS]}
+        />
+
+        <RelationPicker
+          label="연결 이벤트"
+          name="linkedEventSlugs"
+          candidates={eventCandidates}
+          characterOptions={[...CHARACTER_OPTIONS]}
+        />
 
         <StoryVisibilityFields
           values={{

@@ -7,6 +7,9 @@ import DeletePhoneItemButton from "@/components/admin/phone-items/DeletePhoneIte
 import StoryMainMetaFields from "@/components/admin/stories/StoryMainMetaFields";
 import StoryVisibilityFields from "@/components/admin/stories/StoryVisibilityFields";
 import StoryTranslationFields from "@/components/admin/stories/StoryTranslationFields";
+import RelationPicker, {
+  type RelationCandidate,
+} from "@/components/admin/relations/RelationPicker";
 
 const STORY_SUBTYPE_OPTIONS = [
   { value: "card_story", label: "데이트" },
@@ -17,6 +20,39 @@ const STORY_SUBTYPE_OPTIONS = [
   { value: "xiyue_story", label: "서월국" },
   { value: "myhome_story", label: "마이홈 스토리" },
   { value: "company_project", label: "회사 프로젝트" },
+] as const;
+
+const CHARACTER_OPTIONS = [
+  { value: "baiqi", label: "백기" },
+  { value: "lizeyan", label: "이택언" },
+  { value: "zhouqiluo", label: "주기락" },
+  { value: "xumo", label: "허묵" },
+  { value: "lingxiao", label: "연시호" },
+] as const;
+
+const CARD_CATEGORY_OPTIONS = [
+  { value: "date", label: "데이트 카드" },
+  { value: "main_story", label: "메인스토리 연계" },
+  { value: "side_story", label: "외전 / 서브" },
+  { value: "birthday", label: "생일 카드" },
+  { value: "charge", label: "누적충전 카드" },
+  { value: "free", label: "무료 카드" },
+] as const;
+
+const PHONE_CATEGORY_OPTIONS = [
+  { value: "daily", label: "일상" },
+  { value: "companion", label: "동반" },
+  { value: "card_story", label: "카드" },
+  { value: "main_story", label: "메인스토리" },
+  { value: "tangle", label: "얽힘" },
+] as const;
+
+const PHONE_SUBTYPE_OPTIONS = [
+  { value: "message", label: "메시지" },
+  { value: "moment", label: "모멘트" },
+  { value: "call", label: "전화" },
+  { value: "video_call", label: "영상통화" },
+  { value: "article", label: "기사" },
 ] as const;
 
 type EditStoryPageProps = {
@@ -73,11 +109,80 @@ export default async function EditStoryPage({
     notFound();
   }
 
-  const { data: translations } = await supabase
-    .from("translations")
-    .select("id, title, body, language_code")
-    .eq("parent_type", "story")
-    .eq("parent_id", story.id);
+  const [
+    { data: translations },
+    { data: mediaRows },
+    { data: coverMedia },
+    { data: relations },
+    { data: characters },
+    { data: appearingCharacterRows },
+    { data: itemTagRows },
+    { data: cards },
+    { data: phoneItems },
+    { data: events },
+  ] = await Promise.all([
+    supabase
+      .from("translations")
+      .select("id, title, body, language_code")
+      .eq("parent_type", "story")
+      .eq("parent_id", story.id),
+
+    supabase
+      .from("media_assets")
+      .select("id, url, usage_type")
+      .eq("parent_type", "story")
+      .eq("parent_id", story.id)
+      .eq("media_type", "youtube"),
+
+    supabase
+      .from("media_assets")
+      .select("id, url")
+      .eq("parent_type", "story")
+      .eq("parent_id", story.id)
+      .eq("media_type", "image")
+      .eq("usage_type", "cover")
+      .maybeSingle(),
+
+    supabase
+      .from("item_relations")
+      .select("parent_type, parent_id, sort_order")
+      .eq("child_type", "story")
+      .eq("child_id", story.id)
+      .order("sort_order", { ascending: true }),
+
+    supabase
+      .from("characters")
+      .select("id, key, name_ko")
+      .order("sort_order", { ascending: true }),
+
+    supabase
+      .from("item_characters")
+      .select("character_id")
+      .eq("item_type", "story")
+      .eq("item_id", story.id),
+
+    supabase
+      .from("item_tags")
+      .select("tag_id, sort_order")
+      .eq("item_type", "story")
+      .eq("item_id", story.id)
+      .order("sort_order", { ascending: true }),
+
+    supabase
+      .from("cards")
+      .select("id, title, slug, primary_character_id, card_category")
+      .order("release_year", { ascending: false }),
+
+    supabase
+      .from("phone_items")
+      .select("id, title, slug, subtype, content_json")
+      .order("release_year", { ascending: false }),
+
+    supabase
+      .from("events")
+      .select("id, title, slug, subtype, primary_character_id")
+      .order("release_year", { ascending: false }),
+  ]);
 
   const translationCn =
     translations?.find((item) => normalizeLang(item.language_code) === "cn") ??
@@ -87,93 +192,100 @@ export default async function EditStoryPage({
     translations?.find((item) => normalizeLang(item.language_code) === "kr") ??
     null;
 
-  const { data: mediaRows } = await supabase
-    .from("media_assets")
-    .select("id, url, usage_type")
-    .eq("parent_type", "story")
-    .eq("parent_id", story.id)
-    .eq("media_type", "youtube");
+  const mediaLegacy =
+    mediaRows?.find((item) => item.usage_type === "pv") ?? null;
 
- const mediaLegacy =
-  mediaRows?.find((item) => item.usage_type === "pv") ?? null;
+  const mediaCn =
+    mediaRows?.find((item) => item.usage_type === "pv_cn") ?? null;
 
-const mediaCn =
-  mediaRows?.find((item) => item.usage_type === "pv_cn") ?? null;
-
-const mediaKr =
-  mediaRows?.find((item) => item.usage_type === "pv_kr") ?? mediaLegacy;
-
-  const { data: coverMedia } = await supabase
-    .from("media_assets")
-    .select("id, url")
-    .eq("parent_type", "story")
-    .eq("parent_id", story.id)
-    .eq("media_type", "image")
-    .eq("usage_type", "cover")
-    .maybeSingle();
-
-  const { data: relation } = await supabase
-    .from("item_relations")
-    .select("id, parent_id")
-    .eq("child_type", "story")
-    .eq("child_id", story.id)
-    .eq("relation_type", "card_story")
-    .maybeSingle();
-
-  const { data: characters } = await supabase
-    .from("characters")
-    .select("id, key, name_ko")
-    .order("sort_order", { ascending: true });
-
-  const { data: appearingCharacterRows } = await supabase
-    .from("item_characters")
-    .select("character_id")
-    .eq("item_type", "story")
-    .eq("item_id", story.id);
+  const mediaKr =
+    mediaRows?.find((item) => item.usage_type === "pv_kr") ?? mediaLegacy;
 
   const appearingCharacterIds =
-    appearingCharacterRows?.map((row) => row.character_id) ?? [];
+    appearingCharacterRows?.map((row: any) => row.character_id) ?? [];
 
-  let linkedCardSlug = "";
+  const tagIds = Array.from(
+    new Set((itemTagRows ?? []).map((row: any) => row.tag_id))
+  );
 
-  if (relation?.parent_id) {
-    const { data: linkedCard } = await supabase
-      .from("cards")
-      .select("slug")
-      .eq("id", relation.parent_id)
-      .maybeSingle();
+  let defaultTagText = "";
 
-    linkedCardSlug = linkedCard?.slug ?? "";
+  if (tagIds.length > 0) {
+    const { data: tagRows } = await supabase
+      .from("tags")
+      .select("id, label")
+      .in("id", tagIds);
+
+    const tagNameMap = new Map(
+      (tagRows ?? []).map((row: any) => [row.id, row.label])
+    );
+
+    defaultTagText = (itemTagRows ?? [])
+      .map((row: any) => tagNameMap.get(row.tag_id))
+      .filter(Boolean)
+      .join(", ");
   }
 
- const { data: itemTagRows } = await supabase
-  .from("item_tags")
-  .select("tag_id, sort_order")
-  .eq("item_type", "story")
-  .eq("item_id", story.id)
-  .order("sort_order", { ascending: true });
+  const characterRows = characters ?? [];
+  const characterKeyMap = new Map(
+    characterRows.map((item: any) => [item.id, item.key])
+  );
 
-const tagIds = Array.from(
-  new Set((itemTagRows ?? []).map((row) => row.tag_id))
-);
+  const cardCandidates: RelationCandidate[] =
+    (cards ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+      category: item.card_category ?? null,
+    })) ?? [];
 
-let defaultTagText = "";
+  const phoneCandidates: RelationCandidate[] =
+    (phoneItems ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype ?? null,
+      characterKey: item.content_json?.characterKey ?? null,
+      category:
+        item.content_json?.historyCategory ??
+        item.content_json?.momentCategory ??
+        null,
+    })) ?? [];
 
-if (tagIds.length > 0) {
-  const { data: tagRows } = await supabase
-  .from("tags")
-  .select("id, label")
-  .in("id", tagIds);
+  const eventCandidates: RelationCandidate[] =
+    (events ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype ?? null,
+      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    })) ?? [];
 
-const tagNameMap = new Map(
-  (tagRows ?? []).map((row) => [row.id, row.label])
-);
+  const cardIdToCandidate = new Map(
+    (cards ?? []).map((item: any) => [item.id, cardCandidates.find((c) => c.slug === item.slug)])
+  );
+  const phoneIdToCandidate = new Map(
+    (phoneItems ?? []).map((item: any) => [item.id, phoneCandidates.find((c) => c.slug === item.slug)])
+  );
+  const eventIdToCandidate = new Map(
+    (events ?? []).map((item: any) => [item.id, eventCandidates.find((c) => c.slug === item.slug)])
+  );
 
-  defaultTagText = (itemTagRows ?? [])
-    .map((row) => tagNameMap.get(row.tag_id))
-    .filter(Boolean)
-    .join(", ");
-}
+  const initialCards =
+    (relations ?? [])
+      .filter((rel: any) => rel.parent_type === "card")
+      .map((rel: any) => cardIdToCandidate.get(rel.parent_id))
+      .filter(Boolean) as RelationCandidate[];
+
+  const initialPhoneItems =
+    (relations ?? [])
+      .filter((rel: any) => rel.parent_type === "phone_item")
+      .map((rel: any) => phoneIdToCandidate.get(rel.parent_id))
+      .filter(Boolean) as RelationCandidate[];
+
+  const initialEvents =
+    (relations ?? [])
+      .filter((rel: any) => rel.parent_type === "event")
+      .map((rel: any) => eventIdToCandidate.get(rel.parent_id))
+      .filter(Boolean) as RelationCandidate[];
 
   return (
     <main>
@@ -181,7 +293,7 @@ const tagNameMap = new Map(
         <div className="page-eyebrow">Admin / Stories / Edit</div>
         <h1 className="page-title">스토리 통합 수정</h1>
         <p className="page-desc">
-          스토리, 메인 정렬 메타, 공개 범위, 번역, 영상, 카드 연결을 한 화면에서 수정합니다.
+          스토리, 메인 정렬 메타, 공개 범위, 번역, 영상, 연결 콘텐츠를 한 화면에서 수정합니다.
         </p>
       </header>
 
@@ -224,7 +336,6 @@ const tagNameMap = new Map(
         <input type="hidden" name="mediaCnId" value={mediaCn?.id ?? ""} />
         <input type="hidden" name="mediaKrId" value={mediaKr?.id ?? ""} />
         <input type="hidden" name="coverMediaId" value={coverMedia?.id ?? ""} />
-        <input type="hidden" name="relationId" value={relation?.id ?? ""} />
 
         <div className="form-grid">
           <label className="form-field form-field-full">
@@ -262,14 +373,14 @@ const tagNameMap = new Map(
             />
           </label>
 
-         <label className="form-field form-field-full">
-  <span>해시태그</span>
-  <input
-    name="tagLabels"
-    defaultValue={defaultTagText}
-    placeholder="예: 학교, 어머니, 추천, 고백전"
-  />
-</label>
+          <label className="form-field form-field-full">
+            <span>해시태그</span>
+            <input
+              name="tagLabels"
+              defaultValue={defaultTagText}
+              placeholder="예: 학교, 어머니, 추천, 고백전"
+            />
+          </label>
 
           <label className="form-field form-field-full">
             <span>CN 유튜브 링크</span>
@@ -304,16 +415,34 @@ const tagNameMap = new Map(
             krTitle={translationKr?.title ?? ""}
             krBody={translationKr?.body ?? ""}
           />
-
-          <label className="form-field form-field-full">
-            <span>연결 카드</span>
-            <input
-              name="cardSlug"
-              defaultValue={linkedCardSlug}
-              placeholder="예: baiqi-ssr-some-card"
-            />
-          </label>
         </div>
+
+        <RelationPicker
+          label="연결 카드"
+          name="linkedCardSlugs"
+          candidates={cardCandidates}
+          initialSelected={initialCards}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          categoryOptions={[...CARD_CATEGORY_OPTIONS]}
+        />
+
+        <RelationPicker
+          label="연결 휴대폰"
+          name="linkedPhoneItemSlugs"
+          candidates={phoneCandidates}
+          initialSelected={initialPhoneItems}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          categoryOptions={[...PHONE_CATEGORY_OPTIONS]}
+          subtypeOptions={[...PHONE_SUBTYPE_OPTIONS]}
+        />
+
+        <RelationPicker
+          label="연결 이벤트"
+          name="linkedEventSlugs"
+          candidates={eventCandidates}
+          initialSelected={initialEvents}
+          characterOptions={[...CHARACTER_OPTIONS]}
+        />
 
         <StoryVisibilityFields
           values={{
