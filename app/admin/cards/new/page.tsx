@@ -22,9 +22,9 @@ const RARITY_OPTIONS = [
 ] as const;
 
 const ATTRIBUTE_OPTIONS = [
-  { value: "execution", label: "추진력" },
+  { value: "drive", label: "추진력" },
   { value: "affinity", label: "친화력" },
-  { value: "decision", label: "결단력" },
+  { value: "judgment", label: "결단력" },
   { value: "creativity", label: "창의력" },
 ] as const;
 
