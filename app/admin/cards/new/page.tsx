@@ -326,9 +326,14 @@ export default async function NewCardPage({
           characterOptions={[...CHARACTER_OPTIONS]}
         />
         <div className="admin-subpanel">
-          <StoryFormEnhancer storageKey="card-draft:new" />
-        </div>
-
+  <StoryFormEnhancer
+    storageKey="card-draft:new"
+    showViewButton={false}
+    primarySubmitLabel="저장"
+    primarySubmitIntent="view"
+    hideSecondarySubmit
+  />
+</div>
 
         
       </form>
