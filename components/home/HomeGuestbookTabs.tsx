@@ -241,12 +241,17 @@ function OpenGuestbookRow({
 
           {isAdmin ? (
             <div className="home-guestbook-admin-reply-box">
-              <textarea
-                className="guestbook-admin-textarea"
-                placeholder="답글 입력"
-                value={reply}
-                onChange={(e) => setReply(e.target.value)}
-              />
+             <textarea
+  className="guestbook-admin-textarea"
+  placeholder="답글 입력"
+  value={reply}
+  onChange={(e) => setReply(e.target.value)}
+  onInput={(e) => {
+    const target = e.currentTarget;
+    target.style.height = "auto";
+    target.style.height = `${target.scrollHeight}px`;
+  }}
+/>
               <div className="guestbook-admin-actions">
                 <button
                   type="button"

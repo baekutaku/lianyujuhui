@@ -11005,16 +11005,17 @@ button,
 }
 
 .home-guestbook-textarea {
-  min-height: 150px;
-  resize: vertical;
+  min-height: 60px;
+  resize: none;
+  overflow: hidden;
 }
 
 .guestbook-admin-textarea {
-  min-height: 110px;
-  resize: vertical;
+  min-height: 78px;
+  resize: none;
+  overflow: hidden;
   margin-top: 8px;
 }
-
 .home-guestbook-input::placeholder,
 .home-guestbook-textarea::placeholder,
 .guestbook-admin-textarea::placeholder {
@@ -11252,3 +11253,4 @@ button,
 .home-guestbook-admin-reply-box {
   margin-top: 8px;
 }
+

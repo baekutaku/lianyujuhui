@@ -83,14 +83,19 @@ export default function HomeGuestbookForm({ onSuccess }: Props) {
         required
       />
 
-      <textarea
-        className="home-guestbook-textarea"
-        placeholder="최대 2000자"
-        maxLength={2000}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        required
-      />
+     <textarea
+  className="home-guestbook-textarea"
+  placeholder="최대 2000자"
+  maxLength={2000}
+  value={content}
+  onChange={(e) => setContent(e.target.value)}
+  onInput={(e) => {
+    const target = e.currentTarget;
+    target.style.height = "auto";
+    target.style.height = `${target.scrollHeight}px`;
+  }}
+  required
+/>
 
       <input
         type="text"
