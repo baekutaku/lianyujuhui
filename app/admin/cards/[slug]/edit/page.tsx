@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import { updateCard, deleteCard } from "@/app/admin/actions";
-// import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
+import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 import RelationPicker, {
   type RelationCandidate,
 } from "@/components/admin/relations/RelationPicker";
@@ -83,21 +83,21 @@ export default async function EditCardPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const errorMessage = resolvedSearchParams?.error ?? "";
 
-const { data: card, error } = await supabase
-  .from("cards")
-  .select(
-    "id, title, slug, rarity, attribute, release_year, release_date, thumbnail_url, cover_image_url, summary, card_category"
-  )
-  .eq("slug", slug)
-  .maybeSingle();
+  const { data: card, error } = await supabase
+    .from("cards")
+    .select(
+      "id, title, slug, rarity, attribute, release_year, release_date, thumbnail_url, cover_image_url, summary, card_category"
+    )
+    .eq("slug", slug)
+    .maybeSingle();
 
-if (error) {
-  throw new Error(`[admin/cards/${slug}/edit] ${error.message}`);
-}
+  if (error) {
+    console.error("[admin/cards/[slug]/edit] card fetch error:", error);
+  }
 
-if (!card) {
-  notFound();
-}
+  if (!card) {
+    notFound();
+  }
 
   const { data: thumbAfterMedia } = await supabase
     .from("media_assets")
@@ -507,9 +507,28 @@ if (!card) {
           </Link>
         </div>
 
-        {/* <div className="admin-subpanel">
+        <div className="admin-subpanel">
           <StoryFormEnhancer storageKey={`card-draft:${card.slug}`} />
-        </div> */}
+        </div>
+
+
+<div
+  style={{
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginTop: "18px",
+  }}
+>
+  <button type="submit" className="nav-link">
+    저장
+  </button>
+
+  <button type="submit" name="submitIntent" value="view" className="nav-link">
+    저장 후 공개 보기
+  </button>
+</div>
+
       </form>
 
       <div
