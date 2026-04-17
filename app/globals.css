@@ -11257,7 +11257,7 @@ button,
 
 
 /* 카드 상세 왼쪽 미디어 영역만 살짝 조이기 */
-.card-detail-media-panel {
+/* .card-detail-media-panel {
   padding: 14px 16px 16px;
 }
 
@@ -11279,6 +11279,49 @@ button,
 
 .card-detail-media-frame {
   border-radius: 22px;
+}
+
+.card-detail-main-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+} */
+
+.card-detail-media-shell {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.card-detail-media-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.card-detail-tab {
+  appearance: none;
+  border: 1px solid rgba(168, 194, 215, 0.5);
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text-sub);
+  min-width: 88px;
+  height: 36px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.card-detail-tab.is-active {
+  background: linear-gradient(135deg, var(--sky-400), var(--sky-500));
+  color: #234055;
+}
+
+.card-detail-media-frame {
+  overflow: hidden;
+  border-radius: 24px;
+  background: rgba(230, 240, 248, 0.8);
 }
 
 .card-detail-main-image {
