@@ -1231,13 +1231,44 @@ export async function deletePhoneItemAction(formData: FormData) {
     throw new Error("phoneItemId가 없습니다.");
   }
 
-  const { error: relationError } = await supabase
+  const { error: parentRelationError } = await supabase
     .from("item_relations")
     .delete()
-    .or(`parent_id.eq.${phoneItemId},child_id.eq.${phoneItemId}`);
+    .eq("parent_type", "phone_item")
+    .eq("parent_id", phoneItemId);
 
-  if (relationError) {
-    throw new Error(`item_relations 삭제 실패: ${relationError.message}`);
+  if (parentRelationError) {
+    throw new Error(`item_relations(parent) 삭제 실패: ${parentRelationError.message}`);
+  }
+
+  const { error: childRelationError } = await supabase
+    .from("item_relations")
+    .delete()
+    .eq("child_type", "phone_item")
+    .eq("child_id", phoneItemId);
+
+  if (childRelationError) {
+    throw new Error(`item_relations(child) 삭제 실패: ${childRelationError.message}`);
+  }
+
+  const { error: tagError } = await supabase
+    .from("item_tags")
+    .delete()
+    .eq("item_type", "phone_item")
+    .eq("item_id", phoneItemId);
+
+  if (tagError) {
+    throw new Error(`item_tags 삭제 실패: ${tagError.message}`);
+  }
+
+  const { error: charError } = await supabase
+    .from("item_characters")
+    .delete()
+    .eq("item_type", "phone_item")
+    .eq("item_id", phoneItemId);
+
+  if (charError) {
+    throw new Error(`item_characters 삭제 실패: ${charError.message}`);
   }
 
   const { error: translationError } = await supabase
@@ -1271,5 +1302,10 @@ export async function deletePhoneItemAction(formData: FormData) {
 
   revalidatePath("/admin/phone-items");
   revalidatePath("/phone-items");
+  revalidatePath("/phone-items/articles");
+  revalidatePath("/phone-items/calls");
+  revalidatePath("/phone-items/messages");
+  revalidatePath("/phone-items/moments");
+
   redirect("/admin/phone-items");
 }

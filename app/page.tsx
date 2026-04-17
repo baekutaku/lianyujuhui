@@ -21,10 +21,10 @@ const shortcutItems = [
     id: "stories",
     href: "/stories",
     title: "스토리 아카이브",
-    desc: "KR 위주 · CN 스토리 번역 및 백업",
+    desc: "CN 위주 · KR 스토리 번역 및 백업",
     image:
       "/images/home/home-card-02.jpg",
-    chips: ["Part1 Complete", "Part2 Partial"],
+    chips: ["kr(Part1~2)", "cn(Part1~2+Part3~)"],
   },
   {
     id: "phone-items",
@@ -60,7 +60,7 @@ export default function HomePage() {
           <div className="home-chip-row">
             <span className="home-chip">KR</span>
             <span className="home-chip">CN</span>
-            <span className="home-chip">Part1 Complete / Part2 Partial</span>
+            <span className="home-chip">Part1~3</span>
             <span className="home-chip">Baiqi Focus</span>
           </div>
 
@@ -77,9 +77,7 @@ export default function HomePage() {
           </div>
 
           <div className="home-status-note">
-            KR 서버는 2023년 1월 업데이트 종료. 1부는 37시즌으로 완결되었고,
-            2부는 KR 서버는 중반까지만 진행되었으며 이후 콘텐츠는 일부 캐릭터,
-            특히 백기 중심으로 아카이브합니다.
+           KR은 2022년 몽심호 복각 이벤트 이후로 접었음. CN은 현재 진행 중. 자료 없는 건 아직 미업로드거나 미번역입니다. 백기 중심 아카이브 하며 백기유연 CP 팝니다.
           </div>
         </div>
 

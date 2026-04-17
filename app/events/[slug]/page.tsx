@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/utils/admin-auth";
 import { unlockProtectedEvent } from "@/app/events/[slug]/actions";
 import { hasEventAccess } from "@/lib/utils/event-access";
 import { deleteEventBundle } from "@/app/admin/actions";
+import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
 
 type EventPageProps = {
   params: Promise<{
@@ -82,7 +83,7 @@ function ProtectedEventGate({
             </button>
           </form>
 
-          <Link href="/events" className="nav-link">
+          <Link href="/stories?tab=event" className="nav-link">
             목록으로
           </Link>
         </div>
@@ -161,18 +162,38 @@ export default async function EventDetailPage({
 
   const primaryMedia = media?.[0] ?? null;
 
-  const { data: relations } = await supabase
+  const { data: relations, error: relationsError } = await supabase
     .from("item_relations")
     .select("id, parent_type, parent_id, child_type, child_id, relation_type")
     .eq("child_type", "event")
     .eq("child_id", event.id);
 
+  if (relationsError) {
+    console.error("[events/[slug]] relations fetch error:", relationsError);
+  }
+
   let relatedCards: { id: string; title: string; slug: string }[] = [];
+  let relatedStories: { id: string; title: string; slug: string; subtype?: string | null }[] = [];
+  let relatedPhoneItems: {
+    id: string;
+    title: string;
+    slug: string;
+    subtype?: string | null;
+    content_json?: any;
+  }[] = [];
   let relatedEvents: { id: string; title: string; slug: string }[] = [];
 
   if (relations && relations.length > 0) {
     const cardIds = relations
       .filter((rel) => rel.parent_type === "card")
+      .map((rel) => rel.parent_id);
+
+    const storyIds = relations
+      .filter((rel) => rel.parent_type === "story")
+      .map((rel) => rel.parent_id);
+
+    const phoneIds = relations
+      .filter((rel) => rel.parent_type === "phone_item")
       .map((rel) => rel.parent_id);
 
     const eventIds = relations
@@ -188,6 +209,24 @@ export default async function EventDetailPage({
       relatedCards = cards ?? [];
     }
 
+    if (storyIds.length > 0) {
+      const { data: stories } = await supabase
+        .from("stories")
+        .select("id, title, slug, subtype")
+        .in("id", storyIds);
+
+      relatedStories = stories ?? [];
+    }
+
+    if (phoneIds.length > 0) {
+      const { data: phoneItems } = await supabase
+        .from("phone_items")
+        .select("id, title, slug, subtype, content_json")
+        .in("id", phoneIds);
+
+      relatedPhoneItems = phoneItems ?? [];
+    }
+
     if (eventIds.length > 0) {
       const { data: events } = await supabase
         .from("events")
@@ -198,95 +237,191 @@ export default async function EventDetailPage({
     }
   }
 
+  const hasConnections =
+    relatedCards.length > 0 ||
+    relatedStories.length > 0 ||
+    relatedPhoneItems.length > 0 ||
+    relatedEvents.length > 0;
+
   return (
     <main>
-      <section className="detail-panel story-topbar">
-        <div className="story-topbar-main">
-          <p className="page-eyebrow">Archive / Events</p>
-          <h1 className="story-page-title">{event.title}</h1>
+      <section className="story-topbar-layout">
+        <section className="detail-panel story-topbar-main-panel">
+          <div className="story-topbar-main">
+            <p className="page-eyebrow">Archive / Events</p>
+            <h1 className="story-page-title">{event.title}</h1>
 
-          <div className="meta-row story-top-meta">
-            <span className="meta-pill">type: {event.subtype}</span>
-            <span className="meta-pill">year: {event.release_year}</span>
-            {event.start_date ? <span className="meta-pill">start: {event.start_date}</span> : null}
-            {event.end_date ? <span className="meta-pill">end: {event.end_date}</span> : null}
-            {event.visibility === "protected" ? (
-              <span className="meta-pill">비밀번호 필요</span>
-            ) : null}
-            {event.visibility === "private" && admin ? (
-              <span className="meta-pill">비공개</span>
-            ) : null}
-          </div>
-
-          <div className="story-top-actions">
-  <Link href="/events" className="story-action-button story-action-muted">
-    목록으로
-  </Link>
-
-  {admin && (
-    <>
-      <Link
-        href="/admin/events/new"
-        className="story-action-button story-action-muted"
-      >
-        새 이벤트 등록
-      </Link>
-
-      <Link
-        href={`/admin/events/${event.slug}/edit`}
-        className="story-action-button"
-      >
-        관리자 수정
-      </Link>
-<form action={deleteEventBundle}>
-  <input type="hidden" name="eventId" value={event.id} />
-  <button
-    type="submit"
-    className="story-action-button story-action-danger"
-  >
-    삭제
-  </button>
-</form>
-    </>
-  )}
-</div>
-        </div>
-
-        <aside className="story-topbar-side">
-          <div className="story-side-block">
-            <h3 className="story-side-title">관련 카드</h3>
-            <div className="story-side-links">
-              {relatedCards.length > 0 ? (
-                relatedCards.map((card) => (
-                  <Link key={card.id} href={`/cards/${card.slug}`} className="meta-pill">
-                    {card.title}
-                  </Link>
-                ))
-              ) : (
-                <span className="detail-text">없음</span>
-              )}
+            <div className="meta-row story-top-meta">
+              <span className="meta-pill">type: {event.subtype}</span>
+              <span className="meta-pill">year: {event.release_year}</span>
+              {event.start_date ? <span className="meta-pill">start: {event.start_date}</span> : null}
+              {event.end_date ? <span className="meta-pill">end: {event.end_date}</span> : null}
+              {event.visibility === "protected" ? (
+                <span className="meta-pill">비밀번호 필요</span>
+              ) : null}
+              {event.visibility === "private" && admin ? (
+                <span className="meta-pill">비공개</span>
+              ) : null}
             </div>
-          </div>
 
-          <div className="story-side-block">
-            <h3 className="story-side-title">관련 이벤트</h3>
-            <div className="story-side-links">
-              {relatedEvents.length > 0 ? (
-                relatedEvents.map((relatedEvent) => (
+            <div className="story-top-actions">
+              <Link
+                href="/stories?tab=event"
+                className="story-action-button story-action-muted"
+              >
+                목록으로
+              </Link>
+
+              {admin ? (
+                <>
                   <Link
-                    key={relatedEvent.id}
-                    href={`/events/${relatedEvent.slug}`}
-                    className="meta-pill"
+                    href="/admin/events/new"
+                    className="story-action-button story-action-muted"
                   >
-                    {relatedEvent.title}
+                    새 이벤트 등록
                   </Link>
-                ))
-              ) : (
-                <span className="detail-text">없음</span>
-              )}
+
+                  <Link
+                    href={`/admin/events/${event.slug}/edit`}
+                    className="story-action-button"
+                  >
+                    관리자 수정
+                  </Link>
+
+                  <form action={deleteEventBundle}>
+                    <input type="hidden" name="eventId" value={event.id} />
+                    <button
+                      type="submit"
+                      className="story-action-button story-action-danger"
+                    >
+                      삭제
+                    </button>
+                  </form>
+                </>
+              ) : null}
             </div>
           </div>
-        </aside>
+        </section>
+
+        {hasConnections ? (
+          <aside className="story-topbar-side">
+            {relatedCards.length > 0 ? (
+              <details className="story-side-block story-side-disclosure">
+                <summary className="story-side-summary">
+                  <div className="story-side-title-row">
+                    <h2 className="story-side-title">연결된 카드</h2>
+                    <span className="story-side-count">{relatedCards.length}</span>
+                  </div>
+                  <span className="story-side-toggle" aria-hidden="true">
+                    ▾
+                  </span>
+                </summary>
+
+                <div className="story-side-content">
+                  <div className="story-side-links">
+                    {relatedCards.map((card) => (
+                      <Link
+                        key={card.id}
+                        href={`/cards/${card.slug}`}
+                        className="story-side-chip"
+                        title={card.title}
+                      >
+                        {card.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </details>
+            ) : null}
+
+            {relatedStories.length > 0 ? (
+              <details className="story-side-block story-side-disclosure">
+                <summary className="story-side-summary">
+                  <div className="story-side-title-row">
+                    <h2 className="story-side-title">관련 스토리</h2>
+                    <span className="story-side-count">{relatedStories.length}</span>
+                  </div>
+                  <span className="story-side-toggle" aria-hidden="true">
+                    ▾
+                  </span>
+                </summary>
+
+                <div className="story-side-content">
+                  <div className="story-side-links">
+                    {relatedStories.map((story) => (
+                      <Link
+                        key={story.id}
+                        href={`/stories/${story.slug}`}
+                        className="story-side-chip"
+                        title={story.title}
+                      >
+                        {story.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </details>
+            ) : null}
+
+            {relatedPhoneItems.length > 0 ? (
+              <details className="story-side-block story-side-disclosure">
+                <summary className="story-side-summary">
+                  <div className="story-side-title-row">
+                    <h2 className="story-side-title">연결 휴대폰</h2>
+                    <span className="story-side-count">{relatedPhoneItems.length}</span>
+                  </div>
+                  <span className="story-side-toggle" aria-hidden="true">
+                    ▾
+                  </span>
+                </summary>
+
+                <div className="story-side-content">
+                  <div className="story-side-links">
+                    {relatedPhoneItems.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={getPhoneItemHref(item)}
+                        className="story-side-chip"
+                        title={item.title}
+                      >
+                        {item.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </details>
+            ) : null}
+
+            {relatedEvents.length > 0 ? (
+              <details className="story-side-block story-side-disclosure">
+                <summary className="story-side-summary">
+                  <div className="story-side-title-row">
+                    <h2 className="story-side-title">관련 이벤트</h2>
+                    <span className="story-side-count">{relatedEvents.length}</span>
+                  </div>
+                  <span className="story-side-toggle" aria-hidden="true">
+                    ▾
+                  </span>
+                </summary>
+
+                <div className="story-side-content">
+                  <div className="story-side-links">
+                    {relatedEvents.map((relatedEvent) => (
+                      <Link
+                        key={relatedEvent.id}
+                        href={`/events/${relatedEvent.slug}`}
+                        className="story-side-chip"
+                        title={relatedEvent.title}
+                      >
+                        {relatedEvent.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </details>
+            ) : null}
+          </aside>
+        ) : null}
       </section>
 
       <section className="story-main-grid">
@@ -320,11 +455,11 @@ export default async function EventDetailPage({
         <div className="detail-panel story-translation-panel">
           <h2 className="detail-section-title">번역</h2>
 
-          {translationError && (
+          {translationError ? (
             <pre className="error-box">
               {JSON.stringify(translationError, null, 2)}
             </pre>
-          )}
+          ) : null}
 
           {!visibleTranslations || visibleTranslations.length === 0 ? (
             <div className="empty-box">등록된 번역이 없습니다.</div>

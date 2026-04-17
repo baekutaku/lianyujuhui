@@ -266,27 +266,38 @@ async function syncEventTags(eventId: string, labels: string[]) {
     .eq("item_type", "event")
     .eq("item_id", eventId);
 
-  const normalizedLabels = Array.from(
-    new Set(
-      labels
-        .map((label) => label.trim())
-        .filter(Boolean)
-    )
-  );
+  const normalizedTagMap = new Map<
+    string,
+    {
+      slug: string;
+      name: string;
+      label: string;
+      key: string;
+      kind: "event";
+    }
+  >();
 
-  if (normalizedLabels.length === 0) return;
+  for (const rawLabel of labels) {
+    const cleaned = rawLabel.trim();
+    if (!cleaned) continue;
 
-  const normalizedTags = normalizedLabels.map((label) => {
-    const slug = slugifyTag(label);
+    const slug = slugifyTag(cleaned);
+    if (!slug) continue;
 
-    return {
-      slug,
-      name: label,
-      label,
-      key: slug,
-      kind: "event",
-    };
-  });
+    if (!normalizedTagMap.has(slug)) {
+      normalizedTagMap.set(slug, {
+        slug,
+        name: cleaned,
+        label: cleaned,
+        key: slug,
+        kind: "event",
+      });
+    }
+  }
+
+  const normalizedTags = Array.from(normalizedTagMap.values());
+
+  if (normalizedTags.length === 0) return;
 
   const slugs = normalizedTags.map((item) => item.slug);
 
@@ -342,19 +353,32 @@ async function syncEventTags(eventId: string, labels: string[]) {
     });
   }
 
-  const itemTagRows = normalizedTags
-    .map((item, index) => {
-      const tagId = tagIdMap.get(item.slug);
-      if (!tagId) return null;
+  const uniqueItemTagMap = new Map<
+    string,
+    {
+      item_type: "event";
+      item_id: string;
+      tag_id: string;
+      sort_order: number;
+    }
+  >();
 
-      return {
+  normalizedTags.forEach((item, index) => {
+    const tagId = tagIdMap.get(item.slug);
+    if (!tagId) return;
+
+    const key = `${eventId}:${tagId}`;
+    if (!uniqueItemTagMap.has(key)) {
+      uniqueItemTagMap.set(key, {
         item_type: "event",
         item_id: eventId,
         tag_id: tagId,
         sort_order: index,
-      };
-    })
-    .filter(Boolean);
+      });
+    }
+  });
+
+  const itemTagRows = Array.from(uniqueItemTagMap.values());
 
   if (itemTagRows.length > 0) {
     const { error } = await supabase.from("item_tags").insert(itemTagRows);
@@ -363,7 +387,6 @@ async function syncEventTags(eventId: string, labels: string[]) {
     }
   }
 }
-
 
 async function syncCardTags(cardId: string, labels: string[]) {
   await supabase
@@ -847,6 +870,94 @@ function parseSlugLines(value: FormDataEntryValue | null) {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
+}
+
+async function deleteTypedRelations(itemType: "card" | "story" | "event" | "phone_item", itemId: string) {
+  const { error: parentError } = await supabase
+    .from("item_relations")
+    .delete()
+    .eq("parent_type", itemType)
+    .eq("parent_id", itemId);
+
+  if (parentError) {
+    throw new Error(`item_relations(parent) 삭제 실패: ${parentError.message}`);
+  }
+
+  const { error: childError } = await supabase
+    .from("item_relations")
+    .delete()
+    .eq("child_type", itemType)
+    .eq("child_id", itemId);
+
+  if (childError) {
+    throw new Error(`item_relations(child) 삭제 실패: ${childError.message}`);
+  }
+}
+
+async function deleteCommonItemChildren(params: {
+  itemType: "card" | "story" | "event" | "phone_item";
+  itemId: string;
+  deleteTranslations?: boolean;
+  deleteMedia?: boolean;
+  deleteTags?: boolean;
+  deleteCharacters?: boolean;
+}) {
+  const {
+    itemType,
+    itemId,
+    deleteTranslations = true,
+    deleteMedia = true,
+    deleteTags = true,
+    deleteCharacters = true,
+  } = params;
+
+  if (deleteTags) {
+    const { error: tagError } = await supabase
+      .from("item_tags")
+      .delete()
+      .eq("item_type", itemType)
+      .eq("item_id", itemId);
+
+    if (tagError) {
+      throw new Error(`item_tags 삭제 실패: ${tagError.message}`);
+    }
+  }
+
+  if (deleteCharacters) {
+    const { error: charError } = await supabase
+      .from("item_characters")
+      .delete()
+      .eq("item_type", itemType)
+      .eq("item_id", itemId);
+
+    if (charError) {
+      throw new Error(`item_characters 삭제 실패: ${charError.message}`);
+    }
+  }
+
+  if (deleteTranslations) {
+    const { error: translationError } = await supabase
+      .from("translations")
+      .delete()
+      .eq("parent_type", itemType)
+      .eq("parent_id", itemId);
+
+    if (translationError) {
+      throw new Error(`translations 삭제 실패: ${translationError.message}`);
+    }
+  }
+
+  if (deleteMedia) {
+    const { error: mediaError } = await supabase
+      .from("media_assets")
+      .delete()
+      .eq("parent_type", itemType)
+      .eq("parent_id", itemId);
+
+    if (mediaError) {
+      throw new Error(`media_assets 삭제 실패: ${mediaError.message}`);
+    }
+  }
 }
 
 function getTableNameByItemType(type: string) {
@@ -1633,40 +1744,23 @@ export async function updateStoryBundle(formData: FormData) {
 
 export async function deleteStoryBundle(formData: FormData) {
   await requireAdmin();
+
   const storyId = String(formData.get("storyId") ?? "").trim();
 
   if (!storyId) {
     throw new Error("storyId가 없습니다.");
   }
 
-  const { error: relationError } = await supabase
-    .from("item_relations")
-    .delete()
-    .or(`parent_id.eq.${storyId},child_id.eq.${storyId}`);
+  await deleteTypedRelations("story", storyId);
 
-  if (relationError) {
-    throw new Error(`item_relations 삭제 실패: ${relationError.message}`);
-  }
-
-  const { error: translationError } = await supabase
-    .from("translations")
-    .delete()
-    .eq("parent_type", "story")
-    .eq("parent_id", storyId);
-
-  if (translationError) {
-    throw new Error(`translations 삭제 실패: ${translationError.message}`);
-  }
-
-  const { error: mediaError } = await supabase
-    .from("media_assets")
-    .delete()
-    .eq("parent_type", "story")
-    .eq("parent_id", storyId);
-
-  if (mediaError) {
-    throw new Error(`media_assets 삭제 실패: ${mediaError.message}`);
-  }
+  await deleteCommonItemChildren({
+    itemType: "story",
+    itemId: storyId,
+    deleteTranslations: true,
+    deleteMedia: true,
+    deleteTags: true,
+    deleteCharacters: true,
+  });
 
   const { error: storyError } = await supabase
     .from("stories")
@@ -2173,40 +2267,24 @@ export async function updateEventBundle(formData: FormData) {
 }
 
 export async function deleteEventBundle(formData: FormData) {
+  await requireAdmin();
+
   const eventId = String(formData.get("eventId") ?? "").trim();
 
   if (!eventId) {
     throw new Error("eventId가 없습니다.");
   }
 
-  const { error: relationError } = await supabase
-    .from("item_relations")
-    .delete()
-    .or(`parent_id.eq.${eventId},child_id.eq.${eventId}`);
+  await deleteTypedRelations("event", eventId);
 
-  if (relationError) {
-    throw new Error(`item_relations 삭제 실패: ${relationError.message}`);
-  }
-
-  const { error: translationError } = await supabase
-    .from("translations")
-    .delete()
-    .eq("parent_type", "event")
-    .eq("parent_id", eventId);
-
-  if (translationError) {
-    throw new Error(`translations 삭제 실패: ${translationError.message}`);
-  }
-
-  const { error: mediaError } = await supabase
-    .from("media_assets")
-    .delete()
-    .eq("parent_type", "event")
-    .eq("parent_id", eventId);
-
-  if (mediaError) {
-    throw new Error(`media_assets 삭제 실패: ${mediaError.message}`);
-  }
+  await deleteCommonItemChildren({
+    itemType: "event",
+    itemId: eventId,
+    deleteTranslations: true,
+    deleteMedia: true,
+    deleteTags: true,
+    deleteCharacters: true,
+  });
 
   const { error: eventError } = await supabase
     .from("events")
@@ -2219,6 +2297,7 @@ export async function deleteEventBundle(formData: FormData) {
 
   revalidatePath("/admin/events");
   revalidatePath("/events");
+  revalidatePath("/stories");
   redirect("/admin/events");
 }
 
@@ -2232,34 +2311,16 @@ export async function deleteCard(formData: FormData) {
     throw new Error("cardId가 없습니다.");
   }
 
-  const { error: relationError } = await supabase
-    .from("item_relations")
-    .delete()
-    .or(`parent_id.eq.${cardId},child_id.eq.${cardId}`);
+  await deleteTypedRelations("card", cardId);
 
-  if (relationError) {
-    throw new Error(`item_relations 삭제 실패: ${relationError.message}`);
-  }
-
-  const { error: tagError } = await supabase
-    .from("item_tags")
-    .delete()
-    .eq("item_type", "card")
-    .eq("item_id", cardId);
-
-  if (tagError) {
-    throw new Error(`item_tags 삭제 실패: ${tagError.message}`);
-  }
-
-  const { error: mediaError } = await supabase
-    .from("media_assets")
-    .delete()
-    .eq("parent_type", "card")
-    .eq("parent_id", cardId);
-
-  if (mediaError) {
-    throw new Error(`media_assets 삭제 실패: ${mediaError.message}`);
-  }
+  await deleteCommonItemChildren({
+    itemType: "card",
+    itemId: cardId,
+    deleteTranslations: true,
+    deleteMedia: true,
+    deleteTags: true,
+    deleteCharacters: true,
+  });
 
   const { error: cardError } = await supabase
     .from("cards")

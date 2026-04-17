@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import { deleteCard } from "@/app/admin/actions";
 import CardDetailMediaSwitcher from "@/components/cards/CardDetailMediaSwitcher";
+import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
 
 type PageProps = {
   params: Promise<{
@@ -130,10 +131,6 @@ function getEventSubtypeLabel(value: string | null | undefined) {
 
 function getStoryHref(slug: string, from: string) {
   return `/stories/${slug}?from=${encodeURIComponent(from)}`;
-}
-
-function getPhoneHref(slug: string, from: string) {
-  return `/phone-items/${slug}?from=${encodeURIComponent(from)}`;
 }
 
 function getEventHref(slug: string, from: string) {
@@ -457,11 +454,11 @@ export default async function CardDetailPage({
             .in("id", storyIds)
         : Promise.resolve({ data: [] as any[] }),
       phoneIds.length > 0
-        ? supabase
-            .from("phone_items")
-            .select("id, title, slug, subtype")
-            .in("id", phoneIds)
-        : Promise.resolve({ data: [] as any[] }),
+  ? supabase
+      .from("phone_items")
+      .select("id, title, slug, subtype, content_json")
+      .in("id", phoneIds)
+  : Promise.resolve({ data: [] as any[] }),
       eventIds.length > 0
         ? supabase
             .from("events")
@@ -626,7 +623,7 @@ export default async function CardDetailPage({
                   {phoneItems!.map((item: any) => (
                     <Link
                       key={item.id}
-                      href={getPhoneHref(item.slug, currentCardPath)}
+                     href={getPhoneItemHref(item)}
                       className="card-related-link"
                     >
                       <span className="card-related-kicker">

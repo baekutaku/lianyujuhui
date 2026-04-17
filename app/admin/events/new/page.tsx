@@ -21,6 +21,7 @@ const EVENT_SUBTYPE_OPTIONS = [
   { value: "anniversary_event", label: "N주년" },
   { value: "game_event", label: "명절 / 기념일" },
   { value: "seasonal_event", label: "시즌 이벤트" },
+  { value: "collaboration_event", label: "콜라보" },
   { value: "return_event", label: "복귀 이벤트" },
 ] as const;
 

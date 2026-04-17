@@ -9,6 +9,7 @@ import { unlockProtectedStory } from "@/app/stories/[slug]/actions";
 import { hasStoryAccess } from "@/lib/utils/story-access";
 import StoryTranslationSwitcher from "@/components/story/StoryTranslationSwitcher";
 import StoryMediaSwitcher from "@/components/story/StoryMediaSwitcher";
+import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
 
 type SearchParamValue = string | string[] | undefined;
 
@@ -42,6 +43,8 @@ type RelatedPhoneItem = {
   id: string;
   title: string;
   slug: string;
+  subtype?: string | null;
+  content_json?: any;
 };
 
 type RelatedEvent = {
@@ -682,9 +685,9 @@ if (relations && relations.length > 0) {
 
   if (phoneRelationIds.length > 0) {
     const { data: phoneItems, error: phoneError } = await supabase
-      .from("phone_items")
-      .select("id, title, slug")
-      .in("id", phoneRelationIds);
+  .from("phone_items")
+  .select("id, title, slug, subtype, content_json")
+  .in("id", phoneRelationIds);
 
     if (phoneError) {
       console.error("[stories/[slug]] related phone items fetch error:", phoneError);
@@ -848,15 +851,15 @@ const hasConnections =
         <div className="story-side-content">
           <div className="story-side-links">
             {relatedPhoneItems.map((item) => (
-              <Link
-                key={item.id}
-                href={`/phone-items/${item.slug}`}
-                className="story-side-chip"
-                title={item.title}
-              >
-                {item.title}
-              </Link>
-            ))}
+  <Link
+    key={item.id}
+    href={getPhoneItemHref(item)}
+    className="story-side-chip"
+    title={item.title}
+  >
+    {item.title}
+  </Link>
+))}
           </div>
         </div>
       </details>

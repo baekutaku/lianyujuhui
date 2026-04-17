@@ -15,6 +15,7 @@ const EVENT_SUBTYPE_OPTIONS = [
   { value: "anniversary_event", label: "N주년" },
   { value: "game_event", label: "명절 / 기념일" },
   { value: "seasonal_event", label: "시즌 이벤트" },
+  { value: "collaboration_event", label: "콜라보" },
   { value: "return_event", label: "복귀 이벤트" },
 ] as const;
 
@@ -113,6 +114,8 @@ export default async function EditEventPage({
     { data: phoneItems },
     { data: characters },
     { data: itemTagRows },
+    { data: youtubeMedia },
+    { data: serverRow },
   ] = await Promise.all([
     supabase
       .from("translations")
@@ -154,9 +157,27 @@ export default async function EditEventPage({
       .eq("item_type", "event")
       .eq("item_id", event.id)
       .order("sort_order", { ascending: true }),
+
+    supabase
+      .from("media_assets")
+      .select("id, url")
+      .eq("parent_type", "event")
+      .eq("parent_id", event.id)
+      .eq("media_type", "youtube")
+      .maybeSingle(),
+
+    event.server_id
+      ? supabase
+          .from("servers")
+          .select("key")
+          .eq("id", event.server_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
-  const tagIds = Array.from(new Set((itemTagRows ?? []).map((row: any) => row.tag_id)));
+  const tagIds = Array.from(
+    new Set((itemTagRows ?? []).map((row: any) => row.tag_id))
+  );
   let defaultTagText = "";
 
   if (tagIds.length > 0) {
@@ -249,6 +270,8 @@ export default async function EditEventPage({
   const characterKey =
     (characters ?? []).find((item: any) => item.id === event.primary_character_id)?.key ??
     "baiqi";
+
+  const serverKey = serverRow?.key ?? "kr";
 
   return (
     <main>
@@ -343,7 +366,7 @@ export default async function EditEventPage({
 
           <label className="form-field">
             <span>서버</span>
-            <select name="serverKey" defaultValue="kr">
+            <select name="serverKey" defaultValue={serverKey}>
               <option value="kr">한국</option>
               <option value="cn">중국</option>
             </select>
@@ -389,7 +412,7 @@ export default async function EditEventPage({
             <span>유튜브 URL</span>
             <input
               name="youtubeUrl"
-              defaultValue=""
+              defaultValue={youtubeMedia?.url ?? ""}
               placeholder="https://www.youtube.com/watch?v=..."
             />
           </label>

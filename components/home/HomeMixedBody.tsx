@@ -4,6 +4,7 @@ import HomeSectionCarousel from "@/components/home/HomeSectionCarousel";
 import MiniMusicPlayer from "@/components/home/MiniMusicPlayer";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import HomeCalendarWidget from "@/components/home/HomeCalendarWidget";
+import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
 
 type StoryRow = {
   id: string;
@@ -141,29 +142,7 @@ function getPhoneThumb(item: PhoneItemRow) {
   return "";
 }
 
-function getPhoneHref(item: PhoneItemRow) {
-  const json = item.content_json;
 
-  if (item.subtype === "moment") {
-    const characterKey = json?.authorKey?.trim() || "other";
-    const slug = String(item.slug || "").trim();
-    if (!slug) return "/phone-items/moments";
-    return `/phone-items/moments/${characterKey}/${encodeURIComponent(slug)}`;
-  }
-
-  if (item.subtype === "message") {
-    const characterKey = json?.characterKey?.trim() || "baiqi";
-    const slug = String(item.slug || "").trim();
-    if (!slug) return "/phone-items/messages";
-    return `/phone-items/messages/${characterKey}/${encodeURIComponent(slug)}`;
-  }
-
-  if (item.subtype === "call" || item.subtype === "video_call") {
-    return "/phone-items/calls";
-  }
-
-  return "/phone-items";
-}
 
 function getPhoneMeta(subtype: string) {
   if (subtype === "moment") return "#모멘트";
@@ -191,19 +170,42 @@ async function getLatestStoriesBySubtype(
     return { title, href, items: [] };
   }
 
+  const rows = (stories ?? []) as StoryRow[];
+  if (rows.length === 0) {
+    return { title, href, items: [] };
+  }
+
+  const ids = rows.map((row) => row.id);
+
+  const { data: mediaAssets } = await supabase
+    .from("media_assets")
+    .select(
+      "parent_id, media_type, usage_type, url, youtube_video_id, thumbnail_url, is_primary, sort_order"
+    )
+    .eq("parent_type", "story")
+    .in("parent_id", ids)
+    .order("is_primary", { ascending: false })
+    .order("sort_order", { ascending: true });
+
+  const grouped = new Map<string, MediaRow[]>();
+  (mediaAssets as MediaRow[] | null)?.forEach((item) => {
+    const arr = grouped.get(item.parent_id) ?? [];
+    arr.push(item);
+    grouped.set(item.parent_id, arr);
+  });
+
   return {
     title,
     href,
-    items: (stories ?? []).map((story) => ({
-      id: story.id,
-      title: story.title,
-      href: `/stories/${story.slug}`,
-      thumb: "",
-      meta: story.created_at?.slice(0, 10) ?? "",
+    items: rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      href: `/stories/${encodeURIComponent(row.slug)}`,
+      thumb: pickMediaThumb(grouped.get(row.id) ?? []),
+      meta: row.created_at?.slice(0, 10) ?? "",
     })),
   };
 }
-
 async function getLatestPhoneSection(): Promise<HomeSection> {
   const { data, error } = await supabase
     .from("phone_items")
@@ -226,7 +228,7 @@ async function getLatestPhoneSection(): Promise<HomeSection> {
   items: rows.map((row) => ({
     id: row.id,
     title: row.title?.trim() || "제목 없음",
-    href: getPhoneHref(row),
+    href: getPhoneItemHref(row),
     thumb: getPhoneThumb(row),
     meta: getPhoneMeta(row.subtype),
   })),
@@ -279,6 +281,7 @@ export default async function HomeMixedBody() {
  const [
   mainStory,
   sideStory,
+  dateStory,
   eventSection,
   phoneSection,
   calendarEntries,
@@ -286,13 +289,14 @@ export default async function HomeMixedBody() {
 ] = await Promise.all([
   getLatestStoriesBySubtype("메인스토리", "/stories?tab=main", "main_story"),
   getLatestStoriesBySubtype("외전", "/stories?tab=side", "side_story"),
+  getLatestStoriesBySubtype("데이트", "/stories?tab=card", "card_story"),
   getLatestEventSection(),
   getLatestPhoneSection(),
   getCalendarEntries(),
   isAdmin(),
 ]);
 
-const sections = [mainStory, sideStory, eventSection, phoneSection];
+const sections = [mainStory, sideStory, dateStory, eventSection, phoneSection];
 
   return (
     <section className="home-classic-layout">
@@ -314,13 +318,14 @@ const sections = [mainStory, sideStory, eventSection, phoneSection];
       
           <ul className="home-mixed-list">
             <li>KR 콘텐츠는 2023년 1월 종료 시점 기준으로 기록.</li>
-            <li>1부는 전반 자료, 2부 이후는 선택적 정리.</li>
+            <li>1부는 전반 자료, 2부 이후는 백기 위주 정리. 메인스토리 번역은 많이 못함. 3부부터 다시 시작</li>
             <li>CN은 최신 카드/스토리 비중이 높음.</li>
+            <li>비전문가 AI 때려서 만든 공간이기 때문에 오류가 다분합니다. 문제가 있을 경우 익명함으로 남겨주세요.</li>
           </ul>
         </section>
 
         <section className="home-widget-panel">
-          <p className="home-widget-eyebrow">RECENT</p>
+          <p className="home-widget-eyebrow">RECENT 임시</p>
         
           <div className="home-widget-list">
             <Link href="/stories">최신 스토리 업데이트</Link>
@@ -328,6 +333,7 @@ const sections = [mainStory, sideStory, eventSection, phoneSection];
             <Link href="/phone-items">휴대폰 콘텐츠 보강</Link>
             <Link href="/stories">외전 백업 추가</Link>
             <Link href="/cards">카드 연동 보완</Link>
+            <Link href="/cards">휴대폰 UI 익명커스텀 제작</Link>
           </div>
         </section>
 
