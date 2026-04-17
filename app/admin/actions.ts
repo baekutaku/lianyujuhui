@@ -1329,9 +1329,9 @@ export async function updateCard(formData: FormData) {
     redirect(`/admin/cards/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
   }
 
-  if (submitIntent === "view") {
-    redirect(`/cards/${safeSlug}`);
-  }
+   // if (submitIntent === "view") {
+  //   redirect(`/cards/${safeSlug}`);
+  // }
 
   redirect(`/admin/cards/${safeSlug}/edit?saved=1`);
 }

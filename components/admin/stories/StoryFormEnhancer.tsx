@@ -335,7 +335,7 @@ export default function StoryFormEnhancer({
     const payload = collectDraft(form);
     const current = readHistory();
 
-    const next = [payload, ...current].slice(0, MAX_DRAFTS);
+const next = [payload, ...current].slice(0, MAX_DRAFTS);
     writeHistory(next);
 
     window.localStorage.setItem(storageKey, JSON.stringify(payload));
