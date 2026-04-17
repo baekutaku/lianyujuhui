@@ -163,10 +163,7 @@ function writeFieldValue(form: HTMLFormElement, name: string, value: string | st
     });
   }
 }
-
 function StorySubmitButtons({
-  intent,
-  setIntent,
   savedAtText,
   onClearDraft,
   onSaveNow,
@@ -174,8 +171,6 @@ function StorySubmitButtons({
   showDraftList,
   showViewButton,
 }: {
-  intent: string;
-  setIntent: (next: "view" | "edit") => void;
   savedAtText: string;
   onClearDraft: () => void;
   onSaveNow: () => void;
@@ -204,26 +199,28 @@ function StorySubmitButtons({
         {showViewButton ? (
           <button
             type="submit"
+            name="submitIntent"
+            value="view"
             className="primary-button"
-            onClick={() => setIntent("view")}
             disabled={pending}
           >
-            {pending && intent === "view" ? "저장 중..." : "저장 후 공개보기"}
+            {pending ? "저장 중..." : "저장 후 공개보기"}
           </button>
         ) : null}
 
         <button
           type="submit"
+          name="submitIntent"
+          value="edit"
           className="nav-link"
           style={{
             border: "none",
             background: "transparent",
             cursor: "pointer",
           }}
-          onClick={() => setIntent("edit")}
           disabled={pending}
         >
-          {pending && intent === "edit" ? "저장 중..." : "저장 후 계속 편집"}
+          {pending ? "저장 중..." : "저장 후 계속 편집"}
         </button>
 
         <button
@@ -283,7 +280,7 @@ export default function StoryFormEnhancer({
   showViewButton = true,
 }: StoryFormEnhancerProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const [intent, setIntent] = useState<"view" | "edit">("view");
+
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [draftHistory, setDraftHistory] = useState<DraftPayload[]>([]);
   const [showDraftList, setShowDraftList] = useState(false);
@@ -380,31 +377,28 @@ const next = [payload, ...current].slice(0, MAX_DRAFTS);
 
   return (
     <div ref={wrapperRef}>
-<input type="hidden" name="submitIntent" value={intent} />
       
       <StorySubmitButtons
-        intent={intent}
-        setIntent={setIntent}
-        savedAtText={savedAtText}
-        onClearDraft={() => {
-          window.localStorage.removeItem(storageKey);
-          window.localStorage.removeItem(historyKey);
-          setDraftHistory([]);
-          setSavedAt(null);
-        }}
-        onSaveNow={() => {
-          const wrapper = wrapperRef.current;
-          if (!wrapper) return;
-          const form = wrapper.closest("form");
-          if (!form) return;
-          saveDraft(form);
-        }}
-        onToggleDraftList={() => {
-          setShowDraftList((prev) => !prev);
-        }}
-        showDraftList={showDraftList}
-        showViewButton={showViewButton}
-      />
+  savedAtText={savedAtText}
+  onClearDraft={() => {
+    window.localStorage.removeItem(storageKey);
+    window.localStorage.removeItem(historyKey);
+    setDraftHistory([]);
+    setSavedAt(null);
+  }}
+  onSaveNow={() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const form = wrapper.closest("form");
+    if (!form) return;
+    saveDraft(form);
+  }}
+  onToggleDraftList={() => {
+    setShowDraftList((prev) => !prev);
+  }}
+  showDraftList={showDraftList}
+  showViewButton={showViewButton}
+/>
 
       {showDraftList ? (
         <div

@@ -508,7 +508,10 @@ export default async function EditCardPage({
         </div>
 
         <div className="admin-subpanel">
-          <StoryFormEnhancer storageKey={`card-draft:${card.slug}`} />
+         <StoryFormEnhancer
+  storageKey={`card-draft:${card.slug}`}
+  showViewButton={false}
+/>
         </div>
 
 

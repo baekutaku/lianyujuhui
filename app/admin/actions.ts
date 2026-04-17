@@ -1329,11 +1329,11 @@ export async function updateCard(formData: FormData) {
     redirect(`/admin/cards/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
   }
 
-   // if (submitIntent === "view") {
-  //   redirect(`/cards/${safeSlug}`);
-  // }
+if (submitIntent === "view") {
+  redirect(`/cards/${safeSlug}`);
+}
 
-  redirect(`/admin/cards/${safeSlug}/edit?saved=1`);
+redirect(`/admin/cards/${safeSlug}/edit?saved=1`);
 }
 export async function updateTranslation(formData: FormData) {
   const translationId = String(formData.get("translationId") || "");
