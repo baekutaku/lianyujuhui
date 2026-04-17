@@ -581,17 +581,14 @@ export default async function CardDetailPage({
 
       <section className="story-main-grid card-detail-main-grid">
         <div className="detail-panel card-detail-media-panel">
-          <CardDetailMediaSwitcher
-            media={{
-              title: card.title,
-              beforeThumb,
-              afterThumb,
-              beforeCover,
-              afterCover,
-            }}
-          />
-        </div>
-
+  <pre>
+    {JSON.stringify(
+      { title: card.title, beforeThumb, afterThumb, beforeCover, afterCover },
+      null,
+      2
+    )}
+  </pre>
+</div>
         <aside className="detail-panel card-detail-links-panel">
           <div className="card-detail-links-scroll">
             <section className="card-detail-side-block">
