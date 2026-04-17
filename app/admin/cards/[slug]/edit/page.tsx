@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import { updateCard, deleteCard } from "@/app/admin/actions";
-import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
+// import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 import RelationPicker, {
   type RelationCandidate,
 } from "@/components/admin/relations/RelationPicker";
@@ -449,7 +449,7 @@ if (!card) {
           </label>
         </div>
 
-        {/* <RelationPicker
+        <RelationPicker
           label="연결 스토리"
           name="linkedStorySlugs"
           candidates={storyCandidates}
@@ -507,7 +507,7 @@ if (!card) {
           </Link>
         </div>
 
-        <div className="admin-subpanel">
+        {/* <div className="admin-subpanel">
           <StoryFormEnhancer storageKey={`card-draft:${card.slug}`} />
         </div> */}
       </form>
