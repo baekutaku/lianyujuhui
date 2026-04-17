@@ -5,6 +5,8 @@ import MiniMusicPlayer from "@/components/home/MiniMusicPlayer";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import HomeCalendarWidget from "@/components/home/HomeCalendarWidget";
 import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
+import HomeGuestbookTabs from "@/components/home/HomeGuestbookTabs";
+import { unstable_noStore as noStore } from "next/cache";
 
 type StoryRow = {
   id: string;
@@ -86,6 +88,17 @@ type CalendarEntryRow = {
   kind: string;
 };
 
+type GuestbookListRow = {
+  id: string;
+  nickname: string | null;
+  content: string | null;
+  is_private: boolean;
+  admin_reply: string | null;
+  created_at: string;
+};
+
+
+
 function pickMediaThumb(items: MediaRow[]) {
   const coverImage = items.find(
     (media) => media.media_type === "image" && media.usage_type === "cover" && media.url
@@ -114,12 +127,6 @@ function pickMediaThumb(items: MediaRow[]) {
 function formatStoryMeta(story: StoryRow) {
   if (story.release_date) return `#${story.release_date}`;
   if (story.release_year) return `#${story.release_year}`;
-  return "";
-}
-
-function formatEventMeta(event: EventRow) {
-  if (event.start_date) return `#${event.start_date}`;
-  if (event.release_year) return `#${event.release_year}`;
   return "";
 }
 
@@ -371,7 +378,43 @@ async function getCalendarEntries(): Promise<CalendarEntryRow[]> {
   return (data as CalendarEntryRow[] | null) ?? [];
 }
 
+async function getGuestbookList(admin: boolean): Promise<GuestbookListRow[]> {
+  const { data, error } = await supabase
+    .from("guestbook_entries")
+    .select("id, nickname, content, is_private, admin_reply, created_at")
+    .eq("is_deleted", false)
+    .order("created_at", { ascending: false })
+    .limit(30);
+
+  if (error) {
+    console.error("[HomeMixedBody] guestbook list fetch error:", error);
+    return [];
+  }
+
+  const rows =
+    (data as {
+      id: string;
+      nickname: string | null;
+      content: string;
+      is_private: boolean;
+      admin_reply: string | null;
+      created_at: string;
+    }[] | null) ?? [];
+
+  if (admin) return rows;
+
+  return rows.map((row) =>
+    row.is_private
+      ? { ...row, content: null, admin_reply: null }
+      : row
+  );
+}
+
 export default async function HomeMixedBody() {
+  noStore();
+
+  const admin = await isAdmin();
+
   const [
     mainStory,
     sideStory,
@@ -379,7 +422,7 @@ export default async function HomeMixedBody() {
     eventSection,
     phoneSection,
     calendarEntries,
-    admin,
+    guestbookList,
   ] = await Promise.all([
     getLatestStoriesBySubtype("메인스토리", "/stories?tab=main", "main_story"),
     getLatestStoriesBySubtype("외전", "/stories?tab=side", "side_story"),
@@ -387,7 +430,7 @@ export default async function HomeMixedBody() {
     getLatestEventSection(),
     getLatestPhoneSection(),
     getCalendarEntries(),
-    isAdmin(),
+    getGuestbookList(admin),
   ]);
 
   const sections = [mainStory, sideStory, dateStory, eventSection, phoneSection];
@@ -410,24 +453,29 @@ export default async function HomeMixedBody() {
         <section className="home-widget-panel">
           <p className="home-widget-eyebrow">NOTICE</p>
 
-<ul className="home-mixed-list">
-  <li>1부는 전반 자료, 2부 이후로는 백기 위주 정리.</li>
-  <li>비전문가가 AI 때려서 만든 공간이기 때문에 오류가 다분합니다.</li>
-  <li>
-    문제가 있을 경우{" "}
-    <a
-      href="https://x.com/Bulhyonyeo"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="home-notice-link"
-    >
-      트위터
-    </a>
-    나 익명함으로 남겨주세요.
-  </li>
-  <li>PV 아카이브는 미정</li>
-</ul>
+          <ul className="home-mixed-list">
+            <li>1부는 전반 자료, 2부 이후로는 백기 위주 정리.</li>
+            <li>비전문가가 AI 때려서 만든 공간이기 때문에 오류가 다분합니다.</li>
+            <li>
+              문제가 있을 경우{" "}
+              <a
+                href="https://x.com/Bulhyonyeo"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="home-notice-link"
+              >
+                트위터
+              </a>
+              나 익명함으로 남겨주세요.
+            </li>
+            <li>PV 아카이브는 미정</li>
+          </ul>
         </section>
+
+        <HomeGuestbookTabs
+          isAdmin={admin}
+          guestbookItems={guestbookList}
+        />
 
         <section className="home-widget-panel">
           <p className="home-widget-eyebrow">RECENT 업데이트 예정</p>
@@ -455,7 +503,6 @@ export default async function HomeMixedBody() {
         <section className="home-widget-panel">
           <p className="home-widget-eyebrow">BANNER</p>
 
- 
           <Link href="/cards" className="home-widget-banner">
             <img src="/images/home/banner-03.jpg" alt="카드 배너" />
           </Link>

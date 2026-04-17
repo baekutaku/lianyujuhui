@@ -2692,3 +2692,87 @@ async function upsertStoryYoutubeMedia({
 
   if (error) throw new Error(error.message);
 }
+
+export async function createAnonymousMessage(formData: FormData) {
+  const nickname = String(formData.get("nickname") || "").trim();
+  const content = String(formData.get("content") || "").trim();
+  const isPrivate = String(formData.get("isPrivate") || "") === "on";
+
+  if (!content) {
+    throw new Error("내용을 입력해.");
+  }
+
+  if (content.length > 500) {
+    throw new Error("내용이 너무 김.");
+  }
+
+  if (nickname.length > 20) {
+    throw new Error("닉네임이 너무 김.");
+  }
+
+  const { error } = await supabase.from("anonymous_messages").insert({
+    nickname: nickname || null,
+    content,
+    is_private: isPrivate,
+    is_approved: false,
+    is_deleted: false,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/anonymous");
+}
+
+export async function approveAnonymousMessage(formData: FormData) {
+  await requireAdmin();
+
+  const id = String(formData.get("id") || "");
+  const approved = String(formData.get("approved") || "") === "true";
+
+  const { error } = await supabase
+    .from("anonymous_messages")
+    .update({ is_approved: approved })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/");
+  revalidatePath("/admin/anonymous");
+}
+
+export async function deleteAnonymousMessage(formData: FormData) {
+  await requireAdmin();
+
+  const id = String(formData.get("id") || "");
+
+  const { error } = await supabase
+    .from("anonymous_messages")
+    .update({ is_deleted: true })
+    .eq("id", id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/");
+  revalidatePath("/admin/anonymous");
+}
+
+async function getPublicAnonymousMessages() {
+  const { data, error } = await supabase
+    .from("anonymous_messages")
+    .select("id, nickname, content, created_at")
+    .eq("is_private", false)
+    .eq("is_approved", true)
+    .eq("is_deleted", false)
+    .order("created_at", { ascending: false })
+    .limit(3);
+
+  if (error) {
+    console.error("[HomeMixedBody] anonymous fetch error:", error);
+    return [];
+  }
+
+  return data ?? [];
+}
