@@ -520,13 +520,7 @@ export default async function EditCardPage({
     marginTop: "18px",
   }}
 >
-  <button type="submit" className="nav-link">
-    저장
-  </button>
-
-  <button type="submit" name="submitIntent" value="view" className="nav-link">
-    저장 후 공개 보기
-  </button>
+ 
 </div>
 
       </form>
