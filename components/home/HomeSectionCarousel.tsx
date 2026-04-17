@@ -15,6 +15,7 @@ type HomeCard = {
   href: string;
   thumb: string;
   meta: string;
+  excerpt?: string;
 };
 
 type Props = {
@@ -166,7 +167,58 @@ export default function HomeSectionCarousel({
                   {item.thumb ? (
                     <img src={item.thumb} alt={item.title} />
                   ) : (
-                    <div className="home-mixed-thumb-fallback" />
+                    <div
+                      className="home-mixed-thumb-fallback"
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        justifyContent: "flex-start",
+                        padding: "10px",
+                        background:
+                          "linear-gradient(180deg, rgba(244,239,248,0.96) 0%, rgba(236,226,244,0.96) 100%)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: "4px",
+                          width: "100%",
+                        }}
+                      >
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: "11px",
+                            lineHeight: 1.35,
+                            fontWeight: 800,
+                            color: "#5f5867",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {item.title}
+                        </p>
+
+                        {item.excerpt ? (
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: "10px",
+                              lineHeight: 1.45,
+                              color: "#7f7787",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 4,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                            }}
+                          >
+                            {item.excerpt}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
                   )}
                 </div>
 

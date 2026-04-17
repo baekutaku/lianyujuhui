@@ -13,7 +13,7 @@ type StoryRow = {
   subtype: string;
   release_year: number | null;
   release_date: string | null;
-  created_at: string;
+  created_at: string | null;
 };
 
 type EventRow = {
@@ -24,7 +24,7 @@ type EventRow = {
   release_year: number | null;
   start_date: string | null;
   thumbnail_url: string | null;
-  created_at: string;
+  created_at: string | null;
 };
 
 type MediaRow = {
@@ -43,7 +43,7 @@ type PhoneItemRow = {
   title: string | null;
   slug: string | null;
   subtype: string;
-  created_at: string;
+  created_at: string | null;
   content_json?: {
     characterKey?: string;
     avatarUrl?: string;
@@ -53,6 +53,13 @@ type PhoneItemRow = {
     coverImageUrl?: string;
     coverUrl?: string;
     thumbnailUrl?: string;
+    previewText?: string;
+    latestMessage?: string;
+    text?: string;
+    body?: string;
+    content?: string;
+    description?: string;
+    summary?: string;
   } | null;
 };
 
@@ -62,6 +69,7 @@ type HomeCard = {
   href: string;
   thumb: string;
   meta: string;
+  excerpt?: string;
 };
 
 type HomeSection = {
@@ -77,8 +85,6 @@ type CalendarEntryRow = {
   note: string | null;
   kind: string;
 };
-
-
 
 function pickMediaThumb(items: MediaRow[]) {
   const coverImage = items.find(
@@ -117,12 +123,22 @@ function formatEventMeta(event: EventRow) {
   return "";
 }
 
+function cleanPreviewText(value?: string | null) {
+  const text = String(value ?? "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!text) return "";
+  return text.length > 56 ? `${text.slice(0, 56)}…` : text;
+}
+
 function getPhoneThumb(item: PhoneItemRow) {
   const json = item.content_json;
 
   if (item.subtype === "moment") {
     const images = Array.isArray(json?.momentImageUrls)
-      ? json!.momentImageUrls!.filter(Boolean)
+      ? json.momentImageUrls.filter(Boolean)
       : [];
     if (images.length > 0) return images[0] || "";
     if (json?.authorAvatarUrl?.trim()) return json.authorAvatarUrl.trim();
@@ -139,16 +155,68 @@ function getPhoneThumb(item: PhoneItemRow) {
     if (json?.avatarUrl?.trim()) return json.avatarUrl.trim();
   }
 
+  if (item.subtype === "article") {
+    if (json?.thumbnailUrl?.trim()) return json.thumbnailUrl.trim();
+    if (json?.coverImageUrl?.trim()) return json.coverImageUrl.trim();
+    if (json?.coverUrl?.trim()) return json.coverUrl.trim();
+  }
+
   return "";
 }
 
+function getPhoneExcerpt(item: PhoneItemRow) {
+  const json = item.content_json ?? {};
 
+  if (item.subtype === "message") {
+    return (
+      cleanPreviewText(json.latestMessage) ||
+      cleanPreviewText(json.previewText) ||
+      cleanPreviewText(json.text) ||
+      cleanPreviewText(json.body) ||
+      cleanPreviewText(json.content) ||
+      "문자 미리보기"
+    );
+  }
+
+  if (item.subtype === "moment") {
+    return (
+      cleanPreviewText(json.previewText) ||
+      cleanPreviewText(json.text) ||
+      cleanPreviewText(json.body) ||
+      cleanPreviewText(json.content) ||
+      cleanPreviewText(json.description) ||
+      "모멘트 미리보기"
+    );
+  }
+
+  if (item.subtype === "call" || item.subtype === "video_call") {
+    return (
+      cleanPreviewText(json.summary) ||
+      cleanPreviewText(json.description) ||
+      cleanPreviewText(json.previewText) ||
+      "통화 콘텐츠"
+    );
+  }
+
+  if (item.subtype === "article") {
+    return (
+      cleanPreviewText(json.summary) ||
+      cleanPreviewText(json.description) ||
+      cleanPreviewText(json.body) ||
+      cleanPreviewText(json.content) ||
+      "기사 콘텐츠"
+    );
+  }
+
+  return "휴대폰 콘텐츠";
+}
 
 function getPhoneMeta(subtype: string) {
   if (subtype === "moment") return "#모멘트";
   if (subtype === "message") return "#문자";
   if (subtype === "call") return "#통화";
   if (subtype === "video_call") return "#영상통화";
+  if (subtype === "article") return "#기사";
   return "#휴대폰";
 }
 
@@ -202,16 +270,17 @@ async function getLatestStoriesBySubtype(
       title: row.title,
       href: `/stories/${encodeURIComponent(row.slug)}`,
       thumb: pickMediaThumb(grouped.get(row.id) ?? []),
-      meta: row.created_at?.slice(0, 10) ?? "",
+      meta: formatStoryMeta(row) || (row.created_at?.slice(0, 10) ?? ""),
     })),
   };
 }
+
 async function getLatestPhoneSection(): Promise<HomeSection> {
   const { data, error } = await supabase
     .from("phone_items")
     .select("id, title, slug, subtype, created_at, content_json")
     .eq("is_published", true)
-    .in("subtype", ["moment", "message", "call", "video_call"])
+    .in("subtype", ["moment", "message", "call", "video_call", "article"])
     .order("created_at", { ascending: false })
     .limit(10);
 
@@ -223,16 +292,17 @@ async function getLatestPhoneSection(): Promise<HomeSection> {
   const rows = (data as PhoneItemRow[] | null) ?? [];
 
   return {
-  title: "휴대폰",
-  href: "/phone-items",
-  items: rows.map((row) => ({
-    id: row.id,
-    title: row.title?.trim() || "제목 없음",
-    href: getPhoneItemHref(row),
-    thumb: getPhoneThumb(row),
-    meta: getPhoneMeta(row.subtype),
-  })),
-};
+    title: "휴대폰",
+    href: "/phone-items",
+    items: rows.map((row) => ({
+      id: row.id,
+      title: row.title?.trim() || "제목 없음",
+      href: getPhoneItemHref(row),
+      thumb: getPhoneThumb(row),
+      meta: getPhoneMeta(row.subtype),
+      excerpt: getPhoneExcerpt(row),
+    })),
+  };
 }
 
 async function getLatestEventSection(): Promise<HomeSection> {
@@ -248,19 +318,42 @@ async function getLatestEventSection(): Promise<HomeSection> {
     return { title: "이벤트", href: "/stories?tab=event", items: [] };
   }
 
+  const eventRows = (rows ?? []) as EventRow[];
+  if (eventRows.length === 0) {
+    return { title: "이벤트", href: "/stories?tab=event", items: [] };
+  }
+
+  const ids = eventRows.map((row) => row.id);
+
+  const { data: mediaAssets } = await supabase
+    .from("media_assets")
+    .select(
+      "parent_id, media_type, usage_type, url, youtube_video_id, thumbnail_url, is_primary, sort_order"
+    )
+    .eq("parent_type", "event")
+    .in("parent_id", ids)
+    .order("is_primary", { ascending: false })
+    .order("sort_order", { ascending: true });
+
+  const grouped = new Map<string, MediaRow[]>();
+  (mediaAssets as MediaRow[] | null)?.forEach((item) => {
+    const arr = grouped.get(item.parent_id) ?? [];
+    arr.push(item);
+    grouped.set(item.parent_id, arr);
+  });
+
   return {
     title: "이벤트",
     href: "/stories?tab=event",
-    items: (rows ?? []).map((row) => ({
+    items: eventRows.map((row) => ({
       id: row.id,
       title: row.title,
-      href: `/events/${row.slug}`,
-      thumb: row.thumbnail_url ?? "",
+      href: `/events/${encodeURIComponent(row.slug)}`,
+      thumb: row.thumbnail_url?.trim() || pickMediaThumb(grouped.get(row.id) ?? []),
       meta: row.created_at?.slice(0, 10) ?? "",
     })),
   };
 }
-
 
 async function getCalendarEntries(): Promise<CalendarEntryRow[]> {
   const { data, error } = await supabase
@@ -277,26 +370,27 @@ async function getCalendarEntries(): Promise<CalendarEntryRow[]> {
 
   return (data as CalendarEntryRow[] | null) ?? [];
 }
-export default async function HomeMixedBody() {
- const [
-  mainStory,
-  sideStory,
-  dateStory,
-  eventSection,
-  phoneSection,
-  calendarEntries,
-  admin,
-] = await Promise.all([
-  getLatestStoriesBySubtype("메인스토리", "/stories?tab=main", "main_story"),
-  getLatestStoriesBySubtype("외전", "/stories?tab=side", "side_story"),
-  getLatestStoriesBySubtype("데이트", "/stories?tab=card", "card_story"),
-  getLatestEventSection(),
-  getLatestPhoneSection(),
-  getCalendarEntries(),
-  isAdmin(),
-]);
 
-const sections = [mainStory, sideStory, dateStory, eventSection, phoneSection];
+export default async function HomeMixedBody() {
+  const [
+    mainStory,
+    sideStory,
+    dateStory,
+    eventSection,
+    phoneSection,
+    calendarEntries,
+    admin,
+  ] = await Promise.all([
+    getLatestStoriesBySubtype("메인스토리", "/stories?tab=main", "main_story"),
+    getLatestStoriesBySubtype("외전", "/stories?tab=side", "side_story"),
+    getLatestStoriesBySubtype("데이트", "/stories?tab=card", "card_story"),
+    getLatestEventSection(),
+    getLatestPhoneSection(),
+    getCalendarEntries(),
+    isAdmin(),
+  ]);
+
+  const sections = [mainStory, sideStory, dateStory, eventSection, phoneSection];
 
   return (
     <section className="home-classic-layout">
@@ -315,21 +409,19 @@ const sections = [mainStory, sideStory, dateStory, eventSection, phoneSection];
       <aside className="home-classic-side">
         <section className="home-widget-panel">
           <p className="home-widget-eyebrow">NOTICE</p>
-      
+
           <ul className="home-mixed-list">
-            <li>KR 콘텐츠는 2023년 1월 종료 시점 기준으로 기록.</li>
-            <li>1부는 전반 자료, 2부 이후는 백기 위주 정리. 메인스토리 번역은 많이 못함. 3부부터 다시 시작</li>
-            <li>CN은 최신 카드/스토리 비중이 높음.</li>
-            <li>비전문가 AI 때려서 만든 공간이기 때문에 오류가 다분합니다. 문제가 있을 경우 익명함으로 남겨주세요.</li>
+            <li>1부는 전반 자료, 2부 이후로는 백기 위주 정리. </li>
+                <li>비전문가 AI 때려서 만든 공간이기 때문에 오류가 다분합니다. </li><li>문제가 있을 경우 트위터나 익명함으로 남겨주세요.</li>
           </ul>
         </section>
 
         <section className="home-widget-panel">
           <p className="home-widget-eyebrow">RECENT 임시</p>
-        
+
           <div className="home-widget-list">
             <Link href="/stories">최신 스토리 업데이트</Link>
-            <Link href="/events">최근 이벤트 정리</Link>
+            <Link href="/stories?tab=event">최근 이벤트 정리</Link>
             <Link href="/phone-items">휴대폰 콘텐츠 보강</Link>
             <Link href="/stories">외전 백업 추가</Link>
             <Link href="/cards">카드 연동 보완</Link>
@@ -338,49 +430,32 @@ const sections = [mainStory, sideStory, dateStory, eventSection, phoneSection];
         </section>
 
         <section className="home-widget-panel">
-  <p className="home-widget-eyebrow">MUSIC</p>
+          <p className="home-widget-eyebrow">MUSIC</p>
+          <MiniMusicPlayer />
+        </section>
 
-  <MiniMusicPlayer />
-</section>
-
-          <section className="home-widget-panel">
+        <section className="home-widget-panel">
           <p className="home-widget-eyebrow">CALENDAR</p>
-         
           <HomeCalendarWidget entries={calendarEntries} isAdmin={admin} />
         </section>
 
         <section className="home-widget-panel">
           <p className="home-widget-eyebrow">BANNER</p>
-          
-          <Link href="/events" className="home-widget-banner">
-            <img
-              src="/images/home/banner-01.jpg"
-              alt="이벤트 배너"
-            />
+
+          <Link href="/stories?tab=event" className="home-widget-banner">
+            <img src="/images/home/banner-01.jpg" alt="이벤트 배너" />
           </Link>
-           <Link href="/events" className="home-widget-banner">
-            <img
-              src="/images/home/banner-02.jpg"
-              alt="이벤트 배너"
-            />
+          <Link href="/stories?tab=event" className="home-widget-banner">
+            <img src="/images/home/banner-02.jpg" alt="이벤트 배너" />
           </Link>
-           <Link href="/events" className="home-widget-banner">
-            <img
-              src="/images/home/banner-03.jpg"
-              alt="이벤트 배너"
-            />
+          <Link href="/stories?tab=event" className="home-widget-banner">
+            <img src="/images/home/banner-03.jpg" alt="이벤트 배너" />
           </Link>
-           <Link href="/events" className="home-widget-banner">
-            <img
-              src="/images/home/banner-04.jpg"
-              alt="이벤트 배너"
-            />
+          <Link href="/stories?tab=event" className="home-widget-banner">
+            <img src="/images/home/banner-04.jpg" alt="이벤트 배너" />
           </Link>
-           <Link href="/events" className="home-widget-banner">
-            <img
-              src="/images/home/banner-05.jpg"
-              alt="이벤트 배너"
-            />
+          <Link href="/stories?tab=event" className="home-widget-banner">
+            <img src="/images/home/banner-05.jpg" alt="이벤트 배너" />
           </Link>
         </section>
       </aside>

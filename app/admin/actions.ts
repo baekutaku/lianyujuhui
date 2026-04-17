@@ -74,9 +74,22 @@ function buildEventKeys(params: {
 
 
 function extractYoutubeVideoId(url: string) {
-  const regExp = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/;
-  const match = url.match(regExp);
-  return match ? match[1] : null;
+  const value = url.trim();
+  if (!value) return null;
+
+  const embedMatch = value.match(/\/embed\/([^?&/]+)/);
+  if (embedMatch?.[1]) return embedMatch[1];
+
+  const watchMatch = value.match(/[?&]v=([^&]+)/);
+  if (watchMatch?.[1]) return watchMatch[1];
+
+  const shortMatch = value.match(/youtu\.be\/([^?&/]+)/);
+  if (shortMatch?.[1]) return shortMatch[1];
+
+  const shortsMatch = value.match(/youtube\.com\/shorts\/([^?&/]+)/);
+  if (shortsMatch?.[1]) return shortsMatch[1];
+
+  return null;
 }
 
 function toNullableText(value: FormDataEntryValue | null) {
