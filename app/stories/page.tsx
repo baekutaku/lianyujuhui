@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
+import StoriesFilterModal from "@/components/story/StoriesFilterModal";
 
 
 type SearchParamValue = string | string[] | undefined;
@@ -140,10 +141,9 @@ const SUBTYPE_LABELS: Record<string, string> = {
 };
 
 const NOTICE_ITEMS = [
-  "KR 서버 종료 기준으로 개인 백업 및 번역 정리 중",
-  "메인스토리 / 데이트 중심으로 우선 정리",
-  "일부 스토리는 미번역 / 미백업 상태일 수 있음",
-  "태그 검색 / 연결 검색은 다음 단계에서 추가 예정",
+"메인스토리 / 데이트 중심으로 우선 정리",
+  "일부 스토리는 미번역 / 미백업 상태",
+  "KR / CN 미디어 및 번역 스위치",
 ];
 
 
@@ -918,20 +918,10 @@ const eventIds = events.map((event) => event.id);
             );
           })}
         </div>
-         {admin ? (
-  <div className="story-list-adminbar">
-    <Link href="/admin/events/new" className="primary-button">
-      새 이벤트 등록
-    </Link>
+       
+</header>
 
-    <Link href="/admin/events" className="nav-link">
-      이벤트 관리
-    </Link>
-  </div>
-) : null}
-      </header>
-
-      <form
+    <form
   key={formStateKey}
   method="get"
   action="/stories"
@@ -951,96 +941,28 @@ const eventIds = events.map((event) => event.id);
       className="story-toolbar-search"
     />
 
-    <details className="story-filter-details">
-      <summary className="story-filter-trigger">필터</summary>
-
-      <div className="story-filter-panel">
-        <div className="story-filter-panel-head">
-          <div>
-            <p className="story-filter-panel-eyebrow">FILTER</p>
-            <h2 className="story-filter-panel-title">이벤트 필터</h2>
-          </div>
-
-          <Link
-            href={buildStoriesHref({
-              tab: activeTab.key,
-              sub: sub !== "all" ? sub : undefined,
-              q: "",
-              years: [],
-              characters: [],
-              scope: "",
-              sort: "latest",
-              page: 1,
-            })}
-            className="story-filter-reset-btn"
-          >
-            재설정
-          </Link>
-        </div>
-
-     <div className="story-filter-sections">
-  <section className="story-filter-section">
-    <h3 className="story-filter-section-title">캐릭터</h3>
-    <div className="story-filter-chip-grid">
-      {characterRows.map((item) => (
-        <label key={item.id} className="story-filter-chip-option">
-          <input
-            type="checkbox"
-            name="character"
-            value={item.key}
-            defaultChecked={selectedCharacterKeys.includes(item.key)}
-            className="story-filter-chip-input"
-          />
-          <span className="story-filter-chip-label">{item.name_ko}</span>
-        </label>
-      ))}
-    </div>
-  </section>
-
-  <section className="story-filter-section">
-    <h3 className="story-filter-section-title">연도</h3>
-    <div className="story-filter-chip-grid is-year-grid">
-      {yearOptions.map((yearValue) => (
-        <label key={yearValue} className="story-filter-chip-option">
-          <input
-            type="checkbox"
-            name="year"
-            value={String(yearValue)}
-            defaultChecked={selectedYears.includes(String(yearValue))}
-            className="story-filter-chip-input"
-          />
-          <span className="story-filter-chip-label">{yearValue}</span>
-        </label>
-      ))}
-    </div>
-  </section>
-
-  <section className="story-filter-section">
-    <h3 className="story-filter-section-title">정렬</h3>
-    <div className="story-filter-chip-grid">
-      {SORT_OPTIONS.map((item) => (
-        <label key={item.key} className="story-filter-chip-option">
-          <input
-            type="radio"
-            name="sort"
-            value={item.key}
-            defaultChecked={sort === item.key}
-            className="story-filter-chip-input"
-          />
-          <span className="story-filter-chip-label">{item.label}</span>
-        </label>
-      ))}
-    </div>
-  </section>
-</div>
-
-        <div className="story-filter-actions">
-          <button type="submit" className="story-filter-apply-btn">
-            적용
-          </button>
-        </div>
-      </div>
-    </details>
+    <StoriesFilterModal
+      defaultValues={{
+        tab: activeTab.key,
+        sub,
+        q,
+        scope: "",
+        sort,
+        tag: selectedTag,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+      }}
+      yearOptions={yearOptions.map(String)}
+      characterOptions={characterRows.map((item) => ({
+        value: item.key,
+        label: item.name_ko,
+      }))}
+      scopeOptions={[]}
+      sortOptions={SORT_OPTIONS.map((item) => ({
+        value: item.key,
+        label: item.label,
+      }))}
+    />
 
     <button type="submit" className="primary-button story-toolbar-submit">
       검색
@@ -1057,6 +979,7 @@ const eventIds = events.map((event) => event.id);
     </div>
   ) : null}
 </form>
+
 
       <section className="story-archive-shell">
         <div className="story-archive-main">
@@ -1085,17 +1008,34 @@ const eventIds = events.map((event) => event.id);
               
             ) : null}
 
-            <div className="story-archive-intro-top">
-              <div>
-                <p className="story-archive-intro-label">현재 카테고리</p>
-                <h2 className="story-archive-intro-title">
-                  {activeTab.label}
-                  {sub !== "all" ? ` · ${getSubLabel("event", sub)}` : ""}
-                </h2>
-              </div>
+           <div className="story-archive-intro-top">
+  <div>
+    <p className="story-archive-intro-label">현재 카테고리</p>
+    <h2 className="story-archive-intro-title">{activeTab.label}</h2>
+  </div>
 
-              <span className="meta-pill">{events.length}개</span>
-            </div>
+  <div className="story-archive-intro-right">
+    {admin ? (
+      <div className="story-archive-admin-mini">
+        <Link
+          href="/admin/events/new"
+          className="story-archive-mini-btn story-archive-mini-btn-primary"
+        >
+          + 새 이벤트
+        </Link>
+
+        <Link
+          href="/admin/events"
+          className="story-archive-mini-btn"
+        >
+          관리
+        </Link>
+      </div>
+    ) : null}
+
+    <span className="meta-pill">{totalCount}개</span>
+  </div>
+</div>
 
             <p className="story-archive-intro-desc">{activeTab.desc}</p>
           </section>
@@ -1203,196 +1143,118 @@ const eventIds = events.map((event) => event.id);
 
   return (
     <main>
-      <header className="page-header">
-        <div className="page-eyebrow">Archive / Stories</div>
-        <h1 className="page-title">스토리 아카이브</h1>
-        <p className="page-desc">
-          메인스토리와 데이트를 우선으로 정리하는 연결형 스토리 목록입니다.
-        </p>
+  <header className="page-header">
+    <div className="page-eyebrow">Archive / Stories</div>
+    <h1 className="page-title">스토리 아카이브</h1>
+    <p className="page-desc">
+      메인스토리와 데이트를 우선으로 정리하는 연결형 스토리 목록입니다.
+    </p>
 
-        <div className="story-archive-tabs">
-          {STORY_TAB_OPTIONS.map((item) => {
-            const href = buildStoriesHref({
-              tab: item.key,
-              q,
-              years: selectedYears,
-              characters: selectedCharacterKeys,
-              scope,
-              sort,
-              page: 1,
-            });
+    <div className="story-archive-tabs">
+      {STORY_TAB_OPTIONS.map((item) => {
+        const href = buildStoriesHref({
+          tab: item.key,
+          q,
+          years: selectedYears,
+          characters: selectedCharacterKeys,
+          scope,
+          sort,
+          page: 1,
+        });
 
-            const active = item.key === activeTab.key;
-            const count = tabCountMap.get(item.key) ?? 0;
+        const active = item.key === activeTab.key;
 
-            return (
-              <Link
-                key={item.key}
-                href={href}
-                className={`story-archive-tab ${active ? "active" : ""}`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+        return (
+          <Link
+            key={item.key}
+            href={href}
+            className={`story-archive-tab ${active ? "active" : ""}`}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </div>
+
+    <form
+  key={formStateKey}
+  method="get"
+  action="/stories"
+  className="story-toolbar-form"
+>
+  <input type="hidden" name="tab" value={activeTab.key} />
+  <input type="hidden" name="page" value="1" />
+  {selectedTag ? <input type="hidden" name="tag" value={selectedTag} /> : null}
+  {sub !== "all" ? <input type="hidden" name="sub" value={sub} /> : null}
+
+  <div className="story-toolbar-top">
+    <input
+      type="text"
+      name="q"
+      defaultValue={q}
+      placeholder="제목 / 스토리 내용 검색"
+      className="story-toolbar-search"
+    />
+
+    <StoriesFilterModal
+      defaultValues={{
+        tab: activeTab.key,
+        sub,
+        q,
+        scope,
+        sort,
+        tag: selectedTag,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+      }}
+      yearOptions={yearOptions.map(String)}
+      characterOptions={characterRows.map((item) => ({
+        value: item.key,
+        label: item.name_ko,
+      }))}
+      scopeOptions={SCOPE_OPTIONS.map((item) => ({
+        value: item.key,
+        label: item.label,
+      }))}
+      sortOptions={SORT_OPTIONS.map((item) => ({
+        value: item.key,
+        label: item.label,
+      }))}
+    />
+
+    <button type="submit" className="primary-button story-toolbar-submit">
+      검색
+    </button>
+  </div>
+
+  <div className="story-toolbar-bottom">
+    <div className="story-toolbar-bottom-left">
+      {activeFilterChips.length > 0 ? (
+        <div className="story-active-filters">
+          {activeFilterChips.map((chip) => (
+            <span key={chip} className="story-active-filter-chip">
+              {chip}
+            </span>
+          ))}
         </div>
+      ) : (
+        <div className="story-active-filters">
+          <span className="story-active-filter-chip">
+            {SCOPE_OPTIONS.find((item) => item.key === scope)?.label ?? "등장 범위 전체"}
+          </span>
+        </div>
+      )}
+    </div>
 
-        <form
-          key={formStateKey}
-          method="get"
-          action="/stories"
-          className="story-toolbar-form"
-        >
-          <input type="hidden" name="tab" value={activeTab.key} />
-          <input type="hidden" name="page" value="1" />
-{selectedTag ? <input type="hidden" name="tag" value={selectedTag} /> : null}
-          <div className="story-toolbar-top">
-            <input
-              type="text"
-              name="q"
-              defaultValue={q}
-              placeholder="제목 / 번역 내용 검색"
-              className="story-toolbar-search"
-            />
+   
+  </div>
+</form>
+    
+  </header>
 
-            <details className="story-filter-details">
-              <summary className="story-filter-trigger">필터</summary>
 
-              <div className="story-filter-panel">
-                <div className="story-filter-panel-head">
-                  <div>
-                    <p className="story-filter-panel-eyebrow">FILTER</p>
-                    <h2 className="story-filter-panel-title">스토리 필터</h2>
-                  </div>
 
-                  <Link
-                    href={buildStoriesHref({
-                      tab: activeTab.key,
-                      q: "",
-                      years: [],
-                      characters: [],
-                      scope: "",
-                      sort: "latest",
-                      page: 1,
-                    })}
-                    className="story-filter-reset-btn"
-                  >
-                    재설정
-                  </Link>
-                </div>
-
-                <div className="story-filter-sections">
-                  <section className="story-filter-section">
-                    <h3 className="story-filter-section-title">캐릭터</h3>
-                    <div className="story-filter-chip-grid">
-                      {characterRows.map((item) => (
-                        <label key={item.id} className="story-filter-chip-option">
-                          <input
-                            type="checkbox"
-                            name="character"
-                            value={item.key}
-                            defaultChecked={selectedCharacterKeys.includes(item.key)}
-                            className="story-filter-chip-input"
-                          />
-                          <span className="story-filter-chip-label">{item.name_ko}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section className="story-filter-section">
-                    <h3 className="story-filter-section-title">등장 범위</h3>
-                    <div className="story-filter-chip-grid">
-                      {SCOPE_OPTIONS.map((item) => (
-                        <label key={item.key || "all"} className="story-filter-chip-option">
-                          <input
-                            type="radio"
-                            name="scope"
-                            value={item.key}
-                            defaultChecked={scope === item.key}
-                            className="story-filter-chip-input"
-                          />
-                          <span className="story-filter-chip-label">{item.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section className="story-filter-section">
-                    <h3 className="story-filter-section-title">연도</h3>
-                    <div className="story-filter-chip-grid is-year-grid">
-                      {yearOptions.map((yearValue) => (
-                        <label key={yearValue} className="story-filter-chip-option">
-                          <input
-                            type="checkbox"
-                            name="year"
-                            value={String(yearValue)}
-                            defaultChecked={selectedYears.includes(String(yearValue))}
-                            className="story-filter-chip-input"
-                          />
-                          <span className="story-filter-chip-label">{yearValue}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section className="story-filter-section">
-                    <h3 className="story-filter-section-title">정렬</h3>
-                    <div className="story-filter-chip-grid">
-                      {SORT_OPTIONS.map((item) => (
-                        <label key={item.key} className="story-filter-chip-option">
-                          <input
-                            type="radio"
-                            name="sort"
-                            value={item.key}
-                            defaultChecked={sort === item.key}
-                            className="story-filter-chip-input"
-                          />
-                          <span className="story-filter-chip-label">{item.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </section>
-                </div>
-
-                <div className="story-filter-actions">
-                  <button type="submit" className="story-filter-apply-btn">
-                    적용
-                  </button>
-                </div>
-              </div>
-            </details>
-
-            <button type="submit" className="primary-button story-toolbar-submit">
-              검색
-            </button>
-          </div>
-
-          {activeFilterChips.length > 0 ? (
-            <div className="story-active-filters">
-              {activeFilterChips.map((chip) => (
-                <span key={chip} className="story-active-filter-chip">
-                  {chip}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </form>
-
-        {admin ? (
-          <div className="story-list-adminbar">
-            <Link href="/admin/stories/new" className="primary-button">
-              새 스토리 등록
-            </Link>
-
-            <Link href="/admin/stories" className="nav-link">
-              스토리 관리
-            </Link>
-          </div>
-        ) : null}
-      </header>
-
-      <section className="story-archive-shell">
+  <section className="story-archive-shell">
         <div className="story-archive-main">
           <section className="detail-panel story-archive-intro">
             {(STORY_SUBFILTERS[activeTab.key as keyof typeof STORY_SUBFILTERS] ?? []).length > 0 ? (
@@ -1423,14 +1285,34 @@ const eventIds = events.map((event) => event.id);
     })}
   </div>
 ) : null}
-            <div className="story-archive-intro-top">
-              <div>
-                <p className="story-archive-intro-label">현재 카테고리</p>
-                <h2 className="story-archive-intro-title">{activeTab.label}</h2>
-              </div>
+          <div className="story-archive-intro-top">
+  <div>
+    <p className="story-archive-intro-label">현재 카테고리</p>
+    <h2 className="story-archive-intro-title">{activeTab.label}</h2>
+  </div>
 
-              <span className="meta-pill">{totalCount}개</span>
-            </div>
+  <div className="story-archive-intro-right">
+    {admin ? (
+      <div className="story-archive-admin-mini">
+        <Link
+          href="/admin/stories/new"
+          className="story-archive-mini-btn story-archive-mini-btn-primary"
+        >
+          + 새 스토리
+        </Link>
+
+        <Link
+          href="/admin/stories"
+          className="story-archive-mini-btn"
+        >
+          관리
+        </Link>
+      </div>
+    ) : null}
+
+    <span className="meta-pill">{totalCount}개</span>
+  </div>
+</div>
 
             <p className="story-archive-intro-desc">{activeTab.desc}</p>
           </section>

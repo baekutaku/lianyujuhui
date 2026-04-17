@@ -410,14 +410,27 @@ export default async function HomeMixedBody() {
         <section className="home-widget-panel">
           <p className="home-widget-eyebrow">NOTICE</p>
 
-          <ul className="home-mixed-list">
-            <li>1부는 전반 자료, 2부 이후로는 백기 위주 정리. </li>
-                <li>비전문가 AI 때려서 만든 공간이기 때문에 오류가 다분합니다. </li><li>문제가 있을 경우 트위터나 익명함으로 남겨주세요.</li>
-          </ul>
+<ul className="home-mixed-list">
+  <li>1부는 전반 자료, 2부 이후로는 백기 위주 정리.</li>
+  <li>비전문가가 AI 때려서 만든 공간이기 때문에 오류가 다분합니다.</li>
+  <li>
+    문제가 있을 경우{" "}
+    <a
+      href="https://x.com/Bulhyonyeo"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="home-notice-link"
+    >
+      트위터
+    </a>
+    나 익명함으로 남겨주세요.
+  </li>
+  <li>PV 아카이브는 미정</li>
+</ul>
         </section>
 
         <section className="home-widget-panel">
-          <p className="home-widget-eyebrow">RECENT 임시</p>
+          <p className="home-widget-eyebrow">RECENT 업데이트 예정</p>
 
           <div className="home-widget-list">
             <Link href="/stories">최신 스토리 업데이트</Link>
@@ -442,17 +455,12 @@ export default async function HomeMixedBody() {
         <section className="home-widget-panel">
           <p className="home-widget-eyebrow">BANNER</p>
 
-          <Link href="/stories?tab=event" className="home-widget-banner">
-            <img src="/images/home/banner-01.jpg" alt="이벤트 배너" />
+ 
+          <Link href="/cards" className="home-widget-banner">
+            <img src="/images/home/banner-03.jpg" alt="카드 배너" />
           </Link>
-          <Link href="/stories?tab=event" className="home-widget-banner">
-            <img src="/images/home/banner-02.jpg" alt="이벤트 배너" />
-          </Link>
-          <Link href="/stories?tab=event" className="home-widget-banner">
-            <img src="/images/home/banner-03.jpg" alt="이벤트 배너" />
-          </Link>
-          <Link href="/stories?tab=event" className="home-widget-banner">
-            <img src="/images/home/banner-04.jpg" alt="이벤트 배너" />
+          <Link href="/stories" className="home-widget-banner">
+            <img src="/images/home/banner-04.jpg" alt="스토리 배너" />
           </Link>
           <Link href="/stories?tab=event" className="home-widget-banner">
             <img src="/images/home/banner-05.jpg" alt="이벤트 배너" />
