@@ -83,21 +83,21 @@ export default async function EditCardPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const errorMessage = resolvedSearchParams?.error ?? "";
 
-  const { data: card, error } = await supabase
-    .from("cards")
-    .select(
-      "id, title, slug, rarity, attribute, release_year, release_date, thumbnail_url, cover_image_url, summary, card_category"
-    )
-    .eq("slug", slug)
-    .maybeSingle();
+const { data: card, error } = await supabase
+  .from("cards")
+  .select(
+    "id, title, slug, rarity, attribute, release_year, release_date, thumbnail_url, cover_image_url, summary, card_category"
+  )
+  .eq("slug", slug)
+  .maybeSingle();
 
-  if (error) {
-    console.error("[admin/cards/[slug]/edit] card fetch error:", error);
-  }
+if (error) {
+  throw new Error(`[admin/cards/${slug}/edit] ${error.message}`);
+}
 
-  if (!card) {
-    notFound();
-  }
+if (!card) {
+  notFound();
+}
 
   const { data: thumbAfterMedia } = await supabase
     .from("media_assets")
