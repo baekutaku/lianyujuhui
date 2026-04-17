@@ -449,7 +449,7 @@ if (!card) {
           </label>
         </div>
 
-        <RelationPicker
+        {/* <RelationPicker
           label="연결 스토리"
           name="linkedStorySlugs"
           candidates={storyCandidates}
@@ -509,7 +509,7 @@ if (!card) {
 
         <div className="admin-subpanel">
           <StoryFormEnhancer storageKey={`card-draft:${card.slug}`} />
-        </div>
+        </div> */}
       </form>
 
       <div
