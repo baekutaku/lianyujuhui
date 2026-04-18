@@ -11257,7 +11257,7 @@ button,
 
 
 /* 카드 상세 왼쪽 미디어 영역만 살짝 조이기 */
-/* .card-detail-media-panel {
+.card-detail-media-panel {
   padding: 14px 16px 16px;
 }
 
@@ -11286,7 +11286,7 @@ button,
   width: 100%;
   aspect-ratio: 9 / 16;
   object-fit: cover;
-} */
+}
 
 .card-detail-media-shell {
   display: grid;
@@ -11330,3 +11330,4 @@ button,
   aspect-ratio: 9 / 16;
   object-fit: cover;
 }
+
