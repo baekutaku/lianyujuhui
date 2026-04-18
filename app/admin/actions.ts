@@ -1514,11 +1514,11 @@ export async function createStoryBundle(formData: FormData) {
     redirect(errorRedirectUrl);
   }
 
-  if (submitIntent === "view") {
-    redirect(`/stories/${encodeURIComponent(successSlug)}`);
-  }
+if (submitIntent === "view") {
+  redirect("/admin/stories?saved=1");
+}
 
-  redirect(`/admin/stories/${encodeURIComponent(successSlug)}/edit?saved=1`);
+redirect("/admin/stories?saved=1");
 }
 export async function updateStoryBundle(formData: FormData) {
   const rawSlug = String(formData.get("slug") || "").trim();
@@ -1723,12 +1723,11 @@ export async function updateStoryBundle(formData: FormData) {
 
     redirect(`/admin/stories/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
   }
+if (submitIntent === "view") {
+  redirect("/admin/stories?saved=1");
+}
 
-  if (submitIntent === "view") {
-    redirect(`/stories/${safeSlug}`);
-  }
-
-  redirect(`/admin/stories/${safeSlug}/edit?saved=1`);
+redirect("/admin/stories?saved=1");
 }
 export async function deleteStoryBundle(formData: FormData) {
   await requireAdmin();
