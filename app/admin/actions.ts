@@ -1214,9 +1214,14 @@ export async function updateCard(formData: FormData) {
     // 진화 후 커버 처리
 
     phase = "revalidate";
-    revalidatePath("/admin/cards");
-    revalidatePath("/cards");
-    revalidatePath(`/cards/${rawSlug}`);
+    // revalidatePath("/admin/cards");
+    // revalidatePath("/cards");
+    // revalidatePath(`/cards/${rawSlug}`);
+// 1차 테스트
+revalidatePath("/admin/cards");
+revalidatePath("/cards");
+// revalidatePath(`/cards/${rawSlug}`);
+
   } catch (error) {
     const message = error instanceof Error ? error.message : "알 수 없는 오류";
     redirect(
