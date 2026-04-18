@@ -176,11 +176,7 @@ async function syncStoryTags(storyId: string, labels: string[]) {
     .eq("item_id", storyId);
 
   const normalizedLabels = Array.from(
-    new Set(
-      labels
-        .map((label) => label.trim())
-        .filter(Boolean)
-    )
+    new Set(labels.map((label) => label.trim()).filter(Boolean))
   );
 
   if (normalizedLabels.length === 0) return;
@@ -193,7 +189,7 @@ async function syncStoryTags(storyId: string, labels: string[]) {
       name: label,
       label,
       key: slug,
-      kind: "story",
+      kind: "story" as const,
     };
   });
 
@@ -201,33 +197,11 @@ async function syncStoryTags(storyId: string, labels: string[]) {
 
   const { data: existingTags, error: existingTagsError } = await supabase
     .from("tags")
-    .select("id, slug, label, name")
+    .select("id, slug")
     .in("slug", slugs);
 
   if (existingTagsError) {
     throw new Error(existingTagsError.message);
-  }
-
-  const existingTagMap = new Map(
-    (existingTags ?? []).map((row) => [row.slug, row])
-  );
-
-  for (const item of normalizedTags) {
-    const existing = existingTagMap.get(item.slug);
-
-    if (existing && (existing.label !== item.label || existing.name !== item.name)) {
-      const { error: updateError } = await supabase
-        .from("tags")
-        .update({
-          label: item.label,
-          name: item.name,
-        })
-        .eq("id", existing.id);
-
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
-    }
   }
 
   const tagIdMap = new Map(
@@ -316,33 +290,11 @@ async function syncEventTags(eventId: string, labels: string[]) {
 
   const { data: existingTags, error: existingTagsError } = await supabase
     .from("tags")
-    .select("id, slug, label, name")
+    .select("id, slug")
     .in("slug", slugs);
 
   if (existingTagsError) {
     throw new Error(existingTagsError.message);
-  }
-
-  const existingTagMap = new Map(
-    (existingTags ?? []).map((row) => [row.slug, row])
-  );
-
-  for (const item of normalizedTags) {
-    const existing = existingTagMap.get(item.slug);
-
-    if (existing && (existing.label !== item.label || existing.name !== item.name)) {
-      const { error: updateError } = await supabase
-        .from("tags")
-        .update({
-          label: item.label,
-          name: item.name,
-        })
-        .eq("id", existing.id);
-
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
-    }
   }
 
   const tagIdMap = new Map(
@@ -409,11 +361,7 @@ async function syncCardTags(cardId: string, labels: string[]) {
     .eq("item_id", cardId);
 
   const normalizedLabels = Array.from(
-    new Set(
-      labels
-        .map((label) => label.trim())
-        .filter(Boolean)
-    )
+    new Set(labels.map((label) => label.trim()).filter(Boolean))
   );
 
   if (normalizedLabels.length === 0) return;
@@ -426,7 +374,7 @@ async function syncCardTags(cardId: string, labels: string[]) {
       name: label,
       label,
       key: slug,
-      kind: "card",
+      kind: "card" as const,
     };
   });
 
@@ -434,33 +382,11 @@ async function syncCardTags(cardId: string, labels: string[]) {
 
   const { data: existingTags, error: existingTagsError } = await supabase
     .from("tags")
-    .select("id, slug, label, name")
+    .select("id, slug")
     .in("slug", slugs);
 
   if (existingTagsError) {
     throw new Error(existingTagsError.message);
-  }
-
-  const existingTagMap = new Map(
-    (existingTags ?? []).map((row) => [row.slug, row])
-  );
-
-  for (const item of normalizedTags) {
-    const existing = existingTagMap.get(item.slug);
-
-    if (existing && (existing.label !== item.label || existing.name !== item.name)) {
-      const { error: updateError } = await supabase
-        .from("tags")
-        .update({
-          label: item.label,
-          name: item.name,
-        })
-        .eq("id", existing.id);
-
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
-    }
   }
 
   const tagIdMap = new Map(
@@ -505,7 +431,6 @@ async function syncCardTags(cardId: string, labels: string[]) {
     }
   }
 }
-
 async function resolveStoryMetaFromForm(formData: FormData, currentPasswordHash?: string | null) {
   const visibility = normalizeStoryVisibility(
     String(formData.get("visibility") || "public")
