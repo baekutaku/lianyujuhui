@@ -1112,7 +1112,6 @@ async function syncIncomingRelationsBySlugs(params: {
 export async function updateCard(formData: FormData) {
   const rawSlug = String(formData.get("slug") || "").trim();
   const safeSlug = encodeURIComponent(rawSlug);
-  const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
     await requireAdmin();
@@ -1278,11 +1277,7 @@ export async function updateCard(formData: FormData) {
     redirect(`/admin/cards/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
   }
 
-  if (submitIntent === "view") {
-    redirect(`/cards/${safeSlug}`);
-  }
-
-  redirect(`/admin/cards/${safeSlug}/edit?saved=1`);
+  redirect(`/cards/${safeSlug}`);
 }
 export async function updateTranslation(formData: FormData) {
   const translationId = String(formData.get("translationId") || "");
@@ -1510,20 +1505,15 @@ export async function createStoryBundle(formData: FormData) {
     errorRedirectUrl = `/admin/stories/new?error=${encodeURIComponent(message)}`;
   }
 
-  if (errorRedirectUrl) {
-    redirect(errorRedirectUrl);
-  }
-
-if (submitIntent === "view") {
-  redirect("/admin/stories?saved=1");
+if (errorRedirectUrl) {
+  redirect(errorRedirectUrl);
 }
 
-redirect("/admin/stories?saved=1");
+redirect(`/stories/${encodeURIComponent(successSlug)}`);
 }
 export async function updateStoryBundle(formData: FormData) {
   const rawSlug = String(formData.get("slug") || "").trim();
   const safeSlug = encodeURIComponent(rawSlug);
-  const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
     await requireAdmin();
@@ -1723,11 +1713,8 @@ export async function updateStoryBundle(formData: FormData) {
 
     redirect(`/admin/stories/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
   }
-if (submitIntent === "view") {
-  redirect("/admin/stories?saved=1");
-}
 
-redirect("/admin/stories?saved=1");
+  redirect(`/stories/${safeSlug}`);
 }
 export async function deleteStoryBundle(formData: FormData) {
   await requireAdmin();
