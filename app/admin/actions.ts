@@ -18,16 +18,16 @@ import {
 import { createPasswordRecord, normalizeStoryVisibility } from "@/lib/utils/content-visibility";
 
 function slugify(input: string) {
-  return input
-    .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9가-힣\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "") || "event";
+  return (
+    input
+      .normalize("NFC")
+      .toLowerCase()
+      .replace(/[^a-z0-9가-힣\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || "event"
+  );
 }
-
 function toEmbedUrl(raw: string) {
   const value = raw.trim();
   if (!value) return "";
@@ -129,38 +129,39 @@ async function syncStoryCharacters(storyId: string, characterIds: string[]) {
 function slugifyTag(input: string) {
   return (
     input
-      .normalize("NFKD")
+      .normalize("NFC")
       .toLowerCase()
-      .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9가-힣\s-]/g, "")
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "") || "tag"
   );
 }
-
 function parseTagLabels(value: FormDataEntryValue | null) {
+  const raw = String(value ?? "");
+
   return Array.from(
     new Set(
-      String(value ?? "")
+      raw
+        .replace(/\s+#/g, "\n#")
         .split(/[,\n]/)
-        .map((item) => item.trim())
+        .map((item) => item.trim().replace(/^#+/, ""))
         .filter(Boolean)
     )
   );
 }
-
 function parseTagLabelsFromForm(formData: FormData) {
-  const values = formData.getAll("tagLabels");
+  const raw = formData
+    .getAll("tagLabels")
+    .map((value) => String(value ?? ""))
+    .join("\n");
 
   return Array.from(
     new Set(
-      values
-        .flatMap((value) =>
-          String(value ?? "")
-            .split(/[,\n]/)
-            .map((item) => item.trim().replace(/^#+/, ""))
-        )
+      raw
+        .replace(/\s+#/g, "\n#")
+        .split(/[,\n]/)
+        .map((item) => item.trim().replace(/^#+/, ""))
         .filter(Boolean)
     )
   );
@@ -169,68 +170,159 @@ function parseTagLabelsFromForm(formData: FormData) {
 
 
 async function syncStoryTags(storyId: string, labels: string[]) {
-  await supabase
+  const normalizedTags = Array.from(
+    new Map(
+      labels
+        .map((label) => label.trim())
+        .filter(Boolean)
+        .map((label) => {
+          const slug = slugifyTag(label);
+
+          return [
+            slug,
+            {
+              slug,
+              name: label,
+              label,
+              key: slug,
+              kind: "story" as const,
+            },
+          ] as const;
+        })
+    ).values()
+  );
+
+  if (normalizedTags.length === 0) {
+    const { error: deleteError } = await supabase
+      .from("item_tags")
+      .delete()
+      .eq("item_type", "story")
+      .eq("item_id", storyId);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+
+    return;
+  }
+
+  const slugs = normalizedTags.map((item) => item.slug);
+
+  const { data: existingTags, error: existingTagsError } = await supabase
+    .from("tags")
+    .select("id, slug")
+    .in("slug", slugs);
+
+  if (existingTagsError) {
+    throw new Error(existingTagsError.message);
+  }
+
+  const tagIdMap = new Map<string, string>(
+    (existingTags ?? []).map((row) => [row.slug, row.id])
+  );
+
+  const missingTags = normalizedTags.filter((item) => !tagIdMap.has(item.slug));
+
+  if (missingTags.length > 0) {
+    const { data: insertedTags, error: insertError } = await supabase
+      .from("tags")
+      .insert(missingTags)
+      .select("id, slug");
+
+    if (insertError) {
+      throw new Error(insertError.message);
+    }
+
+    (insertedTags ?? []).forEach((row) => {
+      tagIdMap.set(row.slug, row.id);
+    });
+  }
+
+  const itemTagRows = normalizedTags.flatMap((item, index) => {
+    const tagId = tagIdMap.get(item.slug);
+    if (!tagId) return [];
+
+    return [
+      {
+        item_type: "story" as const,
+        item_id: storyId,
+        tag_id: tagId,
+        sort_order: index,
+      },
+    ];
+  });
+
+  const { error: deleteError } = await supabase
     .from("item_tags")
     .delete()
     .eq("item_type", "story")
     .eq("item_id", storyId);
 
-  const normalizedLabels = Array.from(
-    new Set(
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
+  if (itemTagRows.length > 0) {
+    const { error: insertItemTagsError } = await supabase
+      .from("item_tags")
+      .insert(itemTagRows);
+
+    if (insertItemTagsError) {
+      throw new Error(insertItemTagsError.message);
+    }
+  }
+}
+
+
+async function syncEventTags(eventId: string, labels: string[]) {
+  const normalizedTags = Array.from(
+    new Map(
       labels
         .map((label) => label.trim())
         .filter(Boolean)
-    )
+        .map((label) => {
+          const slug = slugifyTag(label);
+
+          return [
+            slug,
+            {
+              slug,
+              name: label,
+              label,
+              key: slug,
+              kind: "event" as const,
+            },
+          ] as const;
+        })
+    ).values()
   );
 
-  if (normalizedLabels.length === 0) return;
+  if (normalizedTags.length === 0) {
+    const { error: deleteError } = await supabase
+      .from("item_tags")
+      .delete()
+      .eq("item_type", "event")
+      .eq("item_id", eventId);
 
-  const normalizedTags = normalizedLabels.map((label) => {
-    const slug = slugifyTag(label);
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
 
-    return {
-      slug,
-      name: label,
-      label,
-      key: slug,
-      kind: "story",
-    };
-  });
+    return;
+  }
 
   const slugs = normalizedTags.map((item) => item.slug);
 
   const { data: existingTags, error: existingTagsError } = await supabase
     .from("tags")
-    .select("id, slug, label, name")
+    .select("id, slug")
     .in("slug", slugs);
 
   if (existingTagsError) {
     throw new Error(existingTagsError.message);
   }
 
-  const existingTagMap = new Map(
-    (existingTags ?? []).map((row) => [row.slug, row])
-  );
-
-  for (const item of normalizedTags) {
-    const existing = existingTagMap.get(item.slug);
-
-    if (existing && (existing.label !== item.label || existing.name !== item.name)) {
-      const { error: updateError } = await supabase
-        .from("tags")
-        .update({
-          label: item.label,
-          name: item.name,
-        })
-        .eq("id", existing.id);
-
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
-    }
-  }
-
-  const tagIdMap = new Map(
+  const tagIdMap = new Map<string, string>(
     (existingTags ?? []).map((row) => [row.slug, row.id])
   );
 
@@ -251,219 +343,90 @@ async function syncStoryTags(storyId: string, labels: string[]) {
     });
   }
 
-  const itemTagRows = normalizedTags
-    .map((item, index) => {
-      const tagId = tagIdMap.get(item.slug);
-      if (!tagId) return null;
+  const itemTagRows = normalizedTags.flatMap((item, index) => {
+    const tagId = tagIdMap.get(item.slug);
+    if (!tagId) return [];
 
-      return {
-        item_type: "story",
-        item_id: storyId,
+    return [
+      {
+        item_type: "event" as const,
+        item_id: eventId,
         tag_id: tagId,
         sort_order: index,
-      };
-    })
-    .filter(Boolean);
+      },
+    ];
+  });
 
-  if (itemTagRows.length > 0) {
-    const { error } = await supabase.from("item_tags").insert(itemTagRows);
-    if (error) {
-      throw new Error(error.message);
-    }
-  }
-}
-async function syncEventTags(eventId: string, labels: string[]) {
-  await supabase
+  const { error: deleteError } = await supabase
     .from("item_tags")
     .delete()
     .eq("item_type", "event")
     .eq("item_id", eventId);
 
-  const normalizedTagMap = new Map<
-    string,
-    {
-      slug: string;
-      name: string;
-      label: string;
-      key: string;
-      kind: "event";
-    }
-  >();
-
-  for (const rawLabel of labels) {
-    const cleaned = rawLabel.trim();
-    if (!cleaned) continue;
-
-    const slug = slugifyTag(cleaned);
-    if (!slug) continue;
-
-    if (!normalizedTagMap.has(slug)) {
-      normalizedTagMap.set(slug, {
-        slug,
-        name: cleaned,
-        label: cleaned,
-        key: slug,
-        kind: "event",
-      });
-    }
+  if (deleteError) {
+    throw new Error(deleteError.message);
   }
-
-  const normalizedTags = Array.from(normalizedTagMap.values());
-
-  if (normalizedTags.length === 0) return;
-
-  const slugs = normalizedTags.map((item) => item.slug);
-
-  const { data: existingTags, error: existingTagsError } = await supabase
-    .from("tags")
-    .select("id, slug, label, name")
-    .in("slug", slugs);
-
-  if (existingTagsError) {
-    throw new Error(existingTagsError.message);
-  }
-
-  const existingTagMap = new Map(
-    (existingTags ?? []).map((row) => [row.slug, row])
-  );
-
-  for (const item of normalizedTags) {
-    const existing = existingTagMap.get(item.slug);
-
-    if (existing && (existing.label !== item.label || existing.name !== item.name)) {
-      const { error: updateError } = await supabase
-        .from("tags")
-        .update({
-          label: item.label,
-          name: item.name,
-        })
-        .eq("id", existing.id);
-
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
-    }
-  }
-
-  const tagIdMap = new Map(
-    (existingTags ?? []).map((row) => [row.slug, row.id])
-  );
-
-  const missingTags = normalizedTags.filter((item) => !tagIdMap.has(item.slug));
-
-  if (missingTags.length > 0) {
-    const { data: insertedTags, error: insertError } = await supabase
-      .from("tags")
-      .insert(missingTags)
-      .select("id, slug");
-
-    if (insertError) {
-      throw new Error(insertError.message);
-    }
-
-    (insertedTags ?? []).forEach((row) => {
-      tagIdMap.set(row.slug, row.id);
-    });
-  }
-
-  const uniqueItemTagMap = new Map<
-    string,
-    {
-      item_type: "event";
-      item_id: string;
-      tag_id: string;
-      sort_order: number;
-    }
-  >();
-
-  normalizedTags.forEach((item, index) => {
-    const tagId = tagIdMap.get(item.slug);
-    if (!tagId) return;
-
-    const key = `${eventId}:${tagId}`;
-    if (!uniqueItemTagMap.has(key)) {
-      uniqueItemTagMap.set(key, {
-        item_type: "event",
-        item_id: eventId,
-        tag_id: tagId,
-        sort_order: index,
-      });
-    }
-  });
-
-  const itemTagRows = Array.from(uniqueItemTagMap.values());
 
   if (itemTagRows.length > 0) {
-    const { error } = await supabase.from("item_tags").insert(itemTagRows);
-    if (error) {
-      throw new Error(error.message);
+    const { error: insertItemTagsError } = await supabase
+      .from("item_tags")
+      .insert(itemTagRows);
+
+    if (insertItemTagsError) {
+      throw new Error(insertItemTagsError.message);
     }
   }
 }
 
 async function syncCardTags(cardId: string, labels: string[]) {
-  await supabase
-    .from("item_tags")
-    .delete()
-    .eq("item_type", "card")
-    .eq("item_id", cardId);
-
-  const normalizedLabels = Array.from(
-    new Set(
+  const normalizedTags = Array.from(
+    new Map(
       labels
         .map((label) => label.trim())
         .filter(Boolean)
-    )
+        .map((label) => {
+          const slug = slugifyTag(label);
+
+          return [
+            slug,
+            {
+              slug,
+              name: label,
+              label,
+              key: slug,
+              kind: "card" as const,
+            },
+          ] as const;
+        })
+    ).values()
   );
 
-  if (normalizedLabels.length === 0) return;
+  if (normalizedTags.length === 0) {
+    const { error: deleteError } = await supabase
+      .from("item_tags")
+      .delete()
+      .eq("item_type", "card")
+      .eq("item_id", cardId);
 
-  const normalizedTags = normalizedLabels.map((label) => {
-    const slug = slugifyTag(label);
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
 
-    return {
-      slug,
-      name: label,
-      label,
-      key: slug,
-      kind: "card",
-    };
-  });
+    return;
+  }
 
   const slugs = normalizedTags.map((item) => item.slug);
 
   const { data: existingTags, error: existingTagsError } = await supabase
     .from("tags")
-    .select("id, slug, label, name")
+    .select("id, slug")
     .in("slug", slugs);
 
   if (existingTagsError) {
     throw new Error(existingTagsError.message);
   }
 
-  const existingTagMap = new Map(
-    (existingTags ?? []).map((row) => [row.slug, row])
-  );
-
-  for (const item of normalizedTags) {
-    const existing = existingTagMap.get(item.slug);
-
-    if (existing && (existing.label !== item.label || existing.name !== item.name)) {
-      const { error: updateError } = await supabase
-        .from("tags")
-        .update({
-          label: item.label,
-          name: item.name,
-        })
-        .eq("id", existing.id);
-
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
-    }
-  }
-
-  const tagIdMap = new Map(
+  const tagIdMap = new Map<string, string>(
     (existingTags ?? []).map((row) => [row.slug, row.id])
   );
 
@@ -484,24 +447,37 @@ async function syncCardTags(cardId: string, labels: string[]) {
     });
   }
 
-  const itemTagRows = normalizedTags
-    .map((item, index) => {
-      const tagId = tagIdMap.get(item.slug);
-      if (!tagId) return null;
+  const itemTagRows = normalizedTags.flatMap((item, index) => {
+    const tagId = tagIdMap.get(item.slug);
+    if (!tagId) return [];
 
-      return {
-        item_type: "card",
+    return [
+      {
+        item_type: "card" as const,
         item_id: cardId,
         tag_id: tagId,
         sort_order: index,
-      };
-    })
-    .filter(Boolean);
+      },
+    ];
+  });
+
+  const { error: deleteError } = await supabase
+    .from("item_tags")
+    .delete()
+    .eq("item_type", "card")
+    .eq("item_id", cardId);
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
 
   if (itemTagRows.length > 0) {
-    const { error } = await supabase.from("item_tags").insert(itemTagRows);
-    if (error) {
-      throw new Error(error.message);
+    const { error: insertItemTagsError } = await supabase
+      .from("item_tags")
+      .insert(itemTagRows);
+
+    if (insertItemTagsError) {
+      throw new Error(insertItemTagsError.message);
     }
   }
 }
