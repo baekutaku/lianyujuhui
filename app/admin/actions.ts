@@ -1219,19 +1219,17 @@ export async function updateCard(formData: FormData) {
     // revalidatePath(`/cards/${rawSlug}`);
 // 1차 테스트
 revalidatePath("/admin/cards");
-revalidatePath("/cards");
-// revalidatePath(`/cards/${rawSlug}`);
-
+    revalidatePath("/cards");
+    revalidatePath(`/cards/${safeSlug}`);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "알 수 없는 오류";
-    redirect(
-      `/admin/cards/${safeSlug}/edit?error=${encodeURIComponent(`[${phase}] ${message}`)}`
-    );
+    const message =
+      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+
+    redirect(`/admin/cards/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
   }
 
-  redirect(`/admin/cards/${safeSlug}/edit?saved=1`);
+  redirect(`/cards/${safeSlug}`);
 }
-
 export async function updateTranslation(formData: FormData) {
   const translationId = String(formData.get("translationId") || "");
   const title = String(formData.get("title") || "");
