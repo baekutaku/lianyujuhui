@@ -1,5 +1,9 @@
 import { createCard } from "@/app/admin/actions";
+import { supabase } from "@/lib/supabase/server";
 import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
+import RelationPicker, {
+  type RelationCandidate,
+} from "@/components/admin/relations/RelationPicker";
 
 function safeDecode(value: string) {
   try {
@@ -10,8 +14,7 @@ function safeDecode(value: string) {
 }
 
 const RARITY_OPTIONS = [
-  { value: "nh", label: "NH" },
-  { value: "n", label: "N" },
+
   { value: "r", label: "R" },
   { value: "sr", label: "SR" },
   { value: "er", label: "ER" },
@@ -19,6 +22,8 @@ const RARITY_OPTIONS = [
   { value: "ssr", label: "SSR" },
   { value: "sp", label: "SP" },
   { value: "ur", label: "UR" },
+    { value: "nh", label: "NH" },
+  { value: "n", label: "N" },
 ] as const;
 
 const ATTRIBUTE_OPTIONS = [
@@ -50,6 +55,14 @@ const CHARACTER_OPTIONS = [
   { value: "lingxiao", label: "연시호" },
 ] as const;
 
+const PHONE_CATEGORY_OPTIONS = [
+  { value: "daily", label: "일상" },
+  { value: "companion", label: "동반" },
+  { value: "card_story", label: "카드" },
+  { value: "main_story", label: "메인스토리" },
+  { value: "tangle", label: "얽힘" },
+] as const;
+
 export default async function NewCardPage({
   searchParams,
 }: {
@@ -58,13 +71,69 @@ export default async function NewCardPage({
   const params = searchParams ? await searchParams : undefined;
   const error = params?.error ?? "";
 
+  const [
+    { data: characters },
+    { data: allStories },
+    { data: allPhoneItems },
+    { data: allEvents },
+  ] = await Promise.all([
+    supabase.from("characters").select("id, key"),
+
+    supabase
+      .from("stories")
+      .select("slug, title, subtype, primary_character_id")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false }),
+
+    supabase
+      .from("phone_items")
+      .select("slug, title, subtype, content_json")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false }),
+
+    supabase
+      .from("events")
+      .select("slug, title, subtype, primary_character_id")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const characterMap = new Map(
+    (characters ?? []).map((item: any) => [item.id, item.key])
+  );
+
+  const storyCandidates: RelationCandidate[] =
+    (allStories ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype,
+      characterKey: characterMap.get(item.primary_character_id) ?? null,
+    })) ?? [];
+
+  const phoneCandidates: RelationCandidate[] =
+    (allPhoneItems ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype,
+      characterKey: item.content_json?.characterKey ?? null,
+      category: item.content_json?.historyCategory ?? null,
+    })) ?? [];
+
+  const eventCandidates: RelationCandidate[] =
+    (allEvents ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype,
+      characterKey: characterMap.get(item.primary_character_id) ?? null,
+    })) ?? [];
+
   return (
     <main>
       <header className="page-header">
         <div className="page-eyebrow">Admin / Cards</div>
         <h1 className="page-title">카드 등록</h1>
         <p className="page-desc">
-          카드 기본 정보, 이미지, 카드 분류, 해시태그를 등록합니다.
+          카드 기본 정보, 이미지, 카드 분류, 해시태그, 연결 콘텐츠를 등록합니다.
         </p>
       </header>
 
@@ -114,16 +183,16 @@ export default async function NewCardPage({
           </label>
 
           <label className="form-field">
-  <span>카드 분류</span>
-  <select name="cardCategory" defaultValue="">
-    <option value="">미분류</option>
-    {CARD_CATEGORY_OPTIONS.map((item) => (
-      <option key={item.value} value={item.value}>
-        {item.label}
-      </option>
-    ))}
-  </select>
-</label>
+            <span>카드 분류</span>
+            <select name="cardCategory" defaultValue="">
+              <option value="">미분류</option>
+              {CARD_CATEGORY_OPTIONS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <label className="form-field">
             <span>연도</span>
@@ -185,36 +254,63 @@ export default async function NewCardPage({
 
           <label className="form-field form-field-full">
             <span>썸네일 (진화 전)</span>
-            <input
-              name="thumbnailUrl"
-              placeholder="https://..."
-            />
+            <input name="thumbnailUrl" placeholder="https://..." />
           </label>
 
           <label className="form-field form-field-full">
             <span>썸네일 (진화 후)</span>
-            <input
-              name="thumbnailAfterUrl"
-              placeholder="https://..."
-            />
+            <input name="thumbnailAfterUrl" placeholder="https://..." />
           </label>
 
           <label className="form-field form-field-full">
             <span>커버 이미지 (진화 전)</span>
-            <input
-              name="coverImageUrl"
-              placeholder="https://..."
-            />
+            <input name="coverImageUrl" placeholder="https://..." />
           </label>
 
           <label className="form-field form-field-full">
             <span>커버 이미지 (진화 후)</span>
-            <input
-              name="coverAfterUrl"
-              placeholder="https://..."
-            />
+            <input name="coverAfterUrl" placeholder="https://..." />
           </label>
         </div>
+
+        <RelationPicker
+          label="연결 스토리"
+          name="linkedStorySlugs"
+          candidates={storyCandidates}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          subtypeOptions={[
+            { value: "card_story", label: "데이트" },
+            { value: "asmr", label: "너의 곁에" },
+            { value: "side_story", label: "외전" },
+            { value: "main_story", label: "메인스토리" },
+            { value: "behind_story", label: "막후의 장" },
+            { value: "xiyue_story", label: "서월국" },
+            { value: "myhome_story", label: "마이홈 스토리" },
+            { value: "company_project", label: "회사 프로젝트" },
+          ]}
+        />
+
+        <RelationPicker
+          label="연결 휴대폰"
+          name="linkedPhoneItemSlugs"
+          candidates={phoneCandidates}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          categoryOptions={[...PHONE_CATEGORY_OPTIONS]}
+          subtypeOptions={[
+            { value: "message", label: "메시지" },
+            { value: "moment", label: "모멘트" },
+            { value: "call", label: "전화" },
+            { value: "video_call", label: "영상통화" },
+            { value: "article", label: "기사" },
+          ]}
+        />
+
+        <RelationPicker
+          label="연결 이벤트"
+          name="linkedEventSlugs"
+          candidates={eventCandidates}
+          characterOptions={[...CHARACTER_OPTIONS]}
+        />
 
         <div className="admin-subpanel">
           <StoryFormEnhancer storageKey="card-draft:new" />

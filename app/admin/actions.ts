@@ -168,11 +168,23 @@ function parseTagLabelsFromForm(formData: FormData) {
 }
 
 
+type SyncTagKind = "story" | "event" | "card";
 
-async function syncStoryTags(storyId: string, labels: string[]) {
-  const normalizedTags = Array.from(
+async function syncItemTags(params: {
+  itemType: SyncTagKind;
+  itemId: string;
+  labels: string[];
+  kind: SyncTagKind;
+}) {
+  const normalizedTags: Array<{
+    slug: string;
+    name: string;
+    label: string;
+    key: string;
+    kind: SyncTagKind;
+  }> = Array.from(
     new Map(
-      labels
+      params.labels
         .map((label) => label.trim())
         .filter(Boolean)
         .map((label) => {
@@ -185,82 +197,104 @@ async function syncStoryTags(storyId: string, labels: string[]) {
               name: label,
               label,
               key: slug,
-              kind: "story" as const,
+              kind: params.kind,
             },
           ] as const;
         })
     ).values()
   );
 
+  const { error: deleteError } = await supabase
+    .from("item_tags")
+    .delete()
+    .eq("item_type", params.itemType)
+    .eq("item_id", params.itemId);
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
   if (normalizedTags.length === 0) {
-    const { error: deleteError } = await supabase
-      .from("item_tags")
-      .delete()
-      .eq("item_type", "story")
-      .eq("item_id", storyId);
-
-    if (deleteError) {
-      throw new Error(deleteError.message);
-    }
-
     return;
   }
 
-  const slugs = normalizedTags.map((item) => item.slug);
+  const keys = Array.from(new Set(normalizedTags.map((item) => item.key)));
+  const names = Array.from(new Set(normalizedTags.map((item) => item.name)));
 
-  const { data: existingTags, error: existingTagsError } = await supabase
-    .from("tags")
-    .select("id, slug")
-    .in("slug", slugs);
+  const [
+    { data: existingByKey, error: existingByKeyError },
+    { data: existingByName, error: existingByNameError },
+  ] = await Promise.all([
+    supabase.from("tags").select("id, key, name").in("key", keys),
+    supabase.from("tags").select("id, key, name").in("name", names),
+  ]);
 
-  if (existingTagsError) {
-    throw new Error(existingTagsError.message);
+  if (existingByKeyError) {
+    throw new Error(existingByKeyError.message);
   }
 
-  const tagIdMap = new Map<string, string>(
-    (existingTags ?? []).map((row) => [row.slug, row.id])
-  );
+  if (existingByNameError) {
+    throw new Error(existingByNameError.message);
+  }
 
-  const missingTags = normalizedTags.filter((item) => !tagIdMap.has(item.slug));
+  const allExisting = [...(existingByKey ?? []), ...(existingByName ?? [])];
+
+  const tagIdByKey = new Map<string, string>();
+  const tagIdByLowerName = new Map<string, string>();
+
+  for (const row of allExisting) {
+    if (row.key) {
+      tagIdByKey.set(row.key, row.id);
+    }
+
+    if (row.name) {
+      tagIdByLowerName.set(String(row.name).toLowerCase(), row.id);
+    }
+  }
+
+  const missingTags = normalizedTags.filter((item) => {
+    return (
+      !tagIdByKey.has(item.key) &&
+      !tagIdByLowerName.has(item.name.toLowerCase())
+    );
+  });
 
   if (missingTags.length > 0) {
     const { data: insertedTags, error: insertError } = await supabase
       .from("tags")
       .insert(missingTags)
-      .select("id, slug");
+      .select("id, key, name");
 
     if (insertError) {
       throw new Error(insertError.message);
     }
 
-    (insertedTags ?? []).forEach((row) => {
-      tagIdMap.set(row.slug, row.id);
-    });
+    for (const row of insertedTags ?? []) {
+      if (row.key) {
+        tagIdByKey.set(row.key, row.id);
+      }
+
+      if (row.name) {
+        tagIdByLowerName.set(String(row.name).toLowerCase(), row.id);
+      }
+    }
   }
 
   const itemTagRows = normalizedTags.flatMap((item, index) => {
-    const tagId = tagIdMap.get(item.slug);
+    const tagId =
+      tagIdByKey.get(item.key) ?? tagIdByLowerName.get(item.name.toLowerCase());
+
     if (!tagId) return [];
 
     return [
       {
-        item_type: "story" as const,
-        item_id: storyId,
+        item_type: params.itemType,
+        item_id: params.itemId,
         tag_id: tagId,
         sort_order: index,
       },
     ];
   });
-
-  const { error: deleteError } = await supabase
-    .from("item_tags")
-    .delete()
-    .eq("item_type", "story")
-    .eq("item_id", storyId);
-
-  if (deleteError) {
-    throw new Error(deleteError.message);
-  }
 
   if (itemTagRows.length > 0) {
     const { error: insertItemTagsError } = await supabase
@@ -274,214 +308,33 @@ async function syncStoryTags(storyId: string, labels: string[]) {
 }
 
 
-async function syncEventTags(eventId: string, labels: string[]) {
-  const normalizedTags = Array.from(
-    new Map(
-      labels
-        .map((label) => label.trim())
-        .filter(Boolean)
-        .map((label) => {
-          const slug = slugifyTag(label);
 
-          return [
-            slug,
-            {
-              slug,
-              name: label,
-              label,
-              key: slug,
-              kind: "event" as const,
-            },
-          ] as const;
-        })
-    ).values()
-  );
-
-  if (normalizedTags.length === 0) {
-    const { error: deleteError } = await supabase
-      .from("item_tags")
-      .delete()
-      .eq("item_type", "event")
-      .eq("item_id", eventId);
-
-    if (deleteError) {
-      throw new Error(deleteError.message);
-    }
-
-    return;
-  }
-
-  const slugs = normalizedTags.map((item) => item.slug);
-
-  const { data: existingTags, error: existingTagsError } = await supabase
-    .from("tags")
-    .select("id, slug")
-    .in("slug", slugs);
-
-  if (existingTagsError) {
-    throw new Error(existingTagsError.message);
-  }
-
-  const tagIdMap = new Map<string, string>(
-    (existingTags ?? []).map((row) => [row.slug, row.id])
-  );
-
-  const missingTags = normalizedTags.filter((item) => !tagIdMap.has(item.slug));
-
-  if (missingTags.length > 0) {
-    const { data: insertedTags, error: insertError } = await supabase
-      .from("tags")
-      .insert(missingTags)
-      .select("id, slug");
-
-    if (insertError) {
-      throw new Error(insertError.message);
-    }
-
-    (insertedTags ?? []).forEach((row) => {
-      tagIdMap.set(row.slug, row.id);
-    });
-  }
-
-  const itemTagRows = normalizedTags.flatMap((item, index) => {
-    const tagId = tagIdMap.get(item.slug);
-    if (!tagId) return [];
-
-    return [
-      {
-        item_type: "event" as const,
-        item_id: eventId,
-        tag_id: tagId,
-        sort_order: index,
-      },
-    ];
+async function syncStoryTags(storyId: string, labels: string[]) {
+  return syncItemTags({
+    itemType: "story",
+    itemId: storyId,
+    labels,
+    kind: "story",
   });
+}
 
-  const { error: deleteError } = await supabase
-    .from("item_tags")
-    .delete()
-    .eq("item_type", "event")
-    .eq("item_id", eventId);
-
-  if (deleteError) {
-    throw new Error(deleteError.message);
-  }
-
-  if (itemTagRows.length > 0) {
-    const { error: insertItemTagsError } = await supabase
-      .from("item_tags")
-      .insert(itemTagRows);
-
-    if (insertItemTagsError) {
-      throw new Error(insertItemTagsError.message);
-    }
-  }
+async function syncEventTags(eventId: string, labels: string[]) {
+  return syncItemTags({
+    itemType: "event",
+    itemId: eventId,
+    labels,
+    kind: "event",
+  });
 }
 
 async function syncCardTags(cardId: string, labels: string[]) {
-  const normalizedTags = Array.from(
-    new Map(
-      labels
-        .map((label) => label.trim())
-        .filter(Boolean)
-        .map((label) => {
-          const slug = slugifyTag(label);
-
-          return [
-            slug,
-            {
-              slug,
-              name: label,
-              label,
-              key: slug,
-              kind: "card" as const,
-            },
-          ] as const;
-        })
-    ).values()
-  );
-
-  if (normalizedTags.length === 0) {
-    const { error: deleteError } = await supabase
-      .from("item_tags")
-      .delete()
-      .eq("item_type", "card")
-      .eq("item_id", cardId);
-
-    if (deleteError) {
-      throw new Error(deleteError.message);
-    }
-
-    return;
-  }
-
-  const slugs = normalizedTags.map((item) => item.slug);
-
-  const { data: existingTags, error: existingTagsError } = await supabase
-    .from("tags")
-    .select("id, slug")
-    .in("slug", slugs);
-
-  if (existingTagsError) {
-    throw new Error(existingTagsError.message);
-  }
-
-  const tagIdMap = new Map<string, string>(
-    (existingTags ?? []).map((row) => [row.slug, row.id])
-  );
-
-  const missingTags = normalizedTags.filter((item) => !tagIdMap.has(item.slug));
-
-  if (missingTags.length > 0) {
-    const { data: insertedTags, error: insertError } = await supabase
-      .from("tags")
-      .insert(missingTags)
-      .select("id, slug");
-
-    if (insertError) {
-      throw new Error(insertError.message);
-    }
-
-    (insertedTags ?? []).forEach((row) => {
-      tagIdMap.set(row.slug, row.id);
-    });
-  }
-
-  const itemTagRows = normalizedTags.flatMap((item, index) => {
-    const tagId = tagIdMap.get(item.slug);
-    if (!tagId) return [];
-
-    return [
-      {
-        item_type: "card" as const,
-        item_id: cardId,
-        tag_id: tagId,
-        sort_order: index,
-      },
-    ];
+  return syncItemTags({
+    itemType: "card",
+    itemId: cardId,
+    labels,
+    kind: "card",
   });
-
-  const { error: deleteError } = await supabase
-    .from("item_tags")
-    .delete()
-    .eq("item_type", "card")
-    .eq("item_id", cardId);
-
-  if (deleteError) {
-    throw new Error(deleteError.message);
-  }
-
-  if (itemTagRows.length > 0) {
-    const { error: insertItemTagsError } = await supabase
-      .from("item_tags")
-      .insert(itemTagRows);
-
-    if (insertItemTagsError) {
-      throw new Error(insertItemTagsError.message);
-    }
-  }
 }
-
 async function resolveStoryMetaFromForm(formData: FormData, currentPasswordHash?: string | null) {
   const visibility = normalizeStoryVisibility(
     String(formData.get("visibility") || "public")
@@ -542,7 +395,6 @@ async function requireAdmin() {
 
 export async function createCard(formData: FormData) {
   let targetSlug = "";
-  const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
     await requireAdmin();
@@ -555,6 +407,9 @@ export async function createCard(formData: FormData) {
     const summary = String(formData.get("summary") || "").trim();
     const cardCategory = String(formData.get("cardCategory") || "other").trim();
     const tagLabels = parseTagLabelsFromForm(formData);
+    const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
+const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
 
     const serverKey = String(formData.get("serverKey") || "kr").trim();
     const characterKey = String(formData.get("characterKey") || "baiqi").trim();
@@ -623,6 +478,29 @@ export async function createCard(formData: FormData) {
     }
 
     await syncCardTags(insertedCard.id, tagLabels);
+    await syncRelationsBySlugs({
+  parentType: "card",
+  parentId: insertedCard.id,
+  childType: "story",
+  relationType: "card_story",
+  slugs: linkedStorySlugs,
+});
+
+await syncRelationsBySlugs({
+  parentType: "card",
+  parentId: insertedCard.id,
+  childType: "phone_item",
+  relationType: "card_phone",
+  slugs: linkedPhoneItemSlugs,
+});
+
+await syncRelationsBySlugs({
+  parentType: "card",
+  parentId: insertedCard.id,
+  childType: "event",
+  relationType: "card_event",
+  slugs: linkedEventSlugs,
+});
 
     if (thumbnailAfterUrl) {
       const { error: thumbAfterError } = await supabase
@@ -667,11 +545,7 @@ export async function createCard(formData: FormData) {
     redirect(`/admin/cards/new?error=${encodeURIComponent(message)}`);
   }
 
-  if (submitIntent === "view") {
-    redirect(`/cards/${encodeURIComponent(targetSlug)}`);
-  }
-
-  redirect(`/admin/cards/${encodeURIComponent(targetSlug)}/edit?saved=1`);
+  redirect(`/cards/${encodeURIComponent(targetSlug)}`);
 }
 
 export async function createStory(formData: FormData) {
@@ -687,6 +561,8 @@ export async function createStory(formData: FormData) {
   const serverKey = String(formData.get("serverKey") || "kr").trim();
   const characterKey = String(formData.get("characterKey") || "baiqi").trim();
   const tagLabels = parseTagLabelsFromForm(formData);
+
+
 
   if (!title) {
     throw new Error("title이 비어 있습니다.");
