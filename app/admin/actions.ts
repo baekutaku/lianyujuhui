@@ -1117,29 +1117,34 @@ export async function updateCard(formData: FormData) {
       if (coverDeleteError) throw new Error(coverDeleteError.message);
     }
 
-    await syncRelationsBySlugs({
-      parentType: "card",
-      parentId: cardId,
-      childType: "story",
-      relationType: "card_story",
-      slugs: linkedStorySlugs,
-    });
+    console.log("[updateCard] linkedStorySlugs", linkedStorySlugs);
+console.log("[updateCard] linkedPhoneItemSlugs", linkedPhoneItemSlugs);
+console.log("[updateCard] linkedEventSlugs", linkedEventSlugs);
 
-    await syncRelationsBySlugs({
-      parentType: "card",
-      parentId: cardId,
-      childType: "phone_item",
-      relationType: "card_phone",
-      slugs: linkedPhoneItemSlugs,
-    });
 
-    await syncRelationsBySlugs({
-      parentType: "card",
-      parentId: cardId,
-      childType: "event",
-      relationType: "card_event",
-      slugs: linkedEventSlugs,
-    });
+    // await syncRelationsBySlugs({
+    //   parentType: "card",
+    //   parentId: cardId,
+    //   childType: "story",
+    //   relationType: "card_story",
+    //   slugs: linkedStorySlugs,
+    // });
+
+    // await syncRelationsBySlugs({
+    //   parentType: "card",
+    //   parentId: cardId,
+    //   childType: "phone_item",
+    //   relationType: "card_phone",
+    //   slugs: linkedPhoneItemSlugs,
+    // });
+
+    // await syncRelationsBySlugs({
+    //   parentType: "card",
+    //   parentId: cardId,
+    //   childType: "event",
+    //   relationType: "card_event",
+    //   slugs: linkedEventSlugs,
+    // });
 
     revalidatePath("/admin/cards");
     revalidatePath("/cards");
@@ -1153,7 +1158,7 @@ export async function updateCard(formData: FormData) {
     redirect(`/admin/cards/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
   }
 
-  redirect(`/cards/${safeSlug}`);
+  redirect(`/admin/cards/${safeSlug}/edit?saved=1`);
 }
 export async function updateTranslation(formData: FormData) {
   const translationId = String(formData.get("translationId") || "");
