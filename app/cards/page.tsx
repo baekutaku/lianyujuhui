@@ -13,6 +13,7 @@ type CardsPageProps = {
     year?: string;
     tag?: string;
     sort?: string;
+    page?: string;
   }>;
 };
 
@@ -116,6 +117,8 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   const year = String(params?.year || "").trim();
   const tag = String(params?.tag || "").trim();
   const sort = String(params?.sort || "latest").trim();
+  const page = Math.max(1, Number(String(params?.page || "1")) || 1);
+const ITEMS_PER_PAGE = 15;
 
   const [{ data: cards, error }, { data: characters }] = await Promise.all([
     supabase
@@ -221,101 +224,107 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
       filteredCards = [];
     }
   }
+const sortedCards = [...filteredCards].sort((a: any, b: any) => {
+  const aTitle = String(a.title || "");
+  const bTitle = String(b.title || "");
 
-  const sortedCards = [...filteredCards].sort((a: any, b: any) => {
-    const aTitle = String(a.title || "");
-    const bTitle = String(b.title || "");
+  const aYear = Number(a.release_year || 0);
+  const bYear = Number(b.release_year || 0);
 
-    const aYear = Number(a.release_year || 0);
-    const bYear = Number(b.release_year || 0);
+  const aRelease = a.release_date ? new Date(a.release_date).getTime() : 0;
+  const bRelease = b.release_date ? new Date(b.release_date).getTime() : 0;
 
-    const aRelease = a.release_date ? new Date(a.release_date).getTime() : 0;
-    const bRelease = b.release_date ? new Date(b.release_date).getTime() : 0;
+  const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
+  const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
 
-    const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
-    const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
+  const aRarity =
+    RARITY_SORT_ORDER[String(a.rarity || "").toLowerCase()] ?? -1;
+  const bRarity =
+    RARITY_SORT_ORDER[String(b.rarity || "").toLowerCase()] ?? -1;
 
-    const aRarity =
-      RARITY_SORT_ORDER[String(a.rarity || "").toLowerCase()] ?? -1;
-    const bRarity =
-      RARITY_SORT_ORDER[String(b.rarity || "").toLowerCase()] ?? -1;
+  switch (sort) {
+    case "oldest":
+      return (
+        aCreated - bCreated ||
+        aRelease - bRelease ||
+        aTitle.localeCompare(bTitle, "ko")
+      );
 
-    switch (sort) {
-      case "oldest":
-        return (
-          aCreated - bCreated ||
-          aRelease - bRelease ||
-          aTitle.localeCompare(bTitle, "ko")
-        );
+    case "year_desc":
+      return (
+        bYear - aYear ||
+        bRelease - aRelease ||
+        aTitle.localeCompare(bTitle, "ko")
+      );
 
-      case "year_desc":
-        return (
-          bYear - aYear ||
-          bRelease - aRelease ||
-          aTitle.localeCompare(bTitle, "ko")
-        );
+    case "year_asc":
+      return (
+        aYear - bYear ||
+        aRelease - bRelease ||
+        aTitle.localeCompare(bTitle, "ko")
+      );
 
-      case "year_asc":
-        return (
-          aYear - bYear ||
-          aRelease - bRelease ||
-          aTitle.localeCompare(bTitle, "ko")
-        );
+    case "title":
+      return aTitle.localeCompare(bTitle, "ko") || bYear - aYear;
 
-      case "title":
-        return aTitle.localeCompare(bTitle, "ko") || bYear - aYear;
+    case "rarity":
+      return (
+        bRarity - aRarity ||
+        bYear - aYear ||
+        bRelease - aRelease ||
+        aTitle.localeCompare(bTitle, "ko")
+      );
 
-      case "rarity":
-        return (
-          bRarity - aRarity ||
-          bYear - aYear ||
-          bRelease - aRelease ||
-          aTitle.localeCompare(bTitle, "ko")
-        );
-
-      case "latest":
-      default:
-        return (
-          bCreated - aCreated ||
-          bRelease - aRelease ||
-          bYear - aYear ||
-          aTitle.localeCompare(bTitle, "ko")
-        );
-    }
-  });
-
-  const cardIds = sortedCards.map((card: any) => card.id);
-  const afterThumbMap = new Map<string, string>();
-
-  if (cardIds.length > 0) {
-    const { data: afterThumbs } = await supabase
-      .from("media_assets")
-      .select("parent_id, url")
-      .eq("parent_type", "card")
-      .eq("media_type", "image")
-      .eq("usage_type", "thumbnail")
-      .eq("title", "evolution_after")
-      .in("parent_id", cardIds);
-
-    for (const item of afterThumbs ?? []) {
-      afterThumbMap.set(item.parent_id, item.url);
-    }
+    case "latest":
+    default:
+      return (
+        bCreated - aCreated ||
+        bRelease - aRelease ||
+        bYear - aYear ||
+        aTitle.localeCompare(bTitle, "ko")
+      );
   }
+});
 
-  const yearOptions = Array.from(
-    new Set(
-      allCards
-        .map((card: any) => card.release_year)
-        .filter(Boolean)
-        .map(String)
-    )
-  ).sort((a, b) => Number(b) - Number(a));
+const totalCount = sortedCards.length;
+const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
+const currentPage = Math.min(page, totalPages);
 
-  const characterOptions = Array.from(
-    new Set(allCards.map((card: any) => card.characterKey).filter(Boolean))
-  );
+const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+const endIndex = startIndex + ITEMS_PER_PAGE;
+const pagedCards = sortedCards.slice(startIndex, endIndex);
 
-  const currentListParams = new URLSearchParams();
+const cardIds = pagedCards.map((card: any) => card.id);
+const afterThumbMap = new Map<string, string>();
+if (cardIds.length > 0) {
+  const { data: afterThumbs } = await supabase
+    .from("media_assets")
+    .select("parent_id, url")
+    .eq("parent_type", "card")
+    .eq("media_type", "image")
+    .eq("usage_type", "thumbnail")
+    .eq("title", "evolution_after")
+    .in("parent_id", cardIds);
+
+  for (const item of afterThumbs ?? []) {
+    afterThumbMap.set(item.parent_id, item.url);
+  }
+}
+
+const yearOptions = Array.from(
+  new Set(
+    allCards
+      .map((card: any) => card.release_year)
+      .filter(Boolean)
+      .map(String)
+  )
+).sort((a, b) => Number(b) - Number(a));
+
+const characterOptions = Array.from(
+  new Set(allCards.map((card: any) => card.characterKey).filter(Boolean))
+);
+
+const currentListParams = new URLSearchParams();
 
 if (q) currentListParams.set("q", q);
 if (rarity) currentListParams.set("rarity", rarity);
@@ -326,6 +335,24 @@ if (tag) currentListParams.set("tag", tag);
 if (sort) currentListParams.set("sort", sort);
 
 const currentListQuery = currentListParams.toString();
+
+
+
+function buildCardsPageHref(targetPage: number) {
+  const params = new URLSearchParams();
+
+  if (q) params.set("q", q);
+  if (rarity) params.set("rarity", rarity);
+  if (category) params.set("category", category);
+  if (character) params.set("character", character);
+  if (year) params.set("year", year);
+  if (tag) params.set("tag", tag);
+  if (sort) params.set("sort", sort);
+  if (targetPage > 1) params.set("page", String(targetPage));
+
+  const query = params.toString();
+  return query ? `/cards?${query}` : "/cards";
+}
 
   return (
     <main>
@@ -421,80 +448,125 @@ const currentListQuery = currentListParams.toString();
 
       {error && <pre className="error-box">{JSON.stringify(error, null, 2)}</pre>}
 
-      {!sortedCards || sortedCards.length === 0 ? (
-        <div className="empty-box">조건에 맞는 카드가 없습니다.</div>
-      ) : (
-        <ul className="card-thumb-grid">
-          {sortedCards.map((card: any) => {
-            const beforeImageUrl =
-              card.thumbnail_url || card.cover_image_url || "";
-            const afterImageUrl = afterThumbMap.get(card.id) || "";
-            const attrClass = getAttributeClass(card.attribute);
+    {!sortedCards || sortedCards.length === 0 ? (
+  <div className="empty-box">조건에 맞는 카드가 없습니다.</div>
+) : (
+  <>
+    <ul className="card-thumb-grid">
+      {pagedCards.map((card: any) => {
+        const beforeImageUrl =
+          card.thumbnail_url || card.cover_image_url || "";
+        const afterImageUrl = afterThumbMap.get(card.id) || "";
+        const attrClass = getAttributeClass(card.attribute);
 
-            return (
-              <li key={card.id} className="card-thumb-card">
-                <Link
-                 href={
-  currentListQuery
-    ? `/cards/${card.slug}?${currentListQuery}`
-    : `/cards/${card.slug}`
-}
-                  className={`card-thumb-link ${attrClass}`.trim()}
-                >
-                  <div
-                    className={`card-thumb-media${
-                      afterImageUrl ? " has-after" : ""
-                    }`}
-                  >
-                    {beforeImageUrl ? (
-                      <>
-                        <img
-                          src={beforeImageUrl}
-                          alt={card.title}
-                          className="card-thumb-image card-thumb-image-before"
-                        />
-                        {afterImageUrl ? (
-                          <img
-                            src={afterImageUrl}
-                            alt={`${card.title} evolution after`}
-                            className="card-thumb-image card-thumb-image-after"
-                          />
-                        ) : null}
-                      </>
-                    ) : (
-                      <div className="story-thumb-empty">NO IMAGE</div>
-                    )}
+        return (
+          <li key={card.id} className="card-thumb-card">
+            <Link
+              href={
+                currentListQuery
+                  ? `/cards/${card.slug}?${currentListQuery}`
+                  : `/cards/${card.slug}`
+              }
+              className={`card-thumb-link ${attrClass}`.trim()}
+            >
+              <div
+                className={`card-thumb-media${
+                  afterImageUrl ? " has-after" : ""
+                }`}
+              >
+                {beforeImageUrl ? (
+                  <>
+                    <img
+                      src={beforeImageUrl}
+                      alt={card.title}
+                      className="card-thumb-image card-thumb-image-before"
+                    />
+                    {afterImageUrl ? (
+                      <img
+                        src={afterImageUrl}
+                        alt={`${card.title} evolution after`}
+                        className="card-thumb-image card-thumb-image-after"
+                      />
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="story-thumb-empty">NO IMAGE</div>
+                )}
 
-                    <div className="card-thumb-overlay">
-                      <div className="card-thumb-overlay-inner">
-                        <h2 className="card-thumb-overlay-title">
-                          {card.title}
-                        </h2>
-                      </div>
-                    </div>
+                <div className="card-thumb-overlay">
+                  <div className="card-thumb-overlay-inner">
+                    <h2 className="card-thumb-overlay-title">{card.title}</h2>
                   </div>
+                </div>
+              </div>
 
-                  <div className="card-thumb-body card-thumb-body-minimal">
-                    <div className="card-thumb-meta-row">
-                      <span className="meta-pill">
-                        {getRarityLabel(card.rarity)}
-                      </span>
-                      <span className="meta-pill">
-                        {getCategoryLabel(card.card_category)}
-                      </span>
-                      {card.release_year ? (
-                        <span className="meta-pill">{card.release_year}</span>
-                      ) : null}
-                    </div>
+              <div className="card-thumb-body card-thumb-body-minimal">
+                <div className="card-thumb-meta-row">
+                  <span className="meta-pill">
+                    {getRarityLabel(card.rarity)}
+                  </span>
+                  <span className="meta-pill">
+                    {getCategoryLabel(card.card_category)}
+                  </span>
+                  {card.release_year ? (
+                    <span className="meta-pill">{card.release_year}</span>
+                  ) : null}
+                </div>
 
-                    <span className="mini-button">상세 보기</span>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </main>
+                <span className="mini-button">상세 보기</span>
+              </div>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+
+{totalPages > 1 ? (
+  <nav className="cards-pagination" aria-label="카드 페이지 이동">
+    {currentPage === 1 ? (
+      <span className="cards-pagination-button is-disabled">←</span>
+    ) : (
+      <Link
+        href={buildCardsPageHref(currentPage - 1)}
+        className="cards-pagination-button"
+      >
+        ←
+      </Link>
+    )}
+
+    <div className="cards-pagination-numbers">
+      {Array.from({ length: totalPages }, (_, index) => {
+        const pageNumber = index + 1;
+        const isActive = pageNumber === currentPage;
+
+        return (
+          <Link
+            key={pageNumber}
+            href={buildCardsPageHref(pageNumber)}
+            className={`cards-pagination-number${isActive ? " is-active" : ""}`}
+            aria-current={isActive ? "page" : undefined}
+          >
+            {pageNumber}
+          </Link>
+        );
+      })}
+    </div>
+
+    {currentPage === totalPages ? (
+      <span className="cards-pagination-button is-disabled">→</span>
+    ) : (
+      <Link
+        href={buildCardsPageHref(currentPage + 1)}
+        className="cards-pagination-button"
+      >
+        →
+      </Link>
+    )}
+  </nav>
+) : null}
+  </>
+)}
+
+  </main>
   );
 }

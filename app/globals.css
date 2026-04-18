@@ -11331,3 +11331,116 @@ button,
   object-fit: cover;
 }
 
+
+.cards-pagination {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 40px;
+  padding-top: 22px;
+}
+
+.cards-pagination::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 180px;
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    90deg,
+    rgba(167, 194, 215, 0),
+    rgba(167, 194, 215, 0.42),
+    rgba(167, 194, 215, 0)
+  );
+}
+
+.cards-pagination-button {
+  color: #9aa4b2;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  transition: color 0.16s ease, opacity 0.16s ease;
+}
+
+.cards-pagination-button:hover {
+  color: #6f7f94;
+}
+
+.cards-pagination-button.is-disabled {
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.cards-pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cards-pagination-number {
+  color: #7f8998;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 0 1px;
+  border: 0;
+  background: transparent;
+  transition: color 0.16s ease, opacity 0.16s ease;
+}
+
+.cards-pagination-number:hover {
+  color: #5f748f;
+}
+
+.cards-pagination-number.is-active {
+  color: #b39262;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .cards-pagination {
+    gap: 14px;
+    margin-top: 30px;
+    padding-top: 18px;
+  }
+
+  .cards-pagination::before {
+    width: 140px;
+  }
+
+  .cards-pagination-numbers {
+    gap: 12px;
+  }
+
+  .cards-pagination-button,
+  .cards-pagination-number {
+    font-size: 13px;
+  }
+}
+
+.cards-pagination-button {
+  color: #a39aa4;
+}
+
+.cards-pagination-button:hover {
+  color: #8e7f8b;
+}
+
+.cards-pagination-number {
+  color: #8f858f;
+}
+
+.cards-pagination-number:hover {
+  color: #7d6d7b;
+}
+
+.cards-pagination-number.is-active {
+  color: #c692a8;
+  font-weight: 700;
+}
