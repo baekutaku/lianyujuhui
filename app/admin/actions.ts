@@ -548,86 +548,184 @@ await syncRelationsBySlugs({
   redirect(`/cards/${encodeURIComponent(targetSlug)}`);
 }
 
+// export async function createStory(formData: FormData) {
+//   await requireAdmin();
+
+//   const submitIntent = String(formData.get("submitIntent") || "edit").trim();
+
+//   const title = String(formData.get("title") || "").trim();
+//   const subtype = String(formData.get("subtype") || "card_story").trim();
+//   const releaseYear = Number(formData.get("releaseYear") || 2025);
+//   const releaseDate = String(formData.get("releaseDate") || "").trim();
+//   const summary = String(formData.get("summary") || "").trim();
+//   const serverKey = String(formData.get("serverKey") || "kr").trim();
+//   const characterKey = String(formData.get("characterKey") || "baiqi").trim();
+//   const tagLabels = parseTagLabelsFromForm(formData);
+
+
+
+//   if (!title) {
+//     throw new Error("title이 비어 있습니다.");
+//   }
+
+//   if (!Number.isFinite(releaseYear)) {
+//     throw new Error("releaseYear가 올바르지 않습니다.");
+//   }
+
+//   const { slug, originKey, contentId } = buildStoryKeys({
+//     subtype,
+//     characterKey,
+//     title,
+//     year: releaseYear,
+//     serverKey,
+//   });
+
+//   const { data: server } = await supabase
+//     .from("servers")
+//     .select("id")
+//     .eq("key", serverKey)
+//     .single();
+
+//   const { data: character } = await supabase
+//     .from("characters")
+//     .select("id")
+//     .eq("key", characterKey)
+//     .single();
+
+//   if (!server || !character) {
+//     throw new Error("server 또는 character를 찾을 수 없습니다.");
+//   }
+
+//   const { data: insertedStory, error } = await supabase
+//     .from("stories")
+//     .insert({
+//       content_id: contentId,
+//       origin_key: originKey,
+//       server_id: server.id,
+//       primary_character_id: character.id,
+//       title,
+//       slug,
+//       subtype,
+//       release_year: releaseYear,
+//       release_date: releaseDate || null,
+//       summary,
+//       is_published: true,
+//     })
+//     .select("id, slug")
+//     .single();
+
+//   if (error || !insertedStory) {
+//     throw new Error(error?.message || "stories 저장 실패");
+//   }
+
+//   await syncStoryTags(insertedStory.id, tagLabels);
+
+//   revalidatePath("/admin/stories");
+//   revalidatePath("/stories");
+
+//   if (submitIntent === "view") {
+//     redirect(`/stories/${encodeURIComponent(insertedStory.slug)}`);
+//   }
+
+//   redirect(`/admin/stories/${encodeURIComponent(insertedStory.slug)}/edit?saved=1`);
+// }
+
 export async function createStory(formData: FormData) {
-  await requireAdmin();
+  let createdSlug = "";
 
-  const submitIntent = String(formData.get("submitIntent") || "edit").trim();
+  try {
+    await requireAdmin();
 
-  const title = String(formData.get("title") || "").trim();
-  const subtype = String(formData.get("subtype") || "card_story").trim();
-  const releaseYear = Number(formData.get("releaseYear") || 2025);
-  const releaseDate = String(formData.get("releaseDate") || "").trim();
-  const summary = String(formData.get("summary") || "").trim();
-  const serverKey = String(formData.get("serverKey") || "kr").trim();
-  const characterKey = String(formData.get("characterKey") || "baiqi").trim();
-  const tagLabels = parseTagLabelsFromForm(formData);
+    const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
+    const title = String(formData.get("title") || "").trim();
+    const subtype = String(formData.get("subtype") || "card_story").trim();
+    const releaseYear = Number(formData.get("releaseYear") || 2025);
+    const releaseDate = String(formData.get("releaseDate") || "").trim();
+    const summary = String(formData.get("summary") || "").trim();
+    const serverKey = String(formData.get("serverKey") || "kr").trim();
+    const characterKey = String(formData.get("characterKey") || "baiqi").trim();
+    const tagLabels = parseTagLabelsFromForm(formData);
 
+    if (!title) {
+      throw new Error("title이 비어 있습니다.");
+    }
 
-  if (!title) {
-    throw new Error("title이 비어 있습니다.");
-  }
+    if (!Number.isFinite(releaseYear)) {
+      throw new Error("releaseYear가 올바르지 않습니다.");
+    }
 
-  if (!Number.isFinite(releaseYear)) {
-    throw new Error("releaseYear가 올바르지 않습니다.");
-  }
-
-  const { slug, originKey, contentId } = buildStoryKeys({
-    subtype,
-    characterKey,
-    title,
-    year: releaseYear,
-    serverKey,
-  });
-
-  const { data: server } = await supabase
-    .from("servers")
-    .select("id")
-    .eq("key", serverKey)
-    .single();
-
-  const { data: character } = await supabase
-    .from("characters")
-    .select("id")
-    .eq("key", characterKey)
-    .single();
-
-  if (!server || !character) {
-    throw new Error("server 또는 character를 찾을 수 없습니다.");
-  }
-
-  const { data: insertedStory, error } = await supabase
-    .from("stories")
-    .insert({
-      content_id: contentId,
-      origin_key: originKey,
-      server_id: server.id,
-      primary_character_id: character.id,
-      title,
-      slug,
+    const { slug, originKey, contentId } = buildStoryKeys({
       subtype,
-      release_year: releaseYear,
-      release_date: releaseDate || null,
-      summary,
-      is_published: true,
-    })
-    .select("id, slug")
-    .single();
+      characterKey,
+      title,
+      year: releaseYear,
+      serverKey,
+    });
 
-  if (error || !insertedStory) {
-    throw new Error(error?.message || "stories 저장 실패");
+    createdSlug = slug;
+
+    const { data: server, error: serverError } = await supabase
+      .from("servers")
+      .select("id")
+      .eq("key", serverKey)
+      .single();
+
+    if (serverError || !server) {
+      throw new Error(`server 또는 character를 찾을 수 없습니다. (${serverError?.message ?? serverKey})`);
+    }
+
+    const { data: character, error: characterError } = await supabase
+      .from("characters")
+      .select("id")
+      .eq("key", characterKey)
+      .single();
+
+    if (characterError || !character) {
+      throw new Error(`server 또는 character를 찾을 수 없습니다. (${characterError?.message ?? characterKey})`);
+    }
+
+    const { data: insertedStory, error } = await supabase
+      .from("stories")
+      .insert({
+        content_id: contentId,
+        origin_key: originKey,
+        server_id: server.id,
+        primary_character_id: character.id,
+        title,
+        slug,
+        subtype,
+        release_year: releaseYear,
+        release_date: releaseDate || null,
+        summary,
+        is_published: true,
+      })
+      .select("id, slug")
+      .single();
+
+    if (error || !insertedStory) {
+      throw new Error(error?.message || "stories 저장 실패");
+    }
+
+    await syncStoryTags(insertedStory.id, tagLabels);
+
+    revalidatePath("/admin/stories");
+    revalidatePath("/stories");
+
+    const safeSlug = encodeURIComponent(insertedStory.slug);
+
+    if (submitIntent === "view") {
+      redirect(`/stories/${safeSlug}`);
+    }
+
+    // 일단 edit로 바로 안 보내고 공개 상세로 보냄
+    redirect(`/stories/${safeSlug}`);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+
+    redirect(`/admin/stories/new?error=${encodeURIComponent(message)}`);
   }
-
-  await syncStoryTags(insertedStory.id, tagLabels);
-
-  revalidatePath("/admin/stories");
-  revalidatePath("/stories");
-
-  if (submitIntent === "view") {
-    redirect(`/stories/${encodeURIComponent(insertedStory.slug)}`);
-  }
-
-  redirect(`/admin/stories/${encodeURIComponent(insertedStory.slug)}/edit?saved=1`);
 }
 
 export async function createTranslation(formData: FormData) {
@@ -1262,6 +1360,208 @@ const ALLOWED_STORY_SUBTYPES = new Set([
   "company_project",
 ]);
 
+// export async function createStoryBundle(formData: FormData) {
+//   let successSlug = "";
+//   let errorRedirectUrl: string | null = null;
+//   const submitIntent = String(formData.get("submitIntent") || "edit").trim();
+
+//   try {
+//     await requireAdmin();
+
+//     const title = String(formData.get("title") || "").trim();
+//     const subtype = String(formData.get("subtype") || "card_story").trim();
+
+//     if (!ALLOWED_STORY_SUBTYPES.has(subtype)) {
+//       throw new Error(`지원하지 않는 스토리 카테고리: ${subtype}`);
+//     }
+
+//     const releaseYear = Number(formData.get("releaseYear") || 2025);
+//     const releaseDate = String(formData.get("releaseDate") || "").trim();
+//     const tagLabels = parseTagLabelsFromForm(formData);
+//     const serverKey = String(formData.get("serverKey") || "kr").trim();
+//     const characterKey = String(formData.get("characterKey") || "baiqi").trim();
+
+//     const translationTitleCn = String(formData.get("translationTitleCn") || "");
+//     const translationBodyCn = String(formData.get("translationBodyCn") || "");
+//     const translationTitleKr = String(formData.get("translationTitleKr") || "");
+//     const translationBodyKr = String(formData.get("translationBodyKr") || "");
+
+//     const youtubeUrlCn = String(formData.get("youtubeUrlCn") || "").trim();
+//     const youtubeUrlKr = String(formData.get("youtubeUrlKr") || "").trim();
+//     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
+
+//     const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
+//     const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+//     const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
+
+//     const meta = await resolveStoryMetaFromForm(formData);
+
+//     const { slug, originKey, contentId } = buildStoryKeys({
+//       subtype,
+//       characterKey,
+//       title,
+//       year: releaseYear,
+//       serverKey,
+//     });
+
+//     successSlug = slug;
+
+//     const { data: server, error: serverError } = await supabase
+//       .from("servers")
+//       .select("id")
+//       .eq("key", serverKey)
+//       .single();
+
+//     if (serverError || !server) {
+//       throw new Error(`server 조회 실패: ${serverError?.message || serverKey}`);
+//     }
+
+//     const { data: character, error: characterError } = await supabase
+//       .from("characters")
+//       .select("id")
+//       .eq("key", characterKey)
+//       .single();
+
+//     if (characterError || !character) {
+//       throw new Error(`character 조회 실패: ${characterError?.message || characterKey}`);
+//     }
+
+//     const primaryCharacterId = meta.primaryCharacterId ?? character.id;
+
+//     const { data: insertedStory, error: storyError } = await supabase
+//       .from("stories")
+//       .insert({
+//         content_id: contentId,
+//         origin_key: originKey,
+//         server_id: server.id,
+//         primary_character_id: primaryCharacterId,
+//         title,
+//         slug,
+//         subtype,
+//         release_year: releaseYear,
+//         release_date: releaseDate || null,
+//         visibility: meta.visibility,
+//         access_password_hash: meta.accessPasswordHash,
+//         access_hint: meta.accessHint,
+//         part_no: meta.partNo,
+//         volume_no: meta.volumeNo,
+//         main_season: meta.mainSeason,
+//         chapter_no: meta.chapterNo,
+//         main_kind: meta.mainKind,
+//         route_scope: meta.routeScope,
+//         manual_sort_order: meta.manualSortOrder,
+//         arc_title: meta.arcTitle,
+//         episode_title: meta.episodeTitle,
+//         is_published: true,
+//       })
+//       .select("id, slug")
+//       .single();
+
+//     if (storyError || !insertedStory) {
+//       throw new Error(storyError?.message || "스토리 저장 실패");
+//     }
+
+//     await syncStoryCharacters(insertedStory.id, meta.appearingCharacterIds);
+//     await syncStoryTags(insertedStory.id, tagLabels);
+
+//     const hasCn = translationTitleCn.trim() || translationBodyCn.trim();
+//     const hasKr = translationTitleKr.trim() || translationBodyKr.trim();
+
+//     await upsertStoryTranslation({
+//       storyId: insertedStory.id,
+//       languageCode: "zh-CN",
+//       title: translationTitleCn,
+//       body: translationBodyCn,
+//       isPrimary: Boolean(hasCn),
+//     });
+
+//     await upsertStoryTranslation({
+//       storyId: insertedStory.id,
+//       languageCode: "ko",
+//       title: translationTitleKr,
+//       body: translationBodyKr,
+//       isPrimary: !hasCn && Boolean(hasKr),
+//     });
+
+//     if (coverImageUrl) {
+//       const { error: imageError } = await supabase
+//         .from("media_assets")
+//         .insert({
+//           parent_type: "story",
+//           parent_id: insertedStory.id,
+//           media_type: "image",
+//           usage_type: "cover",
+//           url: coverImageUrl,
+//           title: `${title} 대표 이미지`,
+//           is_primary: true,
+//           sort_order: 0,
+//         });
+
+//       if (imageError) {
+//         throw new Error(imageError.message);
+//       }
+//     }
+
+//     await upsertStoryYoutubeMedia({
+//       storyId: insertedStory.id,
+//       title: `${title} PV CN`,
+//       usageType: "pv_cn",
+//       url: youtubeUrlCn,
+//       isPrimary: !coverImageUrl,
+//       sortOrder: coverImageUrl ? 1 : 0,
+//     });
+
+//     await upsertStoryYoutubeMedia({
+//       storyId: insertedStory.id,
+//       title: `${title} PV KR`,
+//       usageType: "pv_kr",
+//       url: youtubeUrlKr,
+//       isPrimary: false,
+//       sortOrder: coverImageUrl ? 2 : 1,
+//     });
+
+//     await syncIncomingRelationsBySlugs({
+//       childType: "story",
+//       childId: insertedStory.id,
+//       parentType: "card",
+//       relationType: "card_story",
+//       slugs: linkedCardSlugs,
+//     });
+
+//     await syncIncomingRelationsBySlugs({
+//       childType: "story",
+//       childId: insertedStory.id,
+//       parentType: "phone_item",
+//       relationType: "phone_story",
+//       slugs: linkedPhoneItemSlugs,
+//     });
+
+//     await syncIncomingRelationsBySlugs({
+//       childType: "story",
+//       childId: insertedStory.id,
+//       parentType: "event",
+//       relationType: "event_story",
+//       slugs: linkedEventSlugs,
+//     });
+
+//     revalidatePath("/admin/stories");
+//     revalidatePath("/stories");
+//     revalidatePath(`/stories/${insertedStory.slug}`);
+//   } catch (error) {
+//     const message =
+//       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+
+//     errorRedirectUrl = `/admin/stories/new?error=${encodeURIComponent(message)}`;
+//   }
+
+// if (errorRedirectUrl) {
+//   redirect(errorRedirectUrl);
+// }
+
+// redirect(`/stories/${encodeURIComponent(successSlug)}`);
+// }
+
+
 export async function createStoryBundle(formData: FormData) {
   let successSlug = "";
   let errorRedirectUrl: string | null = null;
@@ -1448,7 +1748,7 @@ export async function createStoryBundle(formData: FormData) {
 
     revalidatePath("/admin/stories");
     revalidatePath("/stories");
-    revalidatePath(`/stories/${insertedStory.slug}`);
+    // revalidatePath(`/stories/${insertedStory.slug}`); // 일단 끔
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
@@ -1456,12 +1756,23 @@ export async function createStoryBundle(formData: FormData) {
     errorRedirectUrl = `/admin/stories/new?error=${encodeURIComponent(message)}`;
   }
 
-if (errorRedirectUrl) {
-  redirect(errorRedirectUrl);
+  if (errorRedirectUrl) {
+    redirect(errorRedirectUrl);
+  }
+
+  const safeSuccessSlug = encodeURIComponent(successSlug);
+
+  if (submitIntent === "view") {
+    redirect(`/stories/${safeSuccessSlug}`);
+  }
+
+  // 일단 edit로 바로 안 보내고 공개 상세로 보냄
+  redirect(`/stories/${safeSuccessSlug}`);
 }
 
-redirect(`/stories/${encodeURIComponent(successSlug)}`);
-}
+
+
+
 // export async function updateStoryBundle(formData: FormData) {
 //   const rawSlug = String(formData.get("slug") || "").trim();
 //   const safeSlug = encodeURIComponent(rawSlug);
