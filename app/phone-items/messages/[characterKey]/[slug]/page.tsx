@@ -115,13 +115,15 @@ export default async function CharacterMessageThreadPage({
     flex: "0 0 auto",
   } as const;
 
-  return (
-    <main className="phone-page">
-      <PhoneShell>
-        <PhoneTopBar
-          title={item.title?.trim() || characterName}
-          subtitle={characterName}
-          backHref="/phone-items/messages"
+return (
+  <main className="phone-page phone-page-message-thread">
+    <PhoneShell>
+   <PhoneTopBar
+  title={item.title?.trim() || characterName}
+  subtitle={characterName}
+  backHref="/phone-items/messages"
+  variant="message"
+  artMode="after"
           rightSlot={
             <div
               style={{
@@ -162,28 +164,28 @@ export default async function CharacterMessageThreadPage({
                 </>
               ) : null}
 
-              <Link
-                href={`/phone-items/messages/${characterKey}/history`}
-                className="phone-topbar-icon-button"
-                aria-label="대화기록"
-                title="대화기록"
-              >
-                <span className="material-symbols-rounded">history</span>
-              </Link>
+             <Link
+  href={`/phone-items/messages/${characterKey}/history`}
+  className="phone-topbar-icon-button phone-topbar-history-button"
+  aria-label="대화기록"
+  title="대화기록"
+>
+  <span className="sr-only">대화기록</span>
+</Link>
             </div>
           }
         />
 
         <div className="phone-content">
-          <MessageThreadView
-            avatarUrl={avatarUrl}
-            entries={entries}
-            otherProfileHref={otherProfileHref}
-            myProfileHref={myProfileHref}
-          />
-        </div>
+        <MessageThreadView
+          avatarUrl={avatarUrl}
+          entries={entries}
+          otherProfileHref={otherProfileHref}
+          myProfileHref={myProfileHref}
+        />
+      </div>
 
-        <PhoneTabNav currentPath="/phone-items/messages" />
+        {/* <PhoneTabNav currentPath="/phone-items/messages" /> */}
       </PhoneShell>
     </main>
   );

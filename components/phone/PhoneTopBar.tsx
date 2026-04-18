@@ -2,11 +2,23 @@
 
 import { useRouter } from "next/navigation";
 
+type PhoneTopBarVariant =
+  | "message"
+  | "articles"
+  | "call"
+  | "me"
+  | "moment"
+  | "default";
+
+type PhoneTopBarArtMode = "before" | "after";
+
 type PhoneTopBarProps = {
   title: string;
   subtitle?: string;
   rightSlot?: React.ReactNode;
   backHref?: string;
+  variant?: PhoneTopBarVariant;
+  artMode?: PhoneTopBarArtMode;
 };
 
 export default function PhoneTopBar({
@@ -14,6 +26,8 @@ export default function PhoneTopBar({
   subtitle,
   rightSlot,
   backHref = "/phone-items",
+  variant = "default",
+  artMode = "after",
 }: PhoneTopBarProps) {
   const router = useRouter();
 
@@ -27,14 +41,16 @@ export default function PhoneTopBar({
   }
 
   return (
-    <div className="phone-topbar">
+    <div
+      className={`phone-topbar phone-topbar-${variant} phone-topbar-${artMode}`}
+    >
       <button
         type="button"
         className="phone-back-button"
         onClick={handleBack}
         aria-label="뒤로가기"
       >
-        ←
+        <span className="sr-only">뒤로가기</span>
       </button>
 
       <div className="phone-topbar-center">

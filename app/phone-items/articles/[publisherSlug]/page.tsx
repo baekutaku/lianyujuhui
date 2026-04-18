@@ -52,70 +52,70 @@ export default async function PhoneArticleHistoryPage({ params }: PageProps) {
           subtitle="히스토리"
           backHref="/phone-items/articles"
         />
-        <div
-          className="phone-content"
-          style={{
-            padding: "18px 16px 24px",
-            background:
-              "linear-gradient(rgba(255,255,255,0.72), rgba(255,255,255,0.82)), url('/phone/article-bg.png') center/cover no-repeat",
-          }}
-        >
-          <div style={{ display: "grid", gap: 18 }}>
-            {articleItems.map((item) => (
-<Link
-  key={item.id}
-  href={`/phone-items/articles/${publisherSlug}/${item.slug}`}
+       <div
+  className="phone-content"
   style={{
-    display: "block",
-    textDecoration: "none",
-    color: "inherit",
-    background: "rgba(255,255,255,0.72)",
-    border: "1px solid rgba(231, 225, 232, 0.9)",
-    padding: 10,
+    padding: "18px 16px 24px",
+    background: "transparent",
   }}
 >
-  {item.content_json?.imageUrl ? (
-    <div style={{ position: "relative", marginBottom: 10 }}>
-      <img
-        src={item.content_json.imageUrl}
-        alt={item.title}
+  <div style={{ display: "grid", gap: 18 }}>
+    {articleItems.map((item) => (
+      <Link
+        key={item.id}
+        href={`/phone-items/articles/${publisherSlug}/${item.slug}`}
         style={{
-          width: "100%",
           display: "block",
-          aspectRatio: "16 / 5.2",
-          objectFit: "cover",
-        }}
-      />
-      <span
-        style={{
-          position: "absolute",
-          left: 10,
-          bottom: 10,
-          fontSize: 12,
-          padding: "4px 8px",
-          background: "rgba(90,90,90,0.5)",
-          color: "white",
+          textDecoration: "none",
+          color: "inherit",
+          background: "rgba(255,255,255,0.10)",
+          border: "1px solid rgba(231, 225, 232, 0.7)",
+          padding: 10,
+          WebkitTapHighlightColor: "transparent",
         }}
       >
-        전체보기
-      </span>
-    </div>
-  ) : null}
-
-  <div
-    style={{
-      fontSize: 16,
-      lineHeight: 1.6,
-      color: "#66606b",
-      padding: "0 4px 2px",
-    }}
-  >
-    {item.title}
-  </div>
-</Link>
-            ))}
+        {item.content_json?.imageUrl ? (
+          <div style={{ position: "relative", marginBottom: 10 }}>
+            <img
+              src={item.content_json.imageUrl}
+              alt={item.title}
+              style={{
+                width: "100%",
+                display: "block",
+                aspectRatio: "16 / 5.2",
+                objectFit: "cover",
+              }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                left: 10,
+                bottom: 10,
+                fontSize: 12,
+                padding: "4px 8px",
+                background: "rgba(90,90,90,0.5)",
+                color: "white",
+              }}
+            >
+              전체보기
+            </span>
           </div>
+        ) : null}
+
+        <div
+          style={{
+            fontSize: 16,
+            lineHeight: 1.6,
+            color: "#66606b",
+            padding: "0 4px 2px",
+          }}
+        >
+          {item.title}
         </div>
+      </Link>
+    ))}
+  </div>
+</div>
         <PhoneTabNav currentPath="/phone-items/articles" />
       </PhoneShell>
     </main>

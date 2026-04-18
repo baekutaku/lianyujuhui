@@ -78,13 +78,13 @@ export default async function CharacterMessagePage({ params }: PageProps) {
           backHref="/phone-items/messages"
           rightSlot={
             <Link
-              href={`/phone-items/messages/${characterKey}/history`}
-              className="phone-topbar-icon-button"
-              aria-label="대화기록"
-              title="대화기록"
-            >
-              <span className="material-symbols-rounded">history</span>
-            </Link>
+  href={`/phone-items/messages/${characterKey}/history`}
+  className="phone-topbar-icon-button phone-topbar-history-button"
+  aria-label="대화기록"
+  title="대화기록"
+>
+  <span className="sr-only">대화기록</span>
+</Link>
           }
         />
 

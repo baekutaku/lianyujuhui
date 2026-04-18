@@ -86,30 +86,30 @@ export default async function PhoneArticlesPage() {
     <main className="phone-page">
       <PhoneShell>
         <PhoneTopBar title="핫이슈" subtitle="뉴스 목록" />
-        <div
-          className="phone-content"
-          style={{
-            padding: "0 0 12px",
-            background:
-              "linear-gradient(rgba(255,255,255,0.76), rgba(255,255,255,0.82)), url('/phone/article-bg.png') center/cover no-repeat",
-          }}
-        >
-          {publisherList.map((publisher) => (
-            <Link
-              key={publisher.slug}
-              href={`/phone-items/articles/${publisher.slug}`}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "72px minmax(0, 1fr)",
-                gap: 14,
-                alignItems: "center",
-                padding: "18px 18px",
-                textDecoration: "none",
-                color: "inherit",
-                borderBottom: "1px solid rgba(214, 206, 214, 0.8)",
-                background: "rgba(255,255,255,0.28)",
-              }}
-            >
+       <div
+  className="phone-content"
+  style={{
+    padding: "0 0 12px",
+    background: "transparent",
+  }}
+>
+  {publisherList.map((publisher) => (
+    <Link
+      key={publisher.slug}
+      href={`/phone-items/articles/${publisher.slug}`}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "72px minmax(0, 1fr)",
+        gap: 14,
+        alignItems: "center",
+        padding: "18px 18px",
+        textDecoration: "none",
+        color: "inherit",
+        borderBottom: "1px solid rgba(214, 206, 214, 0.8)",
+        background: "rgba(255,255,255,0.08)",
+        WebkitTapHighlightColor: "transparent",
+      }}
+    >
               <img
                 src={publisher.iconUrl}
                 alt={publisher.name}

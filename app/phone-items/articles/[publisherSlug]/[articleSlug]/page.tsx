@@ -107,6 +107,8 @@ export default async function PhoneArticleDetailPage({ params }: PageProps) {
           title={publisherName}
           subtitle="기사 상세"
           backHref={`/phone-items/articles/${publisherSlug}`}
+           variant="articles"
+  artMode="after"
           rightSlot={
             <Link
               href={`/phone-items/articles/${publisherSlug}`}
@@ -130,26 +132,25 @@ export default async function PhoneArticleDetailPage({ params }: PageProps) {
           }
         />
 
-        <div
-          className="phone-content"
-          style={{
-            flex: 1,
-            minHeight: 0,
-            overflowY: "auto",
-            padding: "18px 16px 24px",
-            background:
-              "linear-gradient(rgba(255,255,255,0.68), rgba(255,255,255,0.82)), url('/phone/article-bg.png') center/cover no-repeat",
-          }}
-        >
-          <div
-            style={{
-              background: "rgba(255,255,255,0.72)",
-              padding: "14px 14px 12px",
-              border: "1px solid rgba(230, 224, 231, 0.9)",
-              boxShadow: "none",
-              marginBottom: 14,
-            }}
-          >
+       <div
+  className="phone-content"
+  style={{
+    flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    padding: "18px 16px 24px",
+    background: "transparent",
+  }}
+>
+  <div
+    style={{
+      background: "rgba(255,255,255,0.14)",
+      padding: "14px 14px 12px",
+      border: "1px solid rgba(230, 224, 231, 0.7)",
+      boxShadow: "none",
+      marginBottom: 14,
+    }}
+  >
             <h1
               style={{
                 fontSize: 21,
@@ -315,7 +316,7 @@ lineHeight: 1.8,
           {commentList.length > 0 ? (
             <div
               style={{
-                background: "rgba(255,255,255,0.45)",
+              background: "rgba(255,255,255,0.10)",
                 paddingTop: 10,
               }}
             >

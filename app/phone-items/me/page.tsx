@@ -139,19 +139,19 @@ const characters = CHARACTERS.map((character) => ({
         padding: "24px 0 40px",
       }}
     >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 520,
-          minHeight: 820,
-          display: "flex",
-          flexDirection: "column",
-          background: "rgba(255,255,255,0.78)",
-          borderRadius: 30,
-          overflow: "hidden",
-          border: "1px solid rgba(226, 208, 224, 0.7)",
-          boxShadow: "0 10px 30px rgba(196, 177, 199, 0.12)",
-        }}
+     <div
+  style={{
+    width: "100%",
+    maxWidth: 520,
+    minHeight: 820,
+    display: "flex",
+    flexDirection: "column",
+    background: "rgba(255,255,255,0.12)",
+    borderRadius: 30,
+    overflow: "hidden",
+    border: "1px solid rgba(226, 208, 224, 0.45)",
+    boxShadow: "0 10px 30px rgba(196, 177, 199, 0.08)",
+  }}
       >
         <div style={{ flex: 1 }}>
 <PhoneMeScreen
@@ -168,14 +168,14 @@ const characters = CHARACTERS.map((character) => ({
 />
         </div>
 
-        <div
-          style={{
-            marginTop: "auto",
-            borderTop: "1px solid rgba(220, 210, 220, 0.7)",
-            background: "rgba(255,255,255,0.94)",
-            padding: "8px 10px 10px",
-          }}
-        >
+     <div
+  style={{
+    marginTop: "auto",
+    borderTop: "1px solid rgba(220, 210, 220, 0.5)",
+    background: "rgba(255,255,255,0.18)",
+    padding: "8px 10px 10px",
+  }}
+>
           <PhoneTabNav currentPath="/phone-items/me" />
         </div>
       </div>

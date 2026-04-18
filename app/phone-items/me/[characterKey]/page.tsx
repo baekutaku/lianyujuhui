@@ -128,7 +128,7 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
           minHeight: 820,
           display: "flex",
           flexDirection: "column",
-          background: "rgba(255,255,255,0.78)",
+         background: "rgba(255,255,255,0.12)",
           borderRadius: 30,
           overflow: "hidden",
           border: "1px solid rgba(226, 208, 224, 0.7)",
@@ -140,8 +140,8 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
             style={{
               position: "relative",
               padding: "24px 22px 18px",
-              background:
-                "linear-gradient(135deg, rgba(234,214,255,0.92) 0%, rgba(255,214,229,0.92) 100%)",
+             background:
+  "linear-gradient(135deg, rgba(234,214,255,0.72) 0%, rgba(255,214,229,0.72) 100%)",
             }}
           >
             <div
@@ -176,7 +176,7 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
                 gridTemplateColumns: "86px 1fr auto",
                 gap: 16,
                 alignItems: "center",
-                background: "rgba(255,255,255,0.42)",
+            background: "rgba(255,255,255,0.20)",
                 borderRadius: 22,
                 padding: 14,
                 marginBottom: 14,
@@ -262,7 +262,7 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
             <section
               style={{
                 position: "relative",
-                background: "rgba(255,255,255,0.78)",
+             background: "rgba(255,255,255,0.18)",
                 borderRadius: 20,
                 padding: "16px 18px 24px",
                 boxShadow: "0 6px 20px rgba(227, 215, 224, 0.22)",
@@ -293,19 +293,20 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
           </div>
 
           <div style={{ padding: "14px 18px 26px", display: "grid", gap: 12 }}>
-            <Link
-              href={`/phone-items/moments/${characterKey}`}
-              className="link-card"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "18px 20px",
-                fontSize: 20,
-                fontWeight: 700,
-                borderRadius: 22,
-              }}
-            >
+          <Link
+  href={`/phone-items/moments/${characterKey}`}
+  className="link-card"
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "18px 20px",
+    fontSize: 20,
+    fontWeight: 700,
+    borderRadius: 22,
+    background: "rgba(255,255,255,0.12)",
+  }}
+>
               <span>모멘트</span>
               <span style={{ color: "#de9fc2", fontWeight: 800 }}>
                 {momentCount}
@@ -314,16 +315,17 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
 
             <Link
               href={`/phone-items/messages/${characterKey}/history`}
-              className="link-card"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "18px 20px",
-                fontSize: 20,
-                fontWeight: 700,
-                borderRadius: 22,
-              }}
+             className="link-card"
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "18px 20px",
+    fontSize: 20,
+    fontWeight: 700,
+    borderRadius: 22,
+    background: "rgba(255,255,255,0.12)",
+  }}
             >
               <span>문자 목록</span>
               <span style={{ color: "#de9fc2", fontWeight: 800 }}>
@@ -334,15 +336,16 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
             <Link
               href={`/phone-items/calls/${characterKey}/history`}
               className="link-card"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "18px 20px",
-                fontSize: 20,
-                fontWeight: 700,
-                borderRadius: 22,
-              }}
+      style={{
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "18px 20px",
+  fontSize: 20,
+  fontWeight: 700,
+  borderRadius: 22,
+  background: "rgba(255,255,255,0.12)",
+}}
             >
               <span>통화 목록</span>
               <span style={{ color: "#de9fc2", fontWeight: 800 }}>
@@ -351,17 +354,17 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
             </Link>
 
             <div
-              className="link-card"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "18px 20px",
-                fontSize: 20,
-                fontWeight: 700,
-                borderRadius: 22,
-                opacity: 0.78,
-              }}
+            className="link-card"
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "18px 20px",
+    fontSize: 20,
+    fontWeight: 700,
+    borderRadius: 22,
+    background: "rgba(255,255,255,0.12)",
+  }}
             >
               <span>기록 수집</span>
               <span style={{ color: "#de9fc2", fontWeight: 800 }}>
@@ -370,32 +373,34 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
             </div>
 
             <div
-              className="link-card"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "16px 20px",
-                fontSize: 18,
-                borderRadius: 22,
-                opacity: 0.7,
-              }}
+        className="link-card"
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "18px 20px",
+    fontSize: 20,
+    fontWeight: 700,
+    borderRadius: 22,
+    background: "rgba(255,255,255,0.12)",
+  }}
             >
               <span>채팅 배경 변경</span>
               <span>나중에</span>
             </div>
 
             <div
-              className="link-card"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "16px 20px",
-                fontSize: 18,
-                borderRadius: 22,
-                opacity: 0.7,
-              }}
+             className="link-card"
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "18px 20px",
+    fontSize: 20,
+    fontWeight: 700,
+    borderRadius: 22,
+    background: "rgba(255,255,255,0.12)",
+  }}
             >
               <span>통화 배경 변경</span>
               <span>나중에</span>
@@ -413,7 +418,7 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
           style={{
             marginTop: "auto",
             borderTop: "1px solid rgba(220, 210, 220, 0.7)",
-            background: "rgba(255,255,255,0.94)",
+            background: "rgba(255,255,255,0.18)",
             padding: "8px 10px 10px",
           }}
         >
