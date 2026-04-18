@@ -1158,7 +1158,9 @@ console.log("[updateCard] linkedEventSlugs", linkedEventSlugs);
     redirect(`/admin/cards/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
   }
 
-  redirect(`/admin/cards/${safeSlug}/edit?saved=1`);
+  // redirect(`/admin/cards/${safeSlug}/edit?saved=1`);
+redirect(`/cards/${safeSlug}`);
+
 }
 export async function updateTranslation(formData: FormData) {
   const translationId = String(formData.get("translationId") || "");

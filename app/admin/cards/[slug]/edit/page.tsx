@@ -491,21 +491,7 @@ export default async function EditCardPage({
           characterOptions={[...CHARACTER_OPTIONS]}
         />
 
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            flexWrap: "wrap",
-            marginBottom: "16px",
-          }}
-        >
-          <Link href="/admin/cards/new" className="nav-link">
-            새 카드 등록
-          </Link>
-          <Link href={`/cards/${card.slug}`} className="nav-link">
-            공개 보기
-          </Link>
-        </div>
+
 
         <div className="admin-subpanel">
           <StoryFormEnhancer storageKey={`card-draft:${card.slug}`} />
