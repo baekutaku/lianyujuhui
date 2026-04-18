@@ -108,6 +108,35 @@ function getAttributeLabel(value: string | null | undefined) {
   if (!value) return "미분류";
   return ATTRIBUTE_LABEL_MAP[value] ?? value;
 }
+function getAttributeClass(value: string | null | undefined) {
+  const normalized = String(value || "").trim().toLowerCase();
+
+  switch (normalized) {
+    case "결단력":
+    case "decisiveness":
+    case "judgment":
+    case "decision":
+      return "stat-decisiveness";
+
+    case "창의력":
+    case "creativity":
+      return "stat-creativity";
+
+    case "친화력":
+    case "affinity":
+      return "stat-affinity";
+
+    case "추진력":
+    case "drive":
+    case "action":
+    case "execution":
+      return "stat-drive";
+
+    default:
+      return "";
+  }
+}
+
 
 function getCategoryLabel(value: string | null | undefined) {
   if (!value) return "미분류";
@@ -145,6 +174,7 @@ export default async function CardDetailPage({
   const rawSlug = (await params).slug;
   const slug = safeDecodeSlug(rawSlug);
   const resolvedSearchParams = searchParams ? await searchParams : {};
+ 
 
   const q = String(resolvedSearchParams?.q || "").trim().toLowerCase();
   const rarity = String(resolvedSearchParams?.rarity || "").trim().toLowerCase();
@@ -182,6 +212,7 @@ export default async function CardDetailPage({
     notFound();
   }
 
+  const attributeClass = getAttributeClass(card.attribute);
   const [{ data: allCards }, { data: characters }] = await Promise.all([
     supabase
       .from("cards")
@@ -476,7 +507,9 @@ export default async function CardDetailPage({
 
           <div className="meta-row story-top-meta">
             <span className="meta-pill">등급: {getRarityLabel(card.rarity)}</span>
-            <span className="meta-pill">속성: {getAttributeLabel(card.attribute)}</span>
+           <span className={`meta-pill ${attributeClass}`.trim()}>
+  속성: {getAttributeLabel(card.attribute)}
+</span>
             <span className="meta-pill">분류: {getCategoryLabel(card.card_category)}</span>
             {card.release_year ? (
               <span className="meta-pill">연도: {card.release_year}</span>

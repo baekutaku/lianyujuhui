@@ -93,14 +93,17 @@ export default function CardsFilterModal({
                 <input type="hidden" name="tag" value={defaultValues.tag} />
               ) : null}
 
-              <label className="form-field form-field-full">
-                <span>검색</span>
-                <input
-                  name="q"
-                  defaultValue={defaultValues.q ?? ""}
-                  placeholder="카드 제목 검색"
-                />
-              </label>
+<label className="form-field form-field-full">
+  <span>검색</span>
+  <input
+    name="q"
+    defaultValue={defaultValues.q ?? ""}
+    placeholder="카드 제목 / 요약 / 태그 검색"
+  />
+  <small style={{ opacity: 0.7, marginTop: "6px", display: "block" }}>
+    예: 연모고, 생일, 키스
+  </small>
+</label>
 
               <label className="form-field">
                 <span>캐릭터</span>

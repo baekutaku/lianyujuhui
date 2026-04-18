@@ -120,56 +120,116 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   const page = Math.max(1, Number(String(params?.page || "1")) || 1);
 const ITEMS_PER_PAGE = 15;
 
-  const [{ data: cards, error }, { data: characters }] = await Promise.all([
-    supabase
-      .from("cards")
-      .select(
-        "id, title, slug, rarity, attribute, release_year, release_date, created_at, thumbnail_url, cover_image_url, card_category, primary_character_id"
-      )
-      .eq("is_published", true)
-      .order("release_year", { ascending: false })
-      .order("created_at", { ascending: false }),
+ const [{ data: cards, error }, { data: characters }] = await Promise.all([
+  supabase
+    .from("cards")
+    .select(
+      "id, title, slug, rarity, attribute, release_year, release_date, created_at, thumbnail_url, cover_image_url, card_category, summary, primary_character_id"
+    )
+    .eq("is_published", true)
+    .order("release_year", { ascending: false })
+    .order("created_at", { ascending: false }),
 
-    supabase.from("characters").select("id, key"),
-  ]);
+  supabase.from("characters").select("id, key"),
+]);
+const characterKeyMap = new Map(
+  (characters ?? []).map((item: any) => [item.id, item.key])
+);
 
-  const characterKeyMap = new Map(
-    (characters ?? []).map((item: any) => [item.id, item.key])
+const allCards =
+  (cards ?? []).map((card: any) => {
+    const characterKey = characterKeyMap.get(card.primary_character_id) ?? "";
+    return { ...card, characterKey };
+  }) ?? [];
+
+const cardIds = allCards.map((card: any) => card.id);
+
+let tagSearchTextByCardId = new Map<string, string>();
+
+if (cardIds.length > 0) {
+  const { data: itemTags, error: itemTagsError } = await supabase
+    .from("item_tags")
+    .select("item_id, tag_id")
+    .eq("item_type", "card")
+    .in("item_id", cardIds);
+
+  if (itemTagsError) {
+    throw new Error(itemTagsError.message);
+  }
+
+  const tagIds = Array.from(
+    new Set((itemTags ?? []).map((row: any) => row.tag_id))
   );
 
-  const allCards =
-    (cards ?? []).map((card: any) => {
-      const characterKey = characterKeyMap.get(card.primary_character_id) ?? "";
-      return { ...card, characterKey };
-    }) ?? [];
+  if (tagIds.length > 0) {
+    const { data: tags, error: tagsError } = await supabase
+      .from("tags")
+      .select("id, label, name, slug")
+      .in("id", tagIds);
 
-  const baseFilteredCards = allCards.filter((card: any) => {
-    const matchesQ =
-      !q ||
-      String(card.title || "").toLowerCase().includes(q) ||
-      String(card.slug || "").toLowerCase().includes(q);
+    if (tagsError) {
+      throw new Error(tagsError.message);
+    }
 
-    const matchesRarity =
-      !rarity || String(card.rarity || "").toLowerCase() === rarity;
-
-    const normalizedCategory = card.card_category ?? "";
-    const matchesCategory =
-      !category ||
-      (category === "__uncategorized__"
-        ? !normalizedCategory
-        : normalizedCategory === category);
-
-    const matchesCharacter = !character || card.characterKey === character;
-    const matchesYear = !year || String(card.release_year || "") === year;
-
-    return (
-      matchesQ &&
-      matchesRarity &&
-      matchesCategory &&
-      matchesCharacter &&
-      matchesYear
+    const tagTextMap = new Map(
+      (tags ?? []).map((tag: any) => [
+        tag.id,
+        [tag.label, tag.name, tag.slug].filter(Boolean).join(" ").toLowerCase(),
+      ])
     );
-  });
+
+    const grouped = new Map<string, string[]>();
+
+    for (const row of itemTags ?? []) {
+      const tagText = tagTextMap.get(row.tag_id);
+      if (!tagText) continue;
+
+      const prev = grouped.get(row.item_id) ?? [];
+      prev.push(tagText);
+      grouped.set(row.item_id, prev);
+    }
+
+    tagSearchTextByCardId = new Map(
+      Array.from(grouped.entries()).map(([itemId, texts]) => [
+        itemId,
+        texts.join(" ").toLowerCase(),
+      ])
+    );
+  }
+}
+
+const baseFilteredCards = allCards.filter((card: any) => {
+  const summaryText = String(card.summary || "").toLowerCase();
+  const tagText = tagSearchTextByCardId.get(card.id) ?? "";
+
+  const matchesQ =
+    !q ||
+    String(card.title || "").toLowerCase().includes(q) ||
+    String(card.slug || "").toLowerCase().includes(q) ||
+    summaryText.includes(q) ||
+    tagText.includes(q);
+
+  const matchesRarity =
+    !rarity || String(card.rarity || "").toLowerCase() === rarity;
+
+  const normalizedCategory = card.card_category ?? "";
+  const matchesCategory =
+    !category ||
+    (category === "__uncategorized__"
+      ? !normalizedCategory
+      : normalizedCategory === category);
+
+  const matchesCharacter = !character || card.characterKey === character;
+  const matchesYear = !year || String(card.release_year || "") === year;
+
+  return (
+    matchesQ &&
+    matchesRarity &&
+    matchesCategory &&
+    matchesCharacter &&
+    matchesYear
+  );
+});
 
   let filteredCards = baseFilteredCards;
 
@@ -199,10 +259,9 @@ const ITEMS_PER_PAGE = 15;
           .filter((row) =>
             [row.slug, row.label, row.name]
               .filter(Boolean)
-              .some(
-                (value) =>
-                  String(value).trim().toLowerCase() === normalizedTargetTag
-              )
+              .some((value) =>
+  String(value).trim().toLowerCase().includes(normalizedTargetTag)
+)
           )
           .map((row) => row.id)
       );
@@ -294,9 +353,10 @@ const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
 const endIndex = startIndex + ITEMS_PER_PAGE;
 const pagedCards = sortedCards.slice(startIndex, endIndex);
 
-const cardIds = pagedCards.map((card: any) => card.id);
+const pagedCardIds = pagedCards.map((card: any) => card.id);
 const afterThumbMap = new Map<string, string>();
-if (cardIds.length > 0) {
+
+if (pagedCardIds.length > 0) {
   const { data: afterThumbs } = await supabase
     .from("media_assets")
     .select("parent_id, url")
@@ -304,12 +364,13 @@ if (cardIds.length > 0) {
     .eq("media_type", "image")
     .eq("usage_type", "thumbnail")
     .eq("title", "evolution_after")
-    .in("parent_id", cardIds);
+    .in("parent_id", pagedCardIds);
 
   for (const item of afterThumbs ?? []) {
     afterThumbMap.set(item.parent_id, item.url);
   }
 }
+
 
 const yearOptions = Array.from(
   new Set(
