@@ -133,7 +133,8 @@ const STORY_TAB_OPTIONS = [
 const SORT_LABEL_MAP: Record<string, string> = {
   latest: "최신순",
   oldest: "오래된순",
-  title_asc: "제목순",
+  title_asc: "제목 오름차순",
+  title_desc: "제목 내림차순",
 };
 
 function toSingleString(value: SearchParamValue) {
@@ -203,7 +204,21 @@ function compareStories(a: StoryNavCard, b: StoryNavCard, sort: string) {
   const bChapter = b.chapter_no ?? 0;
 
   if (sort === "title_asc") {
-    return titleCompare;
+    if (titleCompare !== 0) return titleCompare;
+    if (aYear !== bYear) return bYear - aYear;
+    if (aDate !== bDate) return bDate - aDate;
+    if (aPart !== bPart) return bPart - aPart;
+    if (aChapter !== bChapter) return bChapter - aChapter;
+    return 0;
+  }
+
+  if (sort === "title_desc") {
+    if (titleCompare !== 0) return -titleCompare;
+    if (aYear !== bYear) return bYear - aYear;
+    if (aDate !== bDate) return bDate - aDate;
+    if (aPart !== bPart) return bPart - aPart;
+    if (aChapter !== bChapter) return bChapter - aChapter;
+    return 0;
   }
 
   if (sort === "oldest") {

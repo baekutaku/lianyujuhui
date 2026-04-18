@@ -205,7 +205,8 @@ const SCOPE_OPTIONS = [
 const SORT_OPTIONS = [
   { key: "latest", label: "최신순" },
   { key: "oldest", label: "오래된순" },
-  { key: "title_asc", label: "제목순" },
+  { key: "title_asc", label: "제목 오름차순" },
+  { key: "title_desc", label: "제목 내림차순" },
 ] as const;
 
 const STORIES_PER_PAGE = 12;
@@ -363,7 +364,21 @@ function compareStories(a: StoryCard, b: StoryCard, sort: string) {
   const bChapter = b.chapter_no ?? 0;
 
   if (sort === "title_asc") {
-    return titleCompare;
+    if (titleCompare !== 0) return titleCompare;
+    if (aYear !== bYear) return bYear - aYear;
+    if (aDate !== bDate) return bDate - aDate;
+    if (aPart !== bPart) return bPart - aPart;
+    if (aChapter !== bChapter) return bChapter - aChapter;
+    return 0;
+  }
+
+  if (sort === "title_desc") {
+    if (titleCompare !== 0) return -titleCompare;
+    if (aYear !== bYear) return bYear - aYear;
+    if (aDate !== bDate) return bDate - aDate;
+    if (aPart !== bPart) return bPart - aPart;
+    if (aChapter !== bChapter) return bChapter - aChapter;
+    return 0;
   }
 
   if (sort === "oldest") {
@@ -795,6 +810,20 @@ if (selectedCharacterIdSet.size > 0) {
   );
 }
 
+events.sort((a, b) => {
+  const titleCompare = a.title.localeCompare(b.title, "ko");
+  const aDate = a.start_date ? new Date(a.start_date).getTime() : 0;
+  const bDate = b.start_date ? new Date(b.start_date).getTime() : 0;
+
+
+  if (sort === "title_asc") return titleCompare;
+  if (sort === "title_desc") return -titleCompare;
+  if (sort === "oldest") return aDate - bDate;
+  return bDate - aDate;
+});
+
+
+const eventTotalCount = events.length;
 const eventIds = events.map((event) => event.id);
   const eventMediaMap = new Map<string, string>();
   const eventTagMap = new Map<string, string[]>();
@@ -1033,7 +1062,7 @@ const eventIds = events.map((event) => event.id);
       </div>
     ) : null}
 
-    <span className="meta-pill">{totalCount}개</span>
+    <span className="meta-pill">{eventTotalCount}개</span>
   </div>
 </div>
 
