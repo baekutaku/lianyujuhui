@@ -985,13 +985,191 @@ async function syncIncomingRelationsBySlugs(params: {
   }
 }
 
+// export async function updateCard(formData: FormData) {
+//   const rawSlug = String(formData.get("slug") || "").trim();
+//   const safeSlug = encodeURIComponent(rawSlug);
+
+//   try {
+//     await requireAdmin();
+
+//     const cardId = String(formData.get("cardId") || "").trim();
+//     const title = String(formData.get("title") || "").trim();
+//     const rarity = String(formData.get("rarity") || "ssr").trim();
+//     const attribute = String(formData.get("attribute") || "affinity").trim();
+//     const releaseYear = Number(formData.get("releaseYear") || 2025);
+//     const releaseDate = String(formData.get("releaseDate") || "").trim();
+//     const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
+//     const thumbnailAfterUrl = String(formData.get("thumbnailAfterUrl") || "").trim();
+//     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
+//     const coverAfterUrl = String(formData.get("coverAfterUrl") || "").trim();
+//     const summary = String(formData.get("summary") || "").trim();
+//     const cardCategory = String(formData.get("cardCategory") || "other").trim();
+//     const tagLabels = parseTagLabelsFromForm(formData);
+
+//     const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
+//     const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+//     const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
+
+//     if (!cardId) {
+//       throw new Error("cardId가 없습니다.");
+//     }
+
+//     const { error } = await supabase
+//       .from("cards")
+//       .update({
+//         title,
+//         rarity,
+//         attribute,
+//         release_year: releaseYear,
+//         release_date: releaseDate || null,
+//         thumbnail_url: thumbnailUrl || null,
+//         cover_image_url: coverImageUrl || null,
+//         summary,
+//         card_category: cardCategory || null,
+//       })
+//       .eq("id", cardId);
+
+//     if (error) {
+//       throw new Error(error.message);
+//     }
+
+//     await syncCardTags(cardId, tagLabels);
+
+//     const { data: existingThumbAfter } = await supabase
+//       .from("media_assets")
+//       .select("id")
+//       .eq("parent_type", "card")
+//       .eq("parent_id", cardId)
+//       .eq("media_type", "image")
+//       .eq("usage_type", "thumbnail")
+//       .eq("title", "evolution_after")
+//       .maybeSingle();
+
+//     if (existingThumbAfter?.id && thumbnailAfterUrl) {
+//       const { error: thumbUpdateError } = await supabase
+//         .from("media_assets")
+//         .update({ url: thumbnailAfterUrl })
+//         .eq("id", existingThumbAfter.id);
+
+//       if (thumbUpdateError) throw new Error(thumbUpdateError.message);
+//     } else if (!existingThumbAfter?.id && thumbnailAfterUrl) {
+//       const { error: thumbInsertError } = await supabase
+//         .from("media_assets")
+//         .insert({
+//           parent_type: "card",
+//           parent_id: cardId,
+//           media_type: "image",
+//           usage_type: "thumbnail",
+//           url: thumbnailAfterUrl,
+//           title: "evolution_after",
+//           is_primary: false,
+//           sort_order: 10,
+//         });
+
+//       if (thumbInsertError) throw new Error(thumbInsertError.message);
+//     } else if (existingThumbAfter?.id && !thumbnailAfterUrl) {
+//       const { error: thumbDeleteError } = await supabase
+//         .from("media_assets")
+//         .delete()
+//         .eq("id", existingThumbAfter.id);
+
+//       if (thumbDeleteError) throw new Error(thumbDeleteError.message);
+//     }
+
+//     const { data: existingCoverAfter } = await supabase
+//       .from("media_assets")
+//       .select("id")
+//       .eq("parent_type", "card")
+//       .eq("parent_id", cardId)
+//       .eq("media_type", "image")
+//       .eq("usage_type", "cover")
+//       .eq("title", "evolution_after")
+//       .maybeSingle();
+
+//     if (existingCoverAfter?.id && coverAfterUrl) {
+//       const { error: coverUpdateError } = await supabase
+//         .from("media_assets")
+//         .update({ url: coverAfterUrl })
+//         .eq("id", existingCoverAfter.id);
+
+//       if (coverUpdateError) throw new Error(coverUpdateError.message);
+//     } else if (!existingCoverAfter?.id && coverAfterUrl) {
+//       const { error: coverInsertError } = await supabase
+//         .from("media_assets")
+//         .insert({
+//           parent_type: "card",
+//           parent_id: cardId,
+//           media_type: "image",
+//           usage_type: "cover",
+//           url: coverAfterUrl,
+//           title: "evolution_after",
+//           is_primary: false,
+//           sort_order: 11,
+//         });
+
+//       if (coverInsertError) throw new Error(coverInsertError.message);
+//     } else if (existingCoverAfter?.id && !coverAfterUrl) {
+//       const { error: coverDeleteError } = await supabase
+//         .from("media_assets")
+//         .delete()
+//         .eq("id", existingCoverAfter.id);
+
+//       if (coverDeleteError) throw new Error(coverDeleteError.message);
+//     }
+
+//     console.log("[updateCard] linkedStorySlugs", linkedStorySlugs);
+// console.log("[updateCard] linkedPhoneItemSlugs", linkedPhoneItemSlugs);
+// console.log("[updateCard] linkedEventSlugs", linkedEventSlugs);
+
+
+//     // await syncRelationsBySlugs({
+//     //   parentType: "card",
+//     //   parentId: cardId,
+//     //   childType: "story",
+//     //   relationType: "card_story",
+//     //   slugs: linkedStorySlugs,
+//     // });
+
+//     // await syncRelationsBySlugs({
+//     //   parentType: "card",
+//     //   parentId: cardId,
+//     //   childType: "phone_item",
+//     //   relationType: "card_phone",
+//     //   slugs: linkedPhoneItemSlugs,
+//     // });
+
+//     // await syncRelationsBySlugs({
+//     //   parentType: "card",
+//     //   parentId: cardId,
+//     //   childType: "event",
+//     //   relationType: "card_event",
+//     //   slugs: linkedEventSlugs,
+//     // });
+
+//     revalidatePath("/admin/cards");
+//     revalidatePath("/cards");
+//     revalidatePath(`/cards/${rawSlug}`);
+//   } catch (error) {
+//     console.error("[updateCard] fatal error:", error);
+
+//     const message =
+//       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+
+//     redirect(`/admin/cards/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
+//   }
+
+//   redirect(`/admin/cards/${safeSlug}/edit?saved=1`);
+// }
 export async function updateCard(formData: FormData) {
   const rawSlug = String(formData.get("slug") || "").trim();
   const safeSlug = encodeURIComponent(rawSlug);
+  let phase = "start";
 
   try {
+    phase = "requireAdmin";
     await requireAdmin();
 
+    phase = "read-form";
     const cardId = String(formData.get("cardId") || "").trim();
     const title = String(formData.get("title") || "").trim();
     const rarity = String(formData.get("rarity") || "ssr").trim();
@@ -1006,14 +1184,9 @@ export async function updateCard(formData: FormData) {
     const cardCategory = String(formData.get("cardCategory") || "other").trim();
     const tagLabels = parseTagLabelsFromForm(formData);
 
-    const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
-    const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
-    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
+    if (!cardId) throw new Error("cardId가 없습니다.");
 
-    if (!cardId) {
-      throw new Error("cardId가 없습니다.");
-    }
-
+    phase = "update-card";
     const { error } = await supabase
       .from("cards")
       .update({
@@ -1029,137 +1202,31 @@ export async function updateCard(formData: FormData) {
       })
       .eq("id", cardId);
 
-    if (error) {
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
 
+    phase = "sync-tags";
     await syncCardTags(cardId, tagLabels);
 
-    const { data: existingThumbAfter } = await supabase
-      .from("media_assets")
-      .select("id")
-      .eq("parent_type", "card")
-      .eq("parent_id", cardId)
-      .eq("media_type", "image")
-      .eq("usage_type", "thumbnail")
-      .eq("title", "evolution_after")
-      .maybeSingle();
+    phase = "thumb-after";
+    // 진화 후 썸네일 처리
 
-    if (existingThumbAfter?.id && thumbnailAfterUrl) {
-      const { error: thumbUpdateError } = await supabase
-        .from("media_assets")
-        .update({ url: thumbnailAfterUrl })
-        .eq("id", existingThumbAfter.id);
+    phase = "cover-after";
+    // 진화 후 커버 처리
 
-      if (thumbUpdateError) throw new Error(thumbUpdateError.message);
-    } else if (!existingThumbAfter?.id && thumbnailAfterUrl) {
-      const { error: thumbInsertError } = await supabase
-        .from("media_assets")
-        .insert({
-          parent_type: "card",
-          parent_id: cardId,
-          media_type: "image",
-          usage_type: "thumbnail",
-          url: thumbnailAfterUrl,
-          title: "evolution_after",
-          is_primary: false,
-          sort_order: 10,
-        });
-
-      if (thumbInsertError) throw new Error(thumbInsertError.message);
-    } else if (existingThumbAfter?.id && !thumbnailAfterUrl) {
-      const { error: thumbDeleteError } = await supabase
-        .from("media_assets")
-        .delete()
-        .eq("id", existingThumbAfter.id);
-
-      if (thumbDeleteError) throw new Error(thumbDeleteError.message);
-    }
-
-    const { data: existingCoverAfter } = await supabase
-      .from("media_assets")
-      .select("id")
-      .eq("parent_type", "card")
-      .eq("parent_id", cardId)
-      .eq("media_type", "image")
-      .eq("usage_type", "cover")
-      .eq("title", "evolution_after")
-      .maybeSingle();
-
-    if (existingCoverAfter?.id && coverAfterUrl) {
-      const { error: coverUpdateError } = await supabase
-        .from("media_assets")
-        .update({ url: coverAfterUrl })
-        .eq("id", existingCoverAfter.id);
-
-      if (coverUpdateError) throw new Error(coverUpdateError.message);
-    } else if (!existingCoverAfter?.id && coverAfterUrl) {
-      const { error: coverInsertError } = await supabase
-        .from("media_assets")
-        .insert({
-          parent_type: "card",
-          parent_id: cardId,
-          media_type: "image",
-          usage_type: "cover",
-          url: coverAfterUrl,
-          title: "evolution_after",
-          is_primary: false,
-          sort_order: 11,
-        });
-
-      if (coverInsertError) throw new Error(coverInsertError.message);
-    } else if (existingCoverAfter?.id && !coverAfterUrl) {
-      const { error: coverDeleteError } = await supabase
-        .from("media_assets")
-        .delete()
-        .eq("id", existingCoverAfter.id);
-
-      if (coverDeleteError) throw new Error(coverDeleteError.message);
-    }
-
-    console.log("[updateCard] linkedStorySlugs", linkedStorySlugs);
-console.log("[updateCard] linkedPhoneItemSlugs", linkedPhoneItemSlugs);
-console.log("[updateCard] linkedEventSlugs", linkedEventSlugs);
-
-
-    // await syncRelationsBySlugs({
-    //   parentType: "card",
-    //   parentId: cardId,
-    //   childType: "story",
-    //   relationType: "card_story",
-    //   slugs: linkedStorySlugs,
-    // });
-
-    // await syncRelationsBySlugs({
-    //   parentType: "card",
-    //   parentId: cardId,
-    //   childType: "phone_item",
-    //   relationType: "card_phone",
-    //   slugs: linkedPhoneItemSlugs,
-    // });
-
-    // await syncRelationsBySlugs({
-    //   parentType: "card",
-    //   parentId: cardId,
-    //   childType: "event",
-    //   relationType: "card_event",
-    //   slugs: linkedEventSlugs,
-    // });
-
+    phase = "revalidate";
     revalidatePath("/admin/cards");
     revalidatePath("/cards");
     revalidatePath(`/cards/${rawSlug}`);
   } catch (error) {
-    console.error("[updateCard] fatal error:", error);
-
-    const message =
-      error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
-
-    redirect(`/admin/cards/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
+    const message = error instanceof Error ? error.message : "알 수 없는 오류";
+    redirect(
+      `/admin/cards/${safeSlug}/edit?error=${encodeURIComponent(`[${phase}] ${message}`)}`
+    );
   }
 
   redirect(`/admin/cards/${safeSlug}/edit?saved=1`);
 }
+
 export async function updateTranslation(formData: FormData) {
   const translationId = String(formData.get("translationId") || "");
   const title = String(formData.get("title") || "");
