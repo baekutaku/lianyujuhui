@@ -41,7 +41,7 @@ const UI = {
   dateSize: 12.5,
   replyFontSize: 15,
   replyLineHeight: 1.42,
-  replyBg: "rgba(248, 236, 241, 0.56)",
+  replyBg: "rgba(248, 230, 240, 0.90)",
   replyAccent: "#df7f96",
   replySub: "#746a74",
   imageWidth: "78%",

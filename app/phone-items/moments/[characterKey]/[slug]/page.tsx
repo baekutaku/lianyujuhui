@@ -134,9 +134,9 @@ const UI = {
   dateSize: 12.5,
   replyFontSize: 15,
   replyLineHeight: 1.42,
-  replyBg: "rgba(248, 236, 241, 0.56)",
+replyBg: "rgba(248, 230, 240, 0.90)",
   replyAccent: "#df7f96",
-  replySub: "#7a6e79",
+  replySub: "#746a74",
   imageWidth: "78%",
   imageAspectRatio: "1.95 / 1",
 };
@@ -196,14 +196,20 @@ function ReplyPrefix({
       <span style={{ color: UI.replyAccent, fontWeight: 700 }}>
         {safeSpeaker}
       </span>
+
       {isReplyToMc ? (
-        <span style={{ color: UI.replySub }}>{` 답장 ${safeTarget}`}</span>
+        <>
+          <span style={{ color: UI.replySub }}> 답장 </span>
+          <span style={{ color: UI.replyAccent, fontWeight: 700 }}>
+            {safeTarget}
+          </span>
+        </>
       ) : null}
+
       <span style={{ color: UI.replySub }}>:</span>{" "}
     </>
   );
 }
-
 export default async function MomentDetailPage({
   params,
   searchParams,

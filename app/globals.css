@@ -916,7 +916,7 @@ a {
 } */
 
 .phone-topbar-title {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: #ffffffec;
   letter-spacing: 0.02em;
@@ -3087,13 +3087,13 @@ button.secondary-button {
   z-index: 1;
 }
 
-.moment-reaction-box {
+/* .moment-reaction-box {
   margin-top: 10px;
   padding: 12px 14px;
-  background: rgba(255, 241, 245, 0.92);
+  background: rgba(255, 232, 239, 0.92);
   display: grid;
   gap: 4px;
-}
+} */
 
 .moment-reaction-line {
   line-height: 1.45;
@@ -11660,7 +11660,7 @@ button,
     linear-gradient(
       180deg,
       rgba(244, 188, 220, 0.58) 10%,
-      rgba(255, 241, 247, 0.14) 90%
+      rgba(255, 241, 247, 0.54) 90%
     ),
     url("/images/phone/huapujie.png") center/cover no-repeat;
   filter: blur(1px);
@@ -11853,4 +11853,22 @@ button,
 .phone-topbar-spacer {
   width: 96px;
   height: 54px;
+}
+
+/* .moment-reaction-box {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: rgba(250, 236, 244, 0.92);
+  border: 1px solid rgba(233, 196, 214, 0.82);
+  color: #665561;
+  display: grid;
+  gap: 4px;
+} */
+
+.moment-reaction-box {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: rgba(255, 232, 239, 0.92);
+  display: grid;
+  gap: 4px;
 }
