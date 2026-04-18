@@ -2133,6 +2133,270 @@ export async function createEventBundle(formData: FormData) {
   redirect(`/admin/events/${encodeURIComponent(targetSlug)}/edit?saved=1`);
 }
 
+// export async function updateEventBundle(formData: FormData) {
+//   const eventId = String(formData.get("eventId") || "").trim();
+//   const slug = String(formData.get("slug") || "").trim();
+//   const safeSlug = encodeURIComponent(slug);
+//   const submitIntent = String(formData.get("submitIntent") || "edit").trim();
+
+//   try {
+//     await requireAdmin();
+
+//     const title = String(formData.get("title") || "").trim();
+//     const subtype = String(formData.get("subtype") || "game_event").trim();
+//     const releaseYear = Number(formData.get("releaseYear") || 2025);
+//     const startDate = String(formData.get("startDate") || "").trim();
+//     const endDate = String(formData.get("endDate") || "").trim();
+//     const summary = String(formData.get("summary") || "").trim();
+//     const serverKey = String(formData.get("serverKey") || "kr").trim();
+//     const characterKey = String(formData.get("characterKey") || "baiqi").trim();
+
+//     const translationId = String(formData.get("translationId") || "").trim();
+//     const translationTitle = String(formData.get("translationTitle") || "").trim();
+//     const translationBody = String(formData.get("translationBody") || "").trim();
+
+//     const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
+//     const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
+//     const isPublished = String(formData.get("isPublished") || "true").trim() === "true";
+
+//     const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
+//     const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
+//     const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+
+//     const tagLabels = parseTagLabelsFromForm(formData);
+
+//     if (!eventId) {
+//       throw new Error("eventId가 없습니다.");
+//     }
+
+//     const { data: currentEvent, error: currentEventError } = await supabase
+//       .from("events")
+//       .select("access_password_hash")
+//       .eq("id", eventId)
+//       .single();
+
+//     if (currentEventError) {
+//       throw new Error(currentEventError.message);
+//     }
+
+//     const meta = await resolveStoryMetaFromForm(
+//       formData,
+//       currentEvent?.access_password_hash ?? null
+//     );
+
+//     const { data: server, error: serverError } = await supabase
+//       .from("servers")
+//       .select("id")
+//       .eq("key", serverKey)
+//       .single();
+
+//     if (serverError || !server) {
+//       throw new Error(`server 조회 실패: ${serverError?.message || serverKey}`);
+//     }
+
+//     const { data: character, error: characterError } = await supabase
+//       .from("characters")
+//       .select("id")
+//       .eq("key", characterKey)
+//       .single();
+
+//     if (characterError || !character) {
+//       throw new Error(`character 조회 실패: ${characterError?.message || characterKey}`);
+//     }
+
+//     const { error: eventError } = await supabase
+//       .from("events")
+//       .update({
+//         title,
+//         subtype,
+//         release_year: releaseYear,
+//         start_date: startDate || null,
+//         end_date: endDate || null,
+//         summary,
+//         server_id: server.id,
+//         primary_character_id: character.id,
+//         thumbnail_url: thumbnailUrl || null,
+//         visibility: meta.visibility,
+//         access_password_hash: meta.accessPasswordHash,
+//         access_hint: meta.accessHint,
+//         is_published: isPublished,
+//       })
+//       .eq("id", eventId);
+
+//     if (eventError) {
+//       throw new Error(eventError.message);
+//     }
+
+//     await syncEventTags(eventId, tagLabels);
+
+//     if (translationId) {
+//       const { error: translationError } = await supabase
+//         .from("translations")
+//         .update({
+//           title: translationTitle || null,
+//           body: translationBody,
+//         })
+//         .eq("id", translationId);
+
+//       if (translationError) {
+//         throw new Error(translationError.message);
+//       }
+//     } else if (translationBody) {
+//       const { error: translationInsertError } = await supabase
+//         .from("translations")
+//         .insert({
+//           parent_type: "event",
+//           parent_id: eventId,
+//           language_code: "ko",
+//           translation_type: "full",
+//           title: translationTitle || null,
+//           body: translationBody,
+//           is_primary: true,
+//           is_published: true,
+//         });
+
+//       if (translationInsertError) {
+//         throw new Error(translationInsertError.message);
+//       }
+//     }
+
+//     const { data: existingYoutube } = await supabase
+//       .from("media_assets")
+//       .select("id")
+//       .eq("parent_type", "event")
+//       .eq("parent_id", eventId)
+//       .eq("media_type", "youtube")
+//       .limit(1)
+//       .maybeSingle();
+
+//     const { data: existingImage } = await supabase
+//       .from("media_assets")
+//       .select("id")
+//       .eq("parent_type", "event")
+//       .eq("parent_id", eventId)
+//       .eq("media_type", "image")
+//       .limit(1)
+//       .maybeSingle();
+
+//     if (existingYoutube?.id && youtubeUrl) {
+//       const { error } = await supabase
+//         .from("media_assets")
+//         .update({
+//           url: youtubeUrl,
+//           youtube_video_id: extractYoutubeVideoId(youtubeUrl),
+//           usage_type: "pv",
+//           media_type: "youtube",
+//           title: `${title} PV`,
+//           is_primary: true,
+//           sort_order: 0,
+//         })
+//         .eq("id", existingYoutube.id);
+
+//       if (error) throw new Error(error.message);
+//     } else if (!existingYoutube?.id && youtubeUrl) {
+//       const { error } = await supabase
+//         .from("media_assets")
+//         .insert({
+//           parent_type: "event",
+//           parent_id: eventId,
+//           media_type: "youtube",
+//           usage_type: "pv",
+//           url: youtubeUrl,
+//           youtube_video_id: extractYoutubeVideoId(youtubeUrl),
+//           title: `${title} PV`,
+//           is_primary: true,
+//           sort_order: 0,
+//         });
+
+//       if (error) throw new Error(error.message);
+//     } else if (existingYoutube?.id && !youtubeUrl) {
+//       const { error } = await supabase
+//         .from("media_assets")
+//         .delete()
+//         .eq("id", existingYoutube.id);
+
+//       if (error) throw new Error(error.message);
+//     }
+
+//     if (existingImage?.id && thumbnailUrl) {
+//       const { error } = await supabase
+//         .from("media_assets")
+//         .update({
+//           url: thumbnailUrl,
+//           usage_type: "thumbnail",
+//           media_type: "image",
+//           title: `${title} 썸네일`,
+//           is_primary: !youtubeUrl,
+//           sort_order: youtubeUrl ? 1 : 0,
+//         })
+//         .eq("id", existingImage.id);
+
+//       if (error) throw new Error(error.message);
+//     } else if (!existingImage?.id && thumbnailUrl) {
+//       const { error } = await supabase
+//         .from("media_assets")
+//         .insert({
+//           parent_type: "event",
+//           parent_id: eventId,
+//           media_type: "image",
+//           usage_type: "thumbnail",
+//           url: thumbnailUrl,
+//           title: `${title} 썸네일`,
+//           is_primary: !youtubeUrl,
+//           sort_order: youtubeUrl ? 1 : 0,
+//         });
+
+//       if (error) throw new Error(error.message);
+//     } else if (existingImage?.id && !thumbnailUrl) {
+//       const { error } = await supabase
+//         .from("media_assets")
+//         .delete()
+//         .eq("id", existingImage.id);
+
+//       if (error) throw new Error(error.message);
+//     }
+
+//     await syncIncomingRelationsBySlugs({
+//       childType: "event",
+//       childId: eventId,
+//       parentType: "card",
+//       relationType: "card_event",
+//       slugs: linkedCardSlugs,
+//     });
+
+//     await syncIncomingRelationsBySlugs({
+//       childType: "event",
+//       childId: eventId,
+//       parentType: "story",
+//       relationType: "story_event",
+//       slugs: linkedStorySlugs,
+//     });
+
+//     await syncIncomingRelationsBySlugs({
+//       childType: "event",
+//       childId: eventId,
+//       parentType: "phone_item",
+//       relationType: "phone_event",
+//       slugs: linkedPhoneItemSlugs,
+//     });
+
+//     revalidatePath("/admin/events");
+//     revalidatePath("/events");
+//     revalidatePath(`/events/${slug}`);
+//   } catch (error) {
+//     const message =
+//       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+
+//     redirect(`/admin/events/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
+//   }
+
+//   if (submitIntent === "view") {
+//     redirect(`/events/${safeSlug}`);
+//   }
+
+//   redirect(`/admin/events/${safeSlug}/edit?saved=1`);
+// }
+
 export async function updateEventBundle(formData: FormData) {
   const eventId = String(formData.get("eventId") || "").trim();
   const slug = String(formData.get("slug") || "").trim();
@@ -2157,7 +2421,8 @@ export async function updateEventBundle(formData: FormData) {
 
     const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
     const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
-    const isPublished = String(formData.get("isPublished") || "true").trim() === "true";
+    const isPublished =
+      String(formData.get("isPublished") || "true").trim() === "true";
 
     const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
     const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
@@ -2382,7 +2647,7 @@ export async function updateEventBundle(formData: FormData) {
 
     revalidatePath("/admin/events");
     revalidatePath("/events");
-    revalidatePath(`/events/${slug}`);
+    revalidatePath(`/events/${safeSlug}`);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
@@ -2396,6 +2661,7 @@ export async function updateEventBundle(formData: FormData) {
 
   redirect(`/admin/events/${safeSlug}/edit?saved=1`);
 }
+
 
 export async function deleteEventBundle(formData: FormData) {
   await requireAdmin();
