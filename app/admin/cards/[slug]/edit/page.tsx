@@ -491,32 +491,51 @@ export default async function EditCardPage({
           characterOptions={[...CHARACTER_OPTIONS]}
         />
 
-      
-
-        <div className="admin-subpanel">
-        <StoryFormEnhancer
-  storageKey={`card-draft:${card.slug}`}
-  showViewButton={false}
-  primarySubmitLabel="저장"
-  primarySubmitIntent="view"
-  hideSecondarySubmit
-/>
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            flexWrap: "wrap",
+            marginBottom: "16px",
+          }}
+        >
+          <Link href="/admin/cards/new" className="nav-link">
+            새 카드 등록
+          </Link>
+          <Link href={`/cards/${card.slug}`} className="nav-link">
+            공개 보기
+          </Link>
         </div>
 
-
-<div
-  style={{
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-    marginTop: "18px",
-  }}
->
- 
-</div>
-
+        <div className="admin-subpanel">
+          <StoryFormEnhancer storageKey={`card-draft:${card.slug}`} />
+        </div>
       </form>
 
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          flexWrap: "wrap",
+          marginTop: "18px",
+        }}
+      >
+        <form action={deleteCard}>
+          <input type="hidden" name="cardId" value={card.id} />
+          <input type="hidden" name="slug" value={card.slug} />
+          <button
+            type="submit"
+            className="nav-link"
+            style={{
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+            }}
+          >
+            삭제
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

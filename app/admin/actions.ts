@@ -176,7 +176,11 @@ async function syncStoryTags(storyId: string, labels: string[]) {
     .eq("item_id", storyId);
 
   const normalizedLabels = Array.from(
-    new Set(labels.map((label) => label.trim()).filter(Boolean))
+    new Set(
+      labels
+        .map((label) => label.trim())
+        .filter(Boolean)
+    )
   );
 
   if (normalizedLabels.length === 0) return;
@@ -189,7 +193,7 @@ async function syncStoryTags(storyId: string, labels: string[]) {
       name: label,
       label,
       key: slug,
-      kind: "story" as const,
+      kind: "story",
     };
   });
 
@@ -197,11 +201,33 @@ async function syncStoryTags(storyId: string, labels: string[]) {
 
   const { data: existingTags, error: existingTagsError } = await supabase
     .from("tags")
-    .select("id, slug")
+    .select("id, slug, label, name")
     .in("slug", slugs);
 
   if (existingTagsError) {
     throw new Error(existingTagsError.message);
+  }
+
+  const existingTagMap = new Map(
+    (existingTags ?? []).map((row) => [row.slug, row])
+  );
+
+  for (const item of normalizedTags) {
+    const existing = existingTagMap.get(item.slug);
+
+    if (existing && (existing.label !== item.label || existing.name !== item.name)) {
+      const { error: updateError } = await supabase
+        .from("tags")
+        .update({
+          label: item.label,
+          name: item.name,
+        })
+        .eq("id", existing.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+    }
   }
 
   const tagIdMap = new Map(
@@ -290,11 +316,33 @@ async function syncEventTags(eventId: string, labels: string[]) {
 
   const { data: existingTags, error: existingTagsError } = await supabase
     .from("tags")
-    .select("id, slug")
+    .select("id, slug, label, name")
     .in("slug", slugs);
 
   if (existingTagsError) {
     throw new Error(existingTagsError.message);
+  }
+
+  const existingTagMap = new Map(
+    (existingTags ?? []).map((row) => [row.slug, row])
+  );
+
+  for (const item of normalizedTags) {
+    const existing = existingTagMap.get(item.slug);
+
+    if (existing && (existing.label !== item.label || existing.name !== item.name)) {
+      const { error: updateError } = await supabase
+        .from("tags")
+        .update({
+          label: item.label,
+          name: item.name,
+        })
+        .eq("id", existing.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+    }
   }
 
   const tagIdMap = new Map(
@@ -361,7 +409,11 @@ async function syncCardTags(cardId: string, labels: string[]) {
     .eq("item_id", cardId);
 
   const normalizedLabels = Array.from(
-    new Set(labels.map((label) => label.trim()).filter(Boolean))
+    new Set(
+      labels
+        .map((label) => label.trim())
+        .filter(Boolean)
+    )
   );
 
   if (normalizedLabels.length === 0) return;
@@ -374,7 +426,7 @@ async function syncCardTags(cardId: string, labels: string[]) {
       name: label,
       label,
       key: slug,
-      kind: "card" as const,
+      kind: "card",
     };
   });
 
@@ -382,11 +434,33 @@ async function syncCardTags(cardId: string, labels: string[]) {
 
   const { data: existingTags, error: existingTagsError } = await supabase
     .from("tags")
-    .select("id, slug")
+    .select("id, slug, label, name")
     .in("slug", slugs);
 
   if (existingTagsError) {
     throw new Error(existingTagsError.message);
+  }
+
+  const existingTagMap = new Map(
+    (existingTags ?? []).map((row) => [row.slug, row])
+  );
+
+  for (const item of normalizedTags) {
+    const existing = existingTagMap.get(item.slug);
+
+    if (existing && (existing.label !== item.label || existing.name !== item.name)) {
+      const { error: updateError } = await supabase
+        .from("tags")
+        .update({
+          label: item.label,
+          name: item.name,
+        })
+        .eq("id", existing.id);
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+    }
   }
 
   const tagIdMap = new Map(
@@ -431,6 +505,7 @@ async function syncCardTags(cardId: string, labels: string[]) {
     }
   }
 }
+
 async function resolveStoryMetaFromForm(formData: FormData, currentPasswordHash?: string | null) {
   const visibility = normalizeStoryVisibility(
     String(formData.get("visibility") || "public")
@@ -504,9 +579,6 @@ export async function createCard(formData: FormData) {
     const summary = String(formData.get("summary") || "").trim();
     const cardCategory = String(formData.get("cardCategory") || "other").trim();
     const tagLabels = parseTagLabelsFromForm(formData);
-     const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
-    const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
-    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
 
     const serverKey = String(formData.get("serverKey") || "kr").trim();
     const characterKey = String(formData.get("characterKey") || "baiqi").trim();
@@ -575,30 +647,6 @@ export async function createCard(formData: FormData) {
     }
 
     await syncCardTags(insertedCard.id, tagLabels);
-
-    await syncRelationsBySlugs({
-      parentType: "card",
-      parentId: insertedCard.id,
-      childType: "story",
-      relationType: "card_story",
-      slugs: linkedStorySlugs,
-    });
-
-    await syncRelationsBySlugs({
-      parentType: "card",
-      parentId: insertedCard.id,
-      childType: "phone_item",
-      relationType: "card_phone",
-      slugs: linkedPhoneItemSlugs,
-    });
-
-    await syncRelationsBySlugs({
-      parentType: "card",
-      parentId: insertedCard.id,
-      childType: "event",
-      relationType: "card_event",
-      slugs: linkedEventSlugs,
-    });
 
     if (thumbnailAfterUrl) {
       const { error: thumbAfterError } = await supabase
@@ -1244,7 +1292,7 @@ export async function updateCard(formData: FormData) {
 
     revalidatePath("/admin/cards");
     revalidatePath("/cards");
-    // revalidatePath(`/cards/${rawSlug}`);
+    revalidatePath(`/cards/${rawSlug}`);
   } catch (error) {
     console.error("[updateCard] fatal error:", error);
 

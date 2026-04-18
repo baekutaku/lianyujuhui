@@ -62,9 +62,6 @@ const FIELD_NAMES = [
 type StoryFormEnhancerProps = {
   storageKey: string;
   showViewButton?: boolean;
-  primarySubmitLabel?: string;
-  primarySubmitIntent?: "view" | "edit";
-  hideSecondarySubmit?: boolean;
 };
 
 type DraftPayload = {
@@ -166,26 +163,25 @@ function writeFieldValue(form: HTMLFormElement, name: string, value: string | st
     });
   }
 }
+
 function StorySubmitButtons({
+  intent,
+  setIntent,
   savedAtText,
   onClearDraft,
   onSaveNow,
   onToggleDraftList,
   showDraftList,
   showViewButton,
-  primarySubmitLabel,
-  primarySubmitIntent,
-  hideSecondarySubmit,
 }: {
+  intent: string;
+  setIntent: (next: "view" | "edit") => void;
   savedAtText: string;
   onClearDraft: () => void;
   onSaveNow: () => void;
   onToggleDraftList: () => void;
   showDraftList: boolean;
   showViewButton: boolean;
-  primarySubmitLabel: string;
-  primarySubmitIntent: "view" | "edit";
-  hideSecondarySubmit: boolean;
 }) {
   const { pending } = useFormStatus();
 
@@ -205,49 +201,30 @@ function StorySubmitButtons({
           alignItems: "center",
         }}
       >
+        {showViewButton ? (
+          <button
+            type="submit"
+            className="primary-button"
+            onClick={() => setIntent("view")}
+            disabled={pending}
+          >
+            {pending && intent === "view" ? "저장 중..." : "저장 후 공개보기"}
+          </button>
+        ) : null}
+
         <button
           type="submit"
-          name="submitIntent"
-          value={primarySubmitIntent}
-          className="primary-button"
+          className="nav-link"
+          style={{
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+          }}
+          onClick={() => setIntent("edit")}
           disabled={pending}
         >
-          {pending ? "저장 중..." : primarySubmitLabel}
+          {pending && intent === "edit" ? "저장 중..." : "저장 후 계속 편집"}
         </button>
-
-        {!hideSecondarySubmit && showViewButton ? (
-          <button
-            type="submit"
-            name="submitIntent"
-            value="view"
-            className="nav-link"
-            style={{
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-            }}
-            disabled={pending}
-          >
-            {pending ? "저장 중..." : "저장 후 공개보기"}
-          </button>
-        ) : null}
-
-        {!hideSecondarySubmit ? (
-          <button
-            type="submit"
-            name="submitIntent"
-            value="edit"
-            className="nav-link"
-            style={{
-              border: "none",
-              background: "transparent",
-              cursor: "pointer",
-            }}
-            disabled={pending}
-          >
-            {pending ? "저장 중..." : "저장 후 계속 편집"}
-          </button>
-        ) : null}
 
         <button
           type="button"
@@ -300,15 +277,13 @@ function StorySubmitButtons({
     </div>
   );
 }
+
 export default function StoryFormEnhancer({
   storageKey,
   showViewButton = true,
-  primarySubmitLabel = "저장 후 계속 편집",
-  primarySubmitIntent = "edit",
-  hideSecondarySubmit = false,
 }: StoryFormEnhancerProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-
+  const [intent, setIntent] = useState<"view" | "edit">("view");
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [draftHistory, setDraftHistory] = useState<DraftPayload[]>([]);
   const [showDraftList, setShowDraftList] = useState(false);
@@ -360,7 +335,7 @@ export default function StoryFormEnhancer({
     const payload = collectDraft(form);
     const current = readHistory();
 
-const next = [payload, ...current].slice(0, MAX_DRAFTS);
+    const next = [payload, ...current].slice(0, MAX_DRAFTS);
     writeHistory(next);
 
     window.localStorage.setItem(storageKey, JSON.stringify(payload));
@@ -405,31 +380,31 @@ const next = [payload, ...current].slice(0, MAX_DRAFTS);
 
   return (
     <div ref={wrapperRef}>
+<input type="hidden" name="submitIntent" value={intent} />
       
       <StorySubmitButtons
-  savedAtText={savedAtText}
-  onClearDraft={() => {
-    window.localStorage.removeItem(storageKey);
-    window.localStorage.removeItem(historyKey);
-    setDraftHistory([]);
-    setSavedAt(null);
-  }}
-  onSaveNow={() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    const form = wrapper.closest("form");
-    if (!form) return;
-    saveDraft(form);
-  }}
-  onToggleDraftList={() => {
-    setShowDraftList((prev) => !prev);
-  }}
-  showDraftList={showDraftList}
-  showViewButton={showViewButton}
-  primarySubmitLabel={primarySubmitLabel}
-  primarySubmitIntent={primarySubmitIntent}
-  hideSecondarySubmit={hideSecondarySubmit}
-/>
+        intent={intent}
+        setIntent={setIntent}
+        savedAtText={savedAtText}
+        onClearDraft={() => {
+          window.localStorage.removeItem(storageKey);
+          window.localStorage.removeItem(historyKey);
+          setDraftHistory([]);
+          setSavedAt(null);
+        }}
+        onSaveNow={() => {
+          const wrapper = wrapperRef.current;
+          if (!wrapper) return;
+          const form = wrapper.closest("form");
+          if (!form) return;
+          saveDraft(form);
+        }}
+        onToggleDraftList={() => {
+          setShowDraftList((prev) => !prev);
+        }}
+        showDraftList={showDraftList}
+        showViewButton={showViewButton}
+      />
 
       {showDraftList ? (
         <div

@@ -20,22 +20,9 @@ export default function CardDetailMediaSwitcher({
 
   const imageUrl = useMemo(() => {
     if (mode === "after") {
-      return (
-        media.afterCover ||
-        media.afterThumb ||
-        media.beforeCover ||
-        media.beforeThumb ||
-        ""
-      );
+      return media.afterCover || media.afterThumb || media.beforeCover || media.beforeThumb || "";
     }
-
-    return (
-      media.beforeCover ||
-      media.beforeThumb ||
-      media.afterCover ||
-      media.afterThumb ||
-      ""
-    );
+    return media.beforeCover || media.beforeThumb || media.afterCover || media.afterThumb || "";
   }, [media, mode]);
 
   if (!imageUrl) {

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import { deleteCard } from "@/app/admin/actions";
-import CardImageToggle from "@/components/cards/CardImageToggle";
+import CardDetailMediaSwitcher from "@/components/cards/CardDetailMediaSwitcher";
 import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
 
 type PageProps = {
@@ -580,17 +580,17 @@ export default async function CardDetailPage({
       </section>
 
       <section className="story-main-grid card-detail-main-grid">
-       <div className="detail-panel card-detail-media-panel">
-  <CardImageToggle
-    media={{
-      title: card.title,
-      beforeThumb,
-      afterThumb,
-      beforeCover,
-      afterCover,
-    }}
-  />
-</div>
+        <div className="detail-panel card-detail-media-panel">
+          <CardDetailMediaSwitcher
+            media={{
+              title: card.title,
+              beforeThumb,
+              afterThumb,
+              beforeCover,
+              afterCover,
+            }}
+          />
+        </div>
 
         <aside className="detail-panel card-detail-links-panel">
           <div className="card-detail-links-scroll">
