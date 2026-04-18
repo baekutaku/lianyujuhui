@@ -165,8 +165,6 @@ function writeFieldValue(form: HTMLFormElement, name: string, value: string | st
 }
 
 function StorySubmitButtons({
-  intent,
-  setIntent,
   savedAtText,
   onClearDraft,
   onSaveNow,
@@ -174,8 +172,6 @@ function StorySubmitButtons({
   showDraftList,
   showViewButton,
 }: {
-  intent: string;
-  setIntent: (next: "view" | "edit") => void;
   savedAtText: string;
   onClearDraft: () => void;
   onSaveNow: () => void;
@@ -184,6 +180,7 @@ function StorySubmitButtons({
   showViewButton: boolean;
 }) {
   const { pending } = useFormStatus();
+  const [clickedIntent, setClickedIntent] = useState<"view" | "edit" | null>(null);
 
   return (
     <div
@@ -202,29 +199,33 @@ function StorySubmitButtons({
         }}
       >
         {showViewButton ? (
-          <button
-            type="submit"
-            className="primary-button"
-            onClick={() => setIntent("view")}
-            disabled={pending}
-          >
-            {pending && intent === "view" ? "저장 중..." : "저장 후 공개보기"}
-          </button>
+         <button
+  type="submit"
+  name="submitIntent"
+  value="view"
+  className="primary-button"
+  onClick={() => setClickedIntent("view")}
+  disabled={pending}
+>
+  {pending && clickedIntent === "view" ? "저장 중..." : "저장 후 공개보기"}
+</button>
         ) : null}
 
         <button
-          type="submit"
-          className="nav-link"
-          style={{
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-          }}
-          onClick={() => setIntent("edit")}
-          disabled={pending}
-        >
-          {pending && intent === "edit" ? "저장 중..." : "저장 후 계속 편집"}
-        </button>
+  type="submit"
+  name="submitIntent"
+  value="edit"
+  className="nav-link"
+  style={{
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+  }}
+  onClick={() => setClickedIntent("edit")}
+  disabled={pending}
+>
+  {pending && clickedIntent === "edit" ? "저장 중..." : "저장 후 계속 편집"}
+</button>
 
         <button
           type="button"
@@ -283,7 +284,6 @@ export default function StoryFormEnhancer({
   showViewButton = true,
 }: StoryFormEnhancerProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const [intent, setIntent] = useState<"view" | "edit">("view");
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [draftHistory, setDraftHistory] = useState<DraftPayload[]>([]);
   const [showDraftList, setShowDraftList] = useState(false);
@@ -380,11 +380,8 @@ export default function StoryFormEnhancer({
 
   return (
     <div ref={wrapperRef}>
-<input type="hidden" name="submitIntent" value={intent} />
       
       <StorySubmitButtons
-        intent={intent}
-        setIntent={setIntent}
         savedAtText={savedAtText}
         onClearDraft={() => {
           window.localStorage.removeItem(storageKey);

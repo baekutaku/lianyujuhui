@@ -1110,13 +1110,13 @@ async function syncIncomingRelationsBySlugs(params: {
 }
 
 export async function updateCard(formData: FormData) {
-  await requireAdmin();
-
   const rawSlug = String(formData.get("slug") || "").trim();
   const safeSlug = encodeURIComponent(rawSlug);
   const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
+    await requireAdmin();
+
     const cardId = String(formData.get("cardId") || "").trim();
     const title = String(formData.get("title") || "").trim();
     const rarity = String(formData.get("rarity") || "ssr").trim();
@@ -1521,13 +1521,13 @@ export async function createStoryBundle(formData: FormData) {
   redirect(`/admin/stories/${encodeURIComponent(successSlug)}/edit?saved=1`);
 }
 export async function updateStoryBundle(formData: FormData) {
-  await requireAdmin();
-
   const rawSlug = String(formData.get("slug") || "").trim();
   const safeSlug = encodeURIComponent(rawSlug);
   const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
+    await requireAdmin();
+
     const storyId = String(formData.get("storyId") || "").trim();
 
     if (!storyId) {
@@ -1730,7 +1730,6 @@ export async function updateStoryBundle(formData: FormData) {
 
   redirect(`/admin/stories/${safeSlug}/edit?saved=1`);
 }
-
 export async function deleteStoryBundle(formData: FormData) {
   await requireAdmin();
 
@@ -1992,14 +1991,14 @@ export async function createEventBundle(formData: FormData) {
 }
 
 export async function updateEventBundle(formData: FormData) {
-  await requireAdmin();
-
   const eventId = String(formData.get("eventId") || "").trim();
   const slug = String(formData.get("slug") || "").trim();
   const safeSlug = encodeURIComponent(slug);
   const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
+    await requireAdmin();
+
     const title = String(formData.get("title") || "").trim();
     const subtype = String(formData.get("subtype") || "game_event").trim();
     const releaseYear = Number(formData.get("releaseYear") || 2025);
