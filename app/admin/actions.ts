@@ -1462,6 +1462,211 @@ if (errorRedirectUrl) {
 
 redirect(`/stories/${encodeURIComponent(successSlug)}`);
 }
+// export async function updateStoryBundle(formData: FormData) {
+//   const rawSlug = String(formData.get("slug") || "").trim();
+//   const safeSlug = encodeURIComponent(rawSlug);
+
+//   try {
+//     await requireAdmin();
+
+//     const storyId = String(formData.get("storyId") || "").trim();
+
+//     if (!storyId) {
+//       throw new Error("storyId가 없습니다.");
+//     }
+
+//     const title = String(formData.get("title") || "").trim();
+//     const subtype = String(formData.get("subtype") || "card_story").trim();
+//     const releaseYear = Number(formData.get("releaseYear") || 2025);
+//     const releaseDate = String(formData.get("releaseDate") || "").trim();
+//     const tagLabels = parseTagLabelsFromForm(formData);
+
+//     const translationCnId = String(formData.get("translationCnId") || "").trim();
+//     const translationKrId = String(formData.get("translationKrId") || "").trim();
+
+//     const translationTitleCn = String(formData.get("translationTitleCn") || "");
+//     const translationBodyCn = String(formData.get("translationBodyCn") || "");
+//     const translationTitleKr = String(formData.get("translationTitleKr") || "");
+//     const translationBodyKr = String(formData.get("translationBodyKr") || "");
+
+//     const mediaCnId = String(formData.get("mediaCnId") || "").trim();
+//     const mediaKrId = String(formData.get("mediaKrId") || "").trim();
+
+//     const youtubeUrlCn = String(formData.get("youtubeUrlCn") || "").trim();
+//     const youtubeUrlKr = String(formData.get("youtubeUrlKr") || "").trim();
+
+//     const coverMediaId = String(formData.get("coverMediaId") || "").trim();
+//     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
+
+//     const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
+//     const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+//     const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
+
+//     const { data: currentStory, error: currentStoryError } = await supabase
+//       .from("stories")
+//       .select("access_password_hash")
+//       .eq("id", storyId)
+//       .single();
+
+//     if (currentStoryError) {
+//       throw new Error(currentStoryError.message);
+//     }
+
+//     const meta = await resolveStoryMetaFromForm(
+//       formData,
+//       currentStory?.access_password_hash ?? null
+//     );
+
+//     const { error: storyError } = await supabase
+//       .from("stories")
+//       .update({
+//         title,
+//         subtype,
+//         release_year: releaseYear,
+//         release_date: releaseDate || null,
+//         visibility: meta.visibility,
+//         access_password_hash: meta.accessPasswordHash,
+//         access_hint: meta.accessHint,
+//         part_no: meta.partNo,
+//         volume_no: meta.volumeNo,
+//         main_season: meta.mainSeason,
+//         chapter_no: meta.chapterNo,
+//         main_kind: meta.mainKind,
+//         route_scope: meta.routeScope,
+//         primary_character_id: meta.primaryCharacterId,
+//         manual_sort_order: meta.manualSortOrder,
+//         arc_title: meta.arcTitle,
+//         episode_title: meta.episodeTitle,
+//       })
+//       .eq("id", storyId);
+
+//     if (storyError) {
+//       throw new Error(storyError.message);
+//     }
+
+//     await syncStoryCharacters(storyId, meta.appearingCharacterIds);
+
+//     const hasCn = translationTitleCn.trim() || translationBodyCn.trim();
+//     const hasKr = translationTitleKr.trim() || translationBodyKr.trim();
+
+//     await upsertStoryTranslation({
+//       translationId: translationCnId || undefined,
+//       storyId,
+//       languageCode: "zh-CN",
+//       title: translationTitleCn,
+//       body: translationBodyCn,
+//       isPrimary: Boolean(hasCn),
+//     });
+
+//     await upsertStoryTranslation({
+//       translationId: translationKrId || undefined,
+//       storyId,
+//       languageCode: "ko",
+//       title: translationTitleKr,
+//       body: translationBodyKr,
+//       isPrimary: !hasCn && Boolean(hasKr),
+//     });
+
+//     await syncStoryTags(storyId, tagLabels);
+
+//     await upsertStoryYoutubeMedia({
+//       mediaId: mediaCnId || undefined,
+//       storyId,
+//       title: `${title} PV CN`,
+//       usageType: "pv_cn",
+//       url: youtubeUrlCn,
+//       isPrimary: !coverImageUrl,
+//       sortOrder: coverImageUrl ? 1 : 0,
+//     });
+
+//     await upsertStoryYoutubeMedia({
+//       mediaId: mediaKrId || undefined,
+//       storyId,
+//       title: `${title} PV KR`,
+//       usageType: "pv_kr",
+//       url: youtubeUrlKr,
+//       isPrimary: false,
+//       sortOrder: coverImageUrl ? 2 : 1,
+//     });
+
+//     if (coverMediaId) {
+//       if (coverImageUrl) {
+//         const { error } = await supabase
+//           .from("media_assets")
+//           .update({
+//             url: coverImageUrl,
+//             usage_type: "cover",
+//             media_type: "image",
+//             title: `${title} 대표 이미지`,
+//           })
+//           .eq("id", coverMediaId);
+
+//         if (error) {
+//           throw new Error(error.message);
+//         }
+//       } else {
+//         const { error } = await supabase
+//           .from("media_assets")
+//           .delete()
+//           .eq("id", coverMediaId);
+
+//         if (error) {
+//           throw new Error(error.message);
+//         }
+//       }
+//     } else if (coverImageUrl) {
+//       const { error } = await supabase.from("media_assets").insert({
+//         parent_type: "story",
+//         parent_id: storyId,
+//         media_type: "image",
+//         usage_type: "cover",
+//         url: coverImageUrl,
+//         title: `${title} 대표 이미지`,
+//         is_primary: true,
+//         sort_order: 0,
+//       });
+
+//       if (error) {
+//         throw new Error(error.message);
+//       }
+//     }
+
+//     await syncIncomingRelationsBySlugs({
+//       childType: "story",
+//       childId: storyId,
+//       parentType: "card",
+//       relationType: "card_story",
+//       slugs: linkedCardSlugs,
+//     });
+
+//     await syncIncomingRelationsBySlugs({
+//       childType: "story",
+//       childId: storyId,
+//       parentType: "phone_item",
+//       relationType: "phone_story",
+//       slugs: linkedPhoneItemSlugs,
+//     });
+
+//     await syncIncomingRelationsBySlugs({
+//       childType: "story",
+//       childId: storyId,
+//       parentType: "event",
+//       relationType: "event_story",
+//       slugs: linkedEventSlugs,
+//     });
+
+//     revalidatePath("/admin/stories");
+//     revalidatePath("/stories");
+//     revalidatePath(`/stories/${rawSlug}`);
+//   } catch (error) {
+//     const message =
+//       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
+
+//     redirect(`/admin/stories/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
+//   }
+
+//   redirect(`/stories/${safeSlug}`);
+// }
 export async function updateStoryBundle(formData: FormData) {
   const rawSlug = String(formData.get("slug") || "").trim();
   const safeSlug = encodeURIComponent(rawSlug);
@@ -1657,7 +1862,7 @@ export async function updateStoryBundle(formData: FormData) {
 
     revalidatePath("/admin/stories");
     revalidatePath("/stories");
-    revalidatePath(`/stories/${rawSlug}`);
+    revalidatePath(`/stories/${safeSlug}`);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
@@ -1667,6 +1872,7 @@ export async function updateStoryBundle(formData: FormData) {
 
   redirect(`/stories/${safeSlug}`);
 }
+
 export async function deleteStoryBundle(formData: FormData) {
   await requireAdmin();
 
