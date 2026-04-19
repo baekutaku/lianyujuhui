@@ -1,55 +1,14 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabase/server";
-import { isAdmin } from "@/lib/utils/admin-auth";
 import { verifyGuestbookPassword } from "@/lib/utils/guestbook-password";
+import { isAdmin } from "@/lib/utils/admin-auth";
 
 type Context = {
   params: Promise<{
     id: string;
   }>;
 };
-
-export async function PATCH(request: Request, context: Context) {
-  try {
-    const admin = await isAdmin();
-    if (!admin) {
-      return NextResponse.json(
-        { ok: false, message: "권한 없음." },
-        { status: 403 }
-      );
-    }
-
-    const { id } = await context.params;
-    const body = await request.json().catch(() => ({}));
-
-    const adminReply =
-      typeof body.adminReply === "string" ? body.adminReply.trim() : "";
-
-    const { error } = await supabase
-      .from("guestbook_entries")
-      .update({
-        admin_reply: adminReply || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id);
-
-    if (error) {
-      return NextResponse.json(
-        { ok: false, message: error.message },
-        { status: 500 }
-      );
-    }
-
-    revalidatePath("/");
-    return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json(
-      { ok: false, message: "답글 저장 실패" },
-      { status: 500 }
-    );
-  }
-}
 
 export async function DELETE(request: Request, context: Context) {
   try {
@@ -80,6 +39,7 @@ export async function DELETE(request: Request, context: Context) {
       }
 
       const valid = verifyGuestbookPassword(password, data.password_hash);
+
       if (!valid) {
         return NextResponse.json(
           { ok: false, message: "비밀번호 불일치." },
@@ -88,22 +48,21 @@ export async function DELETE(request: Request, context: Context) {
       }
     }
 
-    const { error: updateError } = await supabase
+    const { error: deleteError } = await supabase
       .from("guestbook_entries")
-      .update({
-        is_deleted: true,
-        updated_at: new Date().toISOString(),
-      })
+      .update({ is_deleted: true })
       .eq("id", id);
 
-    if (updateError) {
+    if (deleteError) {
       return NextResponse.json(
-        { ok: false, message: updateError.message },
+        { ok: false, message: deleteError.message },
         { status: 500 }
       );
     }
 
     revalidatePath("/");
+    revalidatePath("/guestbook");
+
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json(

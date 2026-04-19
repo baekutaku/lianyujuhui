@@ -30,6 +30,7 @@ export default function HomeGuestbookTabs({
   isAdmin,
   guestbookItems = [],
 }: Props) {
+  const router = useRouter();
   const [tab, setTab] = useState<"write" | "list">("write");
 
   return (
@@ -53,7 +54,12 @@ export default function HomeGuestbookTabs({
       </div>
 
       {tab === "write" ? (
-        <HomeGuestbookForm onSuccess={() => setTab("list")} />
+        <HomeGuestbookForm
+          onSuccess={() => {
+            router.refresh();
+            setTab("list");
+          }}
+        />
       ) : (
         <GuestbookListPanel
           isAdmin={isAdmin}

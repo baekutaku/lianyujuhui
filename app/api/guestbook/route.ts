@@ -38,14 +38,14 @@ export async function POST(request: Request) {
   );
 }
 
-    const { error } = await supabase.from("guestbook_entries").insert({
-      nickname: nickname || null,
-      password_hash: hashGuestbookPassword(password),
-      content,
-      is_private: isPrivate,
-      is_approved: false,
-      is_deleted: false,
-    });
+   const { error } = await supabase.from("guestbook_entries").insert({
+  nickname: nickname || null,
+  password_hash: hashGuestbookPassword(password),
+  content,
+  is_private: isPrivate,
+  is_approved: true,
+  is_deleted: false,
+});
 
     if (error) {
       return NextResponse.json(
