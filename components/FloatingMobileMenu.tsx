@@ -8,6 +8,7 @@ const MENU_ITEMS = [
   { href: "/cards", label: "카드" },
   { href: "/stories", label: "데이트·스토리" },
   { href: "/phone-items", label: "휴대폰" },
+  { href: "/maker", label: "커스텀" },
   { href: "/events", label: "이벤트" },
   { href: "/admin", label: "관리자" },
 ];
