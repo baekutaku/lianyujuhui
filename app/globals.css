@@ -11872,3 +11872,41 @@ button,
   display: grid;
   gap: 4px;
 }
+
+
+/* maker */
+
+.maker-phone-content .archive-card {
+  background: rgba(255, 255, 255, 0.46);
+  border: 1px solid rgba(255,255,255,0.55);
+  box-shadow: none;
+}
+
+.maker-phone-content .form-panel {
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(255,255,255,0.48);
+  box-shadow: none;
+}
+
+.maker-phone-content .primary-button {
+  background: linear-gradient(180deg, #f0b7d7 0%, #ebb1d3 100%);
+  color: #6c5468;
+  box-shadow: none;
+}
+
+.maker-phone-content .nav-link {
+  background: rgba(255,255,255,0.6);
+  border-color: rgba(231, 214, 220, 0.82);
+  color: #7a6d7a;
+}
+
+.phone-tabbar-maker-3col {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.maker-tab-image {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  display: block;
+}
