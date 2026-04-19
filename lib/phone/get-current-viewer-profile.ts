@@ -52,12 +52,13 @@ export async function getCurrentViewerProfile() {
       .eq("owner_type", ownerType)
       .eq("owner_id", ownerId)
       .eq("is_active", true),
-    profileDb
-      .from("phone_profile_selected")
-      .select("source_type, source_id")
-      .eq("owner_type", ownerType)
-      .eq("owner_id", ownerId)
-      .maybeSingle(),
+  profileDb
+  .from("phone_profile_selected")
+  .select("source_type, source_id")
+  .eq("owner_type", ownerType)
+  .eq("owner_id", ownerId)
+  .limit(1)
+  .maybeSingle(),
   ]);
 
   const baseRows = (baseProfiles ?? []) as BaseProfileRow[];
