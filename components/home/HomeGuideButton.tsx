@@ -53,8 +53,9 @@ export default function HomeGuideButton() {
             <div className="home-guide-modal-body">
               <div className="home-guide-info-box">
                 <p>
-                  본 아카이브 사이트는 백기유연 CP 중심 백업공간이고,
+                  본 아카이브 사이트는 백기유연 CP 중심 백업공간이며,
                   일부 자료는 미업로드·미번역 상태일 수 있습니다.
+                  현재 사이트도 완성되어 있지는 않습니다.
                 </p>
 
                 <p>
