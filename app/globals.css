@@ -11910,3 +11910,148 @@ button,
   object-fit: contain;
   display: block;
 }
+
+.home-guide-open-button {
+  border: 0;
+  cursor: pointer;
+}
+
+.home-guide-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(20, 24, 34, 0.38);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.home-guide-modal {
+  width: min(100%, 720px);
+  max-height: min(88vh, 900px);
+  overflow: auto;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(216, 226, 236, 0.92);
+  box-shadow: 0 24px 56px rgba(54, 66, 88, 0.22);
+}
+
+.home-guide-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 26px 28px 18px;
+  border-bottom: 1px solid rgba(220, 228, 236, 0.76);
+}
+
+.home-guide-modal-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.home-guide-modal-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #dfeafe;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.home-guide-modal-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.home-guide-modal-sub {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--text-sub);
+}
+
+.home-guide-modal-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.96);
+  color: #98a3b1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.home-guide-modal-body {
+  padding: 24px 28px 28px;
+}
+
+.home-guide-info-box {
+  border-radius: 20px;
+  border: 1px solid rgba(214, 224, 234, 0.9);
+  background: rgba(245, 249, 253, 0.88);
+  padding: 22px 24px;
+  color: #5a6776;
+  line-height: 1.9;
+  font-size: 15px;
+}
+
+.home-guide-info-box p {
+  margin: 0;
+}
+
+.home-guide-info-box p + p {
+  margin-top: 14px;
+}
+
+.home-guide-info-alert {
+  color: #d04f68;
+  font-weight: 700;
+}
+
+.home-guide-confirm {
+  width: 100%;
+  margin-top: 22px;
+  height: 56px;
+  border-radius: 18px;
+  border: 0;
+  background: #465166;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .home-guide-modal-head {
+    padding: 22px 18px 16px;
+  }
+
+  .home-guide-modal-body {
+    padding: 18px 18px 22px;
+  }
+
+  .home-guide-modal-title {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .home-hero-visual {
+    display: none !important;
+  }
+
+  .home-hero {
+    grid-template-columns: 1fr !important;
+  }
+}

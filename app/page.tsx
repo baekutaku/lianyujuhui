@@ -1,5 +1,6 @@
 import Link from "next/link";
 import HomeMixedBody from "@/components/home/HomeMixedBody";
+import HomeGuideButton from "@/components/home/HomeGuideButton";
 
 const heroImages = [
   "https://lianyujuhui.ivyro.net/data/file/pic/3553024586_ojVXpgCP_4d95c7745a8dc657d729f07a2e87839e4bd16757.jpg",
@@ -22,7 +23,7 @@ const shortcutItems = [
     title: "스토리 아카이브",
     desc: "CN 위주 · KR 스토리 번역 및 백업",
     image: "/images/home/home-card-02.jpg",
-    chips: ["kr(Part1~2)", "cn(Part1~2+Part3~)"],
+    chips: ["kr·cn"],
   },
   {
     id: "phone-items",
@@ -65,14 +66,12 @@ export default function HomePage() {
     <h1 className="home-hero-title">연모고 동창회</h1>
     <p className="home-hero-desc">백기유연 CP 백업공간</p>
 
-    <div className="home-hero-actions">
-      <Link href="/stories" className="hero-primary-button">
-        스토리 보기
-      </Link>
-      <Link href="/cards" className="hero-secondary-button">
-        카드 보기
-      </Link>
-    </div>
+   <div className="home-hero-actions">
+  <HomeGuideButton />
+  <Link href="/cards" className="hero-secondary-button">
+    카드 보기
+  </Link>
+</div>
 
     <div className="home-status-note">
       KR은 2022년 몽심호 복각 이벤트 이후로 접어서 없는 컨텐츠도 존재.<br />

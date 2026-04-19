@@ -450,7 +450,20 @@ export default async function HomeMixedBody() {
       </div>
 
       <aside className="home-classic-side">
+
         <section className="home-widget-panel">
+          <p className="home-widget-eyebrow">RECENT 업데이트 예정</p>
+
+          <div className="home-widget-list">
+            <Link href="/stories">최신 스토리 업데이트</Link>
+            <Link href="/stories?tab=event">최근 이벤트 정리</Link>
+            <Link href="/phone-items">휴대폰 콘텐츠 보강</Link>
+            <Link href="/stories">외전 백업 추가</Link>
+            <Link href="/cards">카드 연동 보완</Link>
+  
+          </div>
+        </section>
+        {/* <section className="home-widget-panel">
           <p className="home-widget-eyebrow">NOTICE</p>
 
           <ul className="home-mixed-list">
@@ -470,25 +483,14 @@ export default async function HomeMixedBody() {
             </li>
             <li>PV 아카이브는 미정</li>
           </ul>
-        </section>
+        </section> */}
 
         <HomeGuestbookTabs
           isAdmin={admin}
           guestbookItems={guestbookList}
         />
 
-        <section className="home-widget-panel">
-          <p className="home-widget-eyebrow">RECENT 업데이트 예정</p>
-
-          <div className="home-widget-list">
-            <Link href="/stories">최신 스토리 업데이트</Link>
-            <Link href="/stories?tab=event">최근 이벤트 정리</Link>
-            <Link href="/phone-items">휴대폰 콘텐츠 보강</Link>
-            <Link href="/stories">외전 백업 추가</Link>
-            <Link href="/cards">카드 연동 보완</Link>
-            <Link href="/cards">휴대폰 UI 익명커스텀 제작</Link>
-          </div>
-        </section>
+        
 
         <section className="home-widget-panel">
           <p className="home-widget-eyebrow">MUSIC</p>
