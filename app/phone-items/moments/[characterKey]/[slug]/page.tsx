@@ -6,6 +6,7 @@ import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import MomentChoiceTrigger from "@/components/phone/moment/MomentChoiceTrigger";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
+import { getCurrentViewerProfile } from "@/lib/phone/get-current-viewer-profile";
 
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
   baiqi: "/profile/baiqi.png",
@@ -143,13 +144,14 @@ replyBg: "rgba(248, 230, 240, 0.90)",
 
 function buildRenderLines(
   activeChoice: MomentChoiceOption | null,
-  replyLines: MomentReplyLine[]
+  replyLines: MomentReplyLine[],
+  viewerDisplayName: string
 ): RenderLine[] {
   const lines: RenderLine[] = [];
 
   if (activeChoice?.label?.trim()) {
     lines.push({
-      speakerName: activeChoice.replyTargetName.trim() || "유연",
+      speakerName: activeChoice.replyTargetName.trim() || viewerDisplayName,
       content: activeChoice.label.trim(),
       isReplyToMc: false,
     });
@@ -158,7 +160,7 @@ function buildRenderLines(
   if (activeChoice?.replyContent?.trim()) {
     lines.push({
       speakerName: activeChoice.replySpeakerName.trim() || "이름 없음",
-      targetName: activeChoice.replyTargetName.trim() || "유연",
+      targetName: activeChoice.replyTargetName.trim() || viewerDisplayName,
       content: activeChoice.replyContent.trim(),
       isReplyToMc: true,
     });
@@ -183,13 +185,15 @@ function ReplyPrefix({
   speakerName,
   targetName,
   isReplyToMc,
+  viewerDisplayName,
 }: {
   speakerName: string;
   targetName?: string;
   isReplyToMc?: boolean;
+  viewerDisplayName: string;
 }) {
   const safeSpeaker = speakerName.trim() || "이름 없음";
-  const safeTarget = targetName?.trim() || "유연";
+  const safeTarget = targetName?.trim() || viewerDisplayName;
 
   return (
     <>
@@ -218,6 +222,7 @@ export default async function MomentDetailPage({
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const slug = safeDecode(rawSlug).trim();
   const admin = await isAdmin();
+  const viewerProfile = await getCurrentViewerProfile();
 
   const { data, error } = await supabase
     .from("phone_items")
@@ -237,17 +242,21 @@ export default async function MomentDetailPage({
 
   if (!item) notFound();
 
-  const authorKey = item.content_json?.authorKey?.trim() || characterKey;
-  const authorName =
-    item.content_json?.authorName?.trim() ||
-    DEFAULT_NAME_MAP[authorKey] ||
-    "이름 없음";
+ const authorKey = item.content_json?.authorKey?.trim() || characterKey;
 
-  const authorAvatarUrl =
-    item.content_json?.authorAvatarUrl?.trim() ||
-    DEFAULT_AVATAR_MAP[authorKey] ||
-    "/profile/npc.png";
+const authorName =
+  authorKey === "mc"
+    ? viewerProfile.displayName
+    : item.content_json?.authorName?.trim() ||
+      DEFAULT_NAME_MAP[authorKey] ||
+      "이름 없음";
 
+const authorAvatarUrl =
+  authorKey === "mc"
+    ? viewerProfile.avatarUrl
+    : item.content_json?.authorAvatarUrl?.trim() ||
+      DEFAULT_AVATAR_MAP[authorKey] ||
+      "/profile/npc.png";
   const authorHasProfile = Boolean(item.content_json?.authorHasProfile);
   const profileHref =
     authorKey === "mc" ? "/phone-items/me" : `/phone-items/me/${authorKey}`;
@@ -266,28 +275,44 @@ export default async function MomentDetailPage({
     : [];
 
   const replyLines = Array.isArray(item.content_json?.momentReplyLines)
-    ? item.content_json!.momentReplyLines!.filter(
-        (line) => line && String(line.content ?? "").trim()
-      )
-    : [];
-
+  ? item.content_json!.momentReplyLines!
+      .filter((line) => line && String(line.content ?? "").trim())
+      .map((line) => ({
+        ...line,
+        speakerName:
+          line.speakerKey?.trim() === "mc"
+            ? viewerProfile.displayName
+            : line.speakerName?.trim() || "",
+        targetName: line.isReplyToMc
+          ? line.targetName?.trim() || viewerProfile.displayName
+          : line.targetName?.trim() || "",
+      }))
+  : [];
   const comments = Array.isArray(item.content_json?.momentComments)
     ? item.content_json!.momentComments!
     : [];
 
-  const choiceOptions: MomentChoiceOption[] = Array.isArray(
-    item.content_json?.momentChoiceOptions
-  )
-    ? item.content_json!.momentChoiceOptions!.map((option, index) => ({
+const choiceOptions: MomentChoiceOption[] = Array.isArray(
+  item.content_json?.momentChoiceOptions
+)
+  ? item.content_json!.momentChoiceOptions!.map((option, index) => {
+      const replySpeakerKey = option.replySpeakerKey?.trim() || "";
+      const replyTargetName = option.replyTargetName?.trim() || "";
+
+      return {
         id: option.id?.trim() || `option-${index + 1}`,
         label: option.label?.trim() || `선택지 ${index + 1}`,
         isHistory: Boolean(option.isHistory ?? false),
-        replySpeakerKey: option.replySpeakerKey?.trim() || "",
-        replySpeakerName: option.replySpeakerName?.trim() || "",
-        replyTargetName: option.replyTargetName?.trim() || "",
+        replySpeakerKey,
+        replySpeakerName:
+          replySpeakerKey === "mc"
+            ? viewerProfile.displayName
+            : option.replySpeakerName?.trim() || "",
+        replyTargetName: replyTargetName || viewerProfile.displayName,
         replyContent: option.replyContent?.trim() || "",
-      }))
-    : [];
+      };
+    })
+  : [];
 
   const defaultSelectedOptionId =
     item.content_json?.momentSelectedOptionId?.trim() || null;
@@ -298,7 +323,11 @@ export default async function MomentDetailPage({
   const activeChoice =
     choiceOptions.find((option) => option.id === selectedOptionId) || null;
 
-  const renderLines = buildRenderLines(activeChoice, replyLines);
+  const renderLines = buildRenderLines(
+  activeChoice,
+  replyLines,
+  viewerProfile.displayName
+);
 
   return (
     <main className="phone-page">
@@ -514,11 +543,12 @@ export default async function MomentDetailPage({
                     >
                       {renderLines.map((line, index) => (
                         <div key={`reaction-${index}`}>
-                          <ReplyPrefix
-                            speakerName={line.speakerName}
-                            targetName={line.targetName}
-                            isReplyToMc={line.isReplyToMc}
-                          />
+                         <ReplyPrefix
+  speakerName={line.speakerName}
+  targetName={line.targetName}
+  isReplyToMc={line.isReplyToMc}
+  viewerDisplayName={viewerProfile.displayName}
+/>
                           <span>{line.content}</span>
                         </div>
                       ))}

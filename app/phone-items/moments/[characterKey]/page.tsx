@@ -9,6 +9,7 @@ import MomentFeedPost, {
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import { normalizeMomentCategory } from "@/lib/phone/moment-filters";
+import { getCurrentViewerProfile } from "@/lib/phone/get-current-viewer-profile";
 
 const DEFAULT_AVATAR_MAP: Record<string, string> = {
   baiqi: "/profile/baiqi.png",
@@ -124,6 +125,9 @@ export default async function CharacterMomentsPage({
   const selectedReply = normalizeReplyFilter(resolvedSearchParams?.reply);
   const selectedYears = parseCsvParam(resolvedSearchParams?.year);
   const admin = await isAdmin();
+  const viewerProfile = await getCurrentViewerProfile();
+const isViewerMoment = characterKey === "mc";
+console.log("viewerProfile", viewerProfile);
 
   const { data, error } = await supabase
     .from("phone_items")
@@ -143,8 +147,9 @@ export default async function CharacterMomentsPage({
     return authorKey === characterKey;
   });
 
-  const authorName =
-    rows[0]?.content_json?.authorName?.trim() ||
+  const authorName = isViewerMoment
+  ? viewerProfile.displayName
+  : rows[0]?.content_json?.authorName?.trim() ||
     DEFAULT_NAME_MAP[characterKey] ||
     "이름 없음";
 
@@ -162,23 +167,39 @@ export default async function CharacterMomentsPage({
         ? row.content_json!.momentImageUrls!.filter(Boolean)
         : [];
 
-      const replyLines = Array.isArray(row.content_json?.momentReplyLines)
-        ? row.content_json!.momentReplyLines!.filter(
-            (line) => line && String(line.content ?? "").trim()
-          )
-        : [];
+   const replyLines = Array.isArray(row.content_json?.momentReplyLines)
+  ? row.content_json!.momentReplyLines!
+      .filter((line) => line && String(line.content ?? "").trim())
+      .map((line) => ({
+        ...line,
+        speakerName:
+          line.speakerKey?.trim() === "mc"
+            ? viewerProfile.displayName
+            : line.speakerName?.trim() || "",
+        targetName: line.isReplyToMc
+          ? line.targetName?.trim() || viewerProfile.displayName
+          : line.targetName?.trim() || "",
+      }))
+  : [];
+     const choiceOptions = Array.isArray(row.content_json?.momentChoiceOptions)
+  ? row.content_json!.momentChoiceOptions!.map((option, index) => {
+      const replySpeakerKey = option.replySpeakerKey?.trim() || "";
+      const replyTargetName = option.replyTargetName?.trim() || "";
 
-      const choiceOptions = Array.isArray(row.content_json?.momentChoiceOptions)
-        ? row.content_json!.momentChoiceOptions!.map((option, index) => ({
-            id: option.id?.trim() || `option-${index + 1}`,
-            label: option.label?.trim() || `선택지 ${index + 1}`,
-            isHistory: Boolean(option.isHistory ?? false),
-            replySpeakerKey: option.replySpeakerKey?.trim() || "",
-            replySpeakerName: option.replySpeakerName?.trim() || "",
-            replyTargetName: option.replyTargetName?.trim() || "",
-            replyContent: option.replyContent?.trim() || "",
-          }))
-        : [];
+      return {
+        id: option.id?.trim() || `option-${index + 1}`,
+        label: option.label?.trim() || `선택지 ${index + 1}`,
+        isHistory: Boolean(option.isHistory ?? false),
+        replySpeakerKey,
+        replySpeakerName:
+          replySpeakerKey === "mc"
+            ? viewerProfile.displayName
+            : option.replySpeakerName?.trim() || "",
+        replyTargetName: replyTargetName || viewerProfile.displayName,
+        replyContent: option.replyContent?.trim() || "",
+      };
+    })
+  : [];
 
       const selectedOptionId =
         row.content_json?.momentSelectedOptionId?.trim() || null;
@@ -190,14 +211,19 @@ export default async function CharacterMomentsPage({
         id: String(row.id),
         slug,
         authorKey: characterKey,
-        authorName:
-          row.content_json?.authorName?.trim() ||
-          DEFAULT_NAME_MAP[characterKey] ||
-          authorName,
-        authorAvatarUrl:
-          row.content_json?.authorAvatarUrl?.trim() ||
-          DEFAULT_AVATAR_MAP[characterKey] ||
-          "/profile/npc.png",
+       authorName:
+  isViewerMoment
+    ? viewerProfile.displayName
+    : row.content_json?.authorName?.trim() ||
+      DEFAULT_NAME_MAP[characterKey] ||
+      authorName,
+
+authorAvatarUrl:
+  isViewerMoment
+    ? viewerProfile.avatarUrl
+    : row.content_json?.authorAvatarUrl?.trim() ||
+      DEFAULT_AVATAR_MAP[characterKey] ||
+      "/profile/npc.png",
         authorHasProfile: Boolean(row.content_json?.authorHasProfile),
         dateText: getDateText(row),
         body: row.content_json?.momentBody?.trim() || "",

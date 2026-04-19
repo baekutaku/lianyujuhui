@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   createBasePhoneProfileOption,
   updateBasePhoneProfileOption,
@@ -10,6 +11,11 @@ import {
   deactivateCustomPhoneProfile,
   selectPhoneProfile,
 } from "@/app/phone-items/me/actions";
+
+import {
+  setPhoneGuestName,
+  resetPhoneGuestName,
+} from "@/app/phone-items/me/name-actions";
 
 
 type ProfileOption = {
@@ -56,6 +62,13 @@ export default function PhoneMeScreen({
   isAdmin = false,
 }: Props) {
   const [isPending, startTransition] = useTransition();
+
+  const router = useRouter();
+const [draftName, setDraftName] = useState(viewerName);
+
+useEffect(() => {
+  setDraftName(viewerName);
+}, [viewerName]);
 
   const safeBaseProfileOptions = baseProfileOptions ?? [];
   const safeCustomProfileOptions = customProfileOptions ?? [];
@@ -263,6 +276,30 @@ useEffect(() => {
     });
   }
 
+function handleSaveGuestName() {
+  startTransition(async () => {
+    try {
+      await setPhoneGuestName(draftName);
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "이름 저장 실패");
+    }
+  });
+}
+
+function handleResetGuestName() {
+  startTransition(async () => {
+    try {
+      await resetPhoneGuestName();
+      setDraftName("유연");
+      router.refresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "이름 초기화 실패");
+    }
+  });
+}
+
+
   return (
     <>
       <div
@@ -318,44 +355,69 @@ useEffect(() => {
 
             <div>
               <div
-                style={{
-                  fontSize: 22,
-                  fontWeight: 800,
-                  color: "#5e5464",
-                  marginBottom: 10,
-                }}
-              >
-                {viewerName}
-              </div>
+  style={{
+    fontSize: 22,
+    fontWeight: 800,
+    color: "#5e5464",
+    marginBottom: 10,
+  }}
+>
+  {viewerName}
+</div>
 
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  className="primary-button"
-                  style={{
-                    marginTop: 0,
-                    borderRadius: 999,
-                    paddingInline: 14,
-                  }}
-                  onClick={() => setIsPickerOpen(true)}
-                >
-                  프로필 변경
-                </button>
+<div style={{ display: "grid", gap: 10 }}>
+  <input
+    value={draftName}
+    onChange={(e) => setDraftName(e.target.value)}
+    placeholder="이름 입력"
+    maxLength={20}
+    style={inputStyle}
+  />
 
-                <button
-                  type="button"
-                  className="nav-link"
-                  style={{
-                    border: "none",
-                    background: "rgba(183, 191, 255, 0.18)",
-                    borderRadius: 999,
-                    cursor: "default",
-                    paddingInline: 18,
-                  }}
-                >
-                  꾸미기
-                </button>
-              </div>
+  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+    <button
+      type="button"
+      className="primary-button"
+      style={{
+        marginTop: 0,
+        borderRadius: 999,
+        paddingInline: 14,
+      }}
+      onClick={handleSaveGuestName}
+      disabled={isPending}
+    >
+      이름 저장
+    </button>
+
+    <button
+      type="button"
+      className="nav-link"
+      style={{
+        border: "none",
+        background: "rgba(183, 191, 255, 0.18)",
+        borderRadius: 999,
+        paddingInline: 18,
+      }}
+      onClick={handleResetGuestName}
+      disabled={isPending}
+    >
+      이름 초기화
+    </button>
+
+    <button
+      type="button"
+      className="primary-button"
+      style={{
+        marginTop: 0,
+        borderRadius: 999,
+        paddingInline: 14,
+      }}
+      onClick={() => setIsPickerOpen(true)}
+    >
+      프로필 변경
+    </button>
+  </div>
+</div>
             </div>
           </section>
         </div>

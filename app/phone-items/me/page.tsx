@@ -5,6 +5,7 @@ import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import { getPhoneProfileActor } from "@/lib/phone/get-phone-profile-actor";
 import { redirect } from "next/navigation";
 import { getMomentCountByAuthorKey } from "@/lib/phone/moment-author";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 type PhoneItemRow = {
   id: string;
@@ -53,6 +54,7 @@ export default async function PhoneMePage() {
 
   const ownerType = actor.ownerType;
   const ownerId = actor.ownerId || guestId || "";
+  const profileDb = ownerType === "guest" ? supabaseAdmin : supabase;
 
   const [
     { data: phoneItems, error: phoneError },
@@ -73,24 +75,23 @@ export default async function PhoneMePage() {
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false }),
 
-    ownerId
-      ? supabase
-          .from("phone_profile_custom")
-          .select("id, title, image_url")
-          .eq("owner_type", ownerType)
-          .eq("owner_id", ownerId)
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-      : Promise.resolve({ data: [], error: null } as any),
-
-    ownerId
-      ? supabase
-          .from("phone_profile_selected")
-          .select("source_type, source_id")
-          .eq("owner_type", ownerType)
-          .eq("owner_id", ownerId)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null } as any),
+  ownerId
+  ? profileDb
+      .from("phone_profile_custom")
+      .select("id, title, image_url")
+      .eq("owner_type", ownerType)
+      .eq("owner_id", ownerId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+  : Promise.resolve({ data: [], error: null } as any),
+ownerId
+  ? profileDb
+      .from("phone_profile_selected")
+      .select("source_type, source_id")
+      .eq("owner_type", ownerType)
+      .eq("owner_id", ownerId)
+      .maybeSingle()
+  : Promise.resolve({ data: null, error: null } as any),
   ]);
 
   if (phoneError) throw new Error(phoneError.message);
@@ -130,6 +131,31 @@ const characters = CHARACTERS.map((character) => ({
       sourceType: "custom" as const,
     })) ?? [];
 
+    const guestName = cookieStore.get("phone_guest_name")?.value?.trim() || "유연";
+
+let avatarUrl = "/profile/mc.png";
+
+if (selectedRow?.source_type === "option") {
+  const selectedOption = baseProfileOptions.find(
+    (item) => item.id === selectedRow.source_id
+  );
+  if (selectedOption?.imageUrl) {
+    avatarUrl = selectedOption.imageUrl;
+  }
+} else if (selectedRow?.source_type === "custom") {
+  const selectedCustom = customProfileOptions.find(
+    (item) => item.id === selectedRow.source_id
+  );
+  if (selectedCustom?.imageUrl) {
+    avatarUrl = selectedCustom.imageUrl;
+  }
+}
+
+const viewerProfile = {
+  displayName: guestName,
+  avatarUrl,
+};
+
   return (
     <main
       style={{
@@ -155,8 +181,8 @@ const characters = CHARACTERS.map((character) => ({
       >
         <div style={{ flex: 1 }}>
 <PhoneMeScreen
-  viewerName="유연"
-  defaultAvatarUrl="/profile/mc.png"
+  viewerName={viewerProfile.displayName}
+  defaultAvatarUrl={viewerProfile.avatarUrl}
   characters={characters}
   baseProfileOptions={baseProfileOptions}
   customProfileOptions={customProfileOptions}

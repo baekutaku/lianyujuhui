@@ -15,6 +15,8 @@ import {
   normalizeMomentAuthor,
   normalizeMomentCategory,
 } from "@/lib/phone/moment-filters";
+import { getCurrentViewerProfile } from "@/lib/phone/get-current-viewer-profile";
+
 
 type MomentFeedListItem = MomentFeedItem & {
   categoryKey: string;
@@ -156,6 +158,7 @@ export default async function MomentsPage({ searchParams }: PageProps) {
   const selectedReply = normalizeReplyFilter(resolvedSearchParams?.reply);
   const selectedYears = parseCsvParam(resolvedSearchParams?.year);
   const admin = await isAdmin();
+const viewerProfile = await getCurrentViewerProfile();
 
   const { data, error } = await supabase
     .from("phone_items")
@@ -183,23 +186,40 @@ export default async function MomentsPage({ searchParams }: PageProps) {
     ? row.content_json!.momentImageUrls!.filter(Boolean)
     : [];
 
-  const replyLines = Array.isArray(row.content_json?.momentReplyLines)
-    ? row.content_json!.momentReplyLines!.filter(
-        (line) => line && String(line.content ?? "").trim()
-      )
-    : [];
+const replyLines = Array.isArray(row.content_json?.momentReplyLines)
+  ? row.content_json!.momentReplyLines!
+      .filter((line) => line && String(line.content ?? "").trim())
+      .map((line) => ({
+        ...line,
+        speakerName:
+          line.speakerKey?.trim() === "mc"
+            ? viewerProfile.displayName
+            : line.speakerName?.trim() || "",
+        targetName: line.isReplyToMc
+          ? line.targetName?.trim() || viewerProfile.displayName
+          : line.targetName?.trim() || "",
+      }))
+  : [];
 
-  const choiceOptions = Array.isArray(row.content_json?.momentChoiceOptions)
-    ? row.content_json!.momentChoiceOptions!.map((option, index) => ({
+const choiceOptions = Array.isArray(row.content_json?.momentChoiceOptions)
+  ? row.content_json!.momentChoiceOptions!.map((option, index) => {
+      const replySpeakerKey = option.replySpeakerKey?.trim() || "";
+      const replyTargetName = option.replyTargetName?.trim() || "";
+
+      return {
         id: option.id?.trim() || `option-${index + 1}`,
         label: option.label?.trim() || `선택지 ${index + 1}`,
         isHistory: Boolean(option.isHistory ?? false),
-        replySpeakerKey: option.replySpeakerKey?.trim() || "",
-        replySpeakerName: option.replySpeakerName?.trim() || "",
-        replyTargetName: option.replyTargetName?.trim() || "",
+        replySpeakerKey,
+        replySpeakerName:
+          replySpeakerKey === "mc"
+            ? viewerProfile.displayName
+            : option.replySpeakerName?.trim() || "",
+        replyTargetName: replyTargetName || viewerProfile.displayName,
         replyContent: option.replyContent?.trim() || "",
-      }))
-    : [];
+      };
+    })
+  : [];
 
   const selectedOptionId =
     row.content_json?.momentSelectedOptionId?.trim() || null;
@@ -212,14 +232,19 @@ export default async function MomentsPage({ searchParams }: PageProps) {
       id: String(row.id),
       slug,
       authorKey,
-      authorName:
-        row.content_json?.authorName?.trim() ||
-        MOMENT_AUTHOR_LABEL_MAP[authorKey] ||
-        "기타",
-      authorAvatarUrl:
-        row.content_json?.authorAvatarUrl?.trim() ||
-        DEFAULT_AVATAR_MAP[authorKey] ||
-        "/profile/npc.png",
+     authorName:
+  authorKey === "mc"
+    ? viewerProfile.displayName
+    : row.content_json?.authorName?.trim() ||
+      MOMENT_AUTHOR_LABEL_MAP[authorKey] ||
+      "기타",
+
+authorAvatarUrl:
+  authorKey === "mc"
+    ? viewerProfile.avatarUrl
+    : row.content_json?.authorAvatarUrl?.trim() ||
+      DEFAULT_AVATAR_MAP[authorKey] ||
+      "/profile/npc.png",
       authorHasProfile: Boolean(row.content_json?.authorHasProfile),
       dateText: getDateText(row),
       body: row.content_json?.momentBody?.trim() || "",

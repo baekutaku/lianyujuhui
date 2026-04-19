@@ -1,20 +1,39 @@
-import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
+import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 import { GUEST_COOKIE_NAME } from "@/lib/phone/get-phone-profile-actor";
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const redirectTo =
-    url.searchParams.get("redirectTo")?.trim() || "/phone-items/me";
+const GUEST_COOKIE_MAX_AGE = 60 * 60 * 24; // 24시간
 
-  const response = NextResponse.redirect(new URL(redirectTo, url));
+function normalizeRedirectTo(value: string | null) {
+  if (!value) return "/phone-items/me";
+  if (!value.startsWith("/") || value.startsWith("//")) return "/phone-items/me";
+  return value;
+}
 
-  response.cookies.set(GUEST_COOKIE_NAME, crypto.randomUUID(), {
-    httpOnly: false,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
+export async function GET(request: NextRequest) {
+  const cookieStore = await cookies();
+  const redirectTo = normalizeRedirectTo(
+    request.nextUrl.searchParams.get("redirectTo")
+  );
+
+  let guestId = cookieStore.get(GUEST_COOKIE_NAME)?.value?.trim();
+
+  const response = NextResponse.redirect(new URL(redirectTo, request.url));
+
+  if (!guestId) {
+    guestId = randomUUID();
+
+    response.cookies.set({
+      name: GUEST_COOKIE_NAME,
+      value: guestId,
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: GUEST_COOKIE_MAX_AGE,
+    });
+  }
 
   return response;
 }

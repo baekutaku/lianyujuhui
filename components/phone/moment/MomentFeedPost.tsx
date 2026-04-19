@@ -68,7 +68,7 @@ function buildRenderLines(item: MomentFeedItem): RenderLine[] {
   if (item.activeChoice?.label?.trim()) {
     lines.push({
       kind: "choice",
-      speakerName: item.activeChoice.replyTargetName?.trim() || "유연",
+      speakerName: item.activeChoice.replyTargetName?.trim() || item.authorName,
       content: item.activeChoice.label.trim(),
       isReplyToMc: false,
     });
@@ -78,7 +78,7 @@ function buildRenderLines(item: MomentFeedItem): RenderLine[] {
     lines.push({
       kind: "reply",
       speakerName: item.activeChoice.replySpeakerName?.trim() || "답장",
-      targetName: item.activeChoice.replyTargetName?.trim() || "유연",
+   targetName: item.activeChoice.replyTargetName?.trim() || item.authorName,
       content: item.activeChoice.replyContent.trim(),
       isReplyToMc: true,
     });

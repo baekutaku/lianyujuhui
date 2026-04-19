@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getPhoneProfileActor, requirePhoneProfileAdmin } from "@/lib/phone/get-phone-profile-actor";
 import { supabase } from "@/lib/supabase/server";
 
@@ -24,8 +26,9 @@ export async function selectPhoneProfile(input: {
   sourceId: string;
 }) {
   const actor = await getPhoneProfileActor();
+  const db = actor.ownerType === "guest" ? supabaseAdmin : supabase;
 
-  const { error } = await supabase.from("phone_profile_selected").upsert(
+  const { error } = await db.from("phone_profile_selected").upsert(
     {
       owner_type: actor.ownerType,
       owner_id: actor.ownerId,
@@ -44,14 +47,17 @@ export async function selectPhoneProfile(input: {
   return { ok: true };
 }
 
+
+
 export async function createCustomPhoneProfile(input: {
   title?: string;
   imageUrl: string;
 }) {
   const actor = await getPhoneProfileActor();
   const imageUrl = normalizeImageUrl(input.imageUrl);
+  const db = actor.ownerType === "guest" ? supabaseAdmin : supabase;
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from("phone_profile_custom")
     .insert({
       owner_type: actor.ownerType,
@@ -66,7 +72,7 @@ export async function createCustomPhoneProfile(input: {
   if (error) throw new Error(error.message);
   if (!data?.id) throw new Error("커스텀 프로필 생성에 실패했습니다.");
 
-  await supabase.from("phone_profile_selected").upsert(
+  await db.from("phone_profile_selected").upsert(
     {
       owner_type: actor.ownerType,
       owner_id: actor.ownerId,
@@ -85,8 +91,9 @@ export async function createCustomPhoneProfile(input: {
 
 export async function deactivateCustomPhoneProfile(id: string) {
   const actor = await getPhoneProfileActor();
+  const db = actor.ownerType === "guest" ? supabaseAdmin : supabase;
 
-  const { error } = await supabase
+  const { error } = await db
     .from("phone_profile_custom")
     .update({
       is_active: false,
@@ -101,7 +108,6 @@ export async function deactivateCustomPhoneProfile(id: string) {
   revalidatePath("/phone-items/me");
   return { ok: true };
 }
-
 export async function createBasePhoneProfileOption(input: {
   title?: string;
   imageUrl: string;
