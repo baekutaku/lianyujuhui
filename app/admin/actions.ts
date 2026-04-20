@@ -2984,6 +2984,89 @@ export async function updateEventBundle(formData: FormData) {
       slugs: linkedCardSlugs,
     });
 
+    async function syncStoryStoryRelationsBySlugs(
+  storyId: string,
+  slugs: string[]
+) {
+  const uniqueSlugs = Array.from(new Set(slugs)).filter(Boolean);
+
+  const [incoming, outgoing] = await Promise.all([
+    supabase
+      .from("item_relations")
+      .select("id")
+      .eq("relation_type", "story_story")
+      .eq("parent_type", "story")
+      .eq("child_type", "story")
+      .eq("child_id", storyId),
+
+    supabase
+      .from("item_relations")
+      .select("id")
+      .eq("relation_type", "story_story")
+      .eq("parent_type", "story")
+      .eq("child_type", "story")
+      .eq("parent_id", storyId),
+  ]);
+
+  if (incoming.error) throw new Error(incoming.error.message);
+  if (outgoing.error) throw new Error(outgoing.error.message);
+
+  const idsToDelete = [
+    ...(incoming.data ?? []).map((row) => row.id),
+    ...(outgoing.data ?? []).map((row) => row.id),
+  ];
+
+  if (idsToDelete.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("item_relations")
+      .delete()
+      .in("id", idsToDelete);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+  }
+
+  if (uniqueSlugs.length === 0) return;
+
+  const { data: relatedStories, error: lookupError } = await supabase
+    .from("stories")
+    .select("id, slug")
+    .in("slug", uniqueSlugs);
+
+  if (lookupError) {
+    throw new Error(lookupError.message);
+  }
+
+  const foundStories = relatedStories ?? [];
+  const foundSlugSet = new Set(foundStories.map((item) => item.slug));
+  const missingSlugs = uniqueSlugs.filter((slug) => !foundSlugSet.has(slug));
+
+  if (missingSlugs.length > 0) {
+    throw new Error(`story slug를 찾을 수 없습니다:\n${missingSlugs.join("\n")}`);
+  }
+
+  const rows = foundStories
+    .filter((item) => item.id !== storyId)
+    .map((item, index) => ({
+      parent_type: "story",
+      parent_id: item.id,
+      child_type: "story",
+      child_id: storyId,
+      relation_type: "story_story",
+      sort_order: index,
+    }));
+
+  if (rows.length === 0) return;
+
+  const { error: insertError } = await supabase
+    .from("item_relations")
+    .insert(rows);
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+}
     await syncIncomingRelationsBySlugs({
       childType: "event",
       childId: eventId,

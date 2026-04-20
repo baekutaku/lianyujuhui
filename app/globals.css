@@ -1989,12 +1989,12 @@ a {
 }
 
 /* 모바일에선 아예 숨김 */
-@media (max-width: 900px) {
+/* @media (max-width: 900px) {
   .mobile-fab-menu,
   .mobile-menu-backdrop {
     display: none !important;
   }
-}
+} */
 @media (max-width: 900px) {
   .site-shell {
     display: block;
