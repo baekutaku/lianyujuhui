@@ -1895,7 +1895,7 @@ a {
   padding: 8px 10px 10px;
 }
 
-.mobile-fab-menu {
+/* .mobile-fab-menu {
   position: fixed;
   right: 20px;
   bottom: 24px;
@@ -1909,7 +1909,7 @@ a {
   font-size: 24px;
   cursor: pointer;
   display: none;
-}
+} */
 
 .mobile-menu-backdrop {
   position: fixed;
@@ -1980,13 +1980,13 @@ a {
 
 /* 데스크톱에선 숨김 */
 /* PC에서만 표시 */
-@media (min-width: 901px) {
+/* @media (min-width: 901px) {
   .mobile-fab-menu {
     display: inline-flex;
     align-items: center;
     justify-content: center;
   }
-}
+} */
 
 /* 모바일에선 아예 숨김 */
 /* @media (max-width: 900px) {
@@ -12056,5 +12056,36 @@ button,
 
   .home-hero {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* ===== floating mobile menu final override ===== */
+@media (max-width: 900px) {
+  .mobile-fab-menu {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: fixed !important;
+    right: 20px !important;
+    bottom: 24px !important;
+    z-index: 1200 !important;
+    width: 56px !important;
+    height: 56px !important;
+    border: none !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    box-shadow: 0 10px 24px rgba(66, 51, 75, 0.18) !important;
+    font-size: 24px !important;
+    cursor: pointer !important;
+  }
+
+  .mobile-menu-backdrop {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 901px) {
+  .mobile-fab-menu {
+    display: none !important;
   }
 }
