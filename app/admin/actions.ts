@@ -1592,10 +1592,10 @@ export async function createStoryBundle(formData: FormData) {
     const youtubeUrlKr = String(formData.get("youtubeUrlKr") || "").trim();
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
 
-    const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
-    const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
-    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
-
+const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
+const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
+const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
     const meta = await resolveStoryMetaFromForm(formData);
 
   const manualSlug = String(formData.get("slug") || "").trim();
