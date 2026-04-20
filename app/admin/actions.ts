@@ -1598,16 +1598,18 @@ export async function createStoryBundle(formData: FormData) {
 
     const meta = await resolveStoryMetaFromForm(formData);
 
-    const { slug, originKey, contentId } = buildStoryKeys({
-      subtype,
-      characterKey,
-      title,
-      year: releaseYear,
-      serverKey,
-    });
+  const manualSlug = String(formData.get("slug") || "").trim();
 
-    successSlug = slug;
+const { slug: autoSlug, originKey, contentId } = buildStoryKeys({
+  subtype,
+  characterKey,
+  title,
+  year: releaseYear,
+  serverKey,
+});
 
+const slug = manualSlug || autoSlug;
+successSlug = slug;
     const { data: server, error: serverError } = await supabase
       .from("servers")
       .select("id")

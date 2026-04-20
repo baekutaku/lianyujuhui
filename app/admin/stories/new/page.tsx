@@ -68,65 +68,126 @@ export default async function NewStoryPage({
   const params = searchParams ? await searchParams : undefined;
   const error = params?.error ?? "";
 
-  const [
-    { data: characters },
-    { data: cards },
-    { data: phoneItems },
-    { data: events },
-  ] = await Promise.all([
-    supabase
-      .from("characters")
-      .select("id, key, name_ko")
-      .order("sort_order", { ascending: true }),
+const [
+  { data: characters },
+  { data: stories },
+  { data: cards },
+  { data: phoneItems },
+  { data: events },
+] = await Promise.all([
+  supabase
+    .from("characters")
+    .select("id, key, name_ko")
+    .order("sort_order", { ascending: true }),
 
-    supabase
-      .from("cards")
-      .select("id, title, slug, primary_character_id, card_category")
-      .order("release_year", { ascending: false }),
+  supabase
+    .from("stories")
+    .select("id, title, slug, subtype, primary_character_id")
+    .order("release_year", { ascending: false }),
 
-    supabase
-      .from("phone_items")
-      .select("id, title, slug, subtype, content_json")
-      .order("release_year", { ascending: false }),
+  supabase
+    .from("cards")
+    .select("id, title, slug, primary_character_id, card_category")
+    .order("release_year", { ascending: false }),
 
-    supabase
-      .from("events")
-      .select("id, title, slug, subtype, primary_character_id")
-      .order("release_year", { ascending: false }),
-  ]);
+  supabase
+    .from("phone_items")
+    .select("id, title, slug, subtype, content_json")
+    .order("release_year", { ascending: false }),
+
+  supabase
+    .from("events")
+    .select("id, title, slug, subtype, primary_character_id")
+    .order("release_year", { ascending: false }),
+]);
+
+
+const relationSourceIds = [
+  ...(cards ?? []).map((item: any) => item.id),
+  ...(phoneItems ?? []).map((item: any) => item.id),
+  ...(events ?? []).map((item: any) => item.id),
+];
+
+let itemTagsMap = new Map<string, string[]>();
+
+if (relationSourceIds.length > 0) {
+  const { data: itemTagRows } = await supabase
+    .from("item_tags")
+    .select("item_id, tag_id, item_type, sort_order")
+    .in("item_id", relationSourceIds)
+    .in("item_type", ["card", "phone_item", "event"])
+    .order("sort_order", { ascending: true });
+
+  const tagIds = Array.from(new Set((itemTagRows ?? []).map((row: any) => row.tag_id)));
+
+  if (tagIds.length > 0) {
+    const { data: tagRows } = await supabase
+      .from("tags")
+      .select("id, label, name, slug")
+      .in("id", tagIds);
+
+    const tagLabelMap = new Map(
+      (tagRows ?? []).map((row: any) => [
+        row.id,
+        row.label ?? row.name ?? row.slug,
+      ])
+    );
+
+    itemTagsMap = (itemTagRows ?? []).reduce((map, row: any) => {
+      const label = tagLabelMap.get(row.tag_id);
+      if (!label) return map;
+
+      const prev = map.get(row.item_id) ?? [];
+      prev.push(label);
+      map.set(row.item_id, prev);
+      return map;
+    }, new Map<string, string[]>());
+  }
+}
 
   const characterRows = characters ?? [];
   const characterKeyMap = new Map(
     characterRows.map((item: any) => [item.id, item.key])
   );
 
-  const cardCandidates: RelationCandidate[] =
-    (cards ?? []).map((item: any) => ({
-      slug: item.slug,
-      title: item.title,
-      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
-      category: item.card_category ?? null,
-    })) ?? [];
+const cardCandidates: RelationCandidate[] =
+  (cards ?? []).map((item: any) => ({
+    slug: item.slug,
+    title: item.title,
+    characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    category: item.card_category ?? null,
+    tags: itemTagsMap.get(item.id) ?? [],
+  })) ?? [];
 
-  const phoneCandidates: RelationCandidate[] =
-    (phoneItems ?? []).map((item: any) => ({
-      slug: item.slug,
-      title: item.title,
-      subtype: item.subtype ?? null,
-      characterKey: item.content_json?.characterKey ?? null,
-      category:
-        item.content_json?.historyCategory ??
-        item.content_json?.momentCategory ??
-        null,
-    })) ?? [];
+const phoneCandidates: RelationCandidate[] =
+  (phoneItems ?? []).map((item: any) => ({
+    slug: item.slug,
+    title: item.title,
+    subtype: item.subtype ?? null,
+    characterKey: item.content_json?.characterKey ?? null,
+    category:
+      item.content_json?.historyCategory ??
+      item.content_json?.momentCategory ??
+      null,
+    tags: itemTagsMap.get(item.id) ?? [],
+  })) ?? [];
 
-  const eventCandidates: RelationCandidate[] =
-    (events ?? []).map((item: any) => ({
-      slug: item.slug,
-      title: item.title,
-      subtype: item.subtype ?? null,
-      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
-    })) ?? [];
+ const storyCandidates: RelationCandidate[] =
+  (stories ?? []).map((item: any) => ({
+    slug: item.slug,
+    title: item.title,
+    subtype: item.subtype ?? null,
+    characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    tags: itemTagsMap.get(item.id) ?? [],
+  })) ?? [];
+const eventCandidates: RelationCandidate[] =
+  (events ?? []).map((item: any) => ({
+    slug: item.slug,
+    title: item.title,
+    subtype: item.subtype ?? null,
+    characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    tags: itemTagsMap.get(item.id) ?? [],
+  })) ?? [];
 
   return (
     <main>
@@ -155,56 +216,68 @@ export default async function NewStoryPage({
       ) : null}
 
       <form action={createStoryBundle} className="form-panel">
-        <div className="form-grid">
-          <label className="form-field form-field-full">
-            <span>제목</span>
-            <input name="title" required />
-          </label>
+<div className="form-grid">
+  <label className="form-field form-field-full">
+    <span>제목</span>
+    <input name="title" required />
+  </label>
 
-          <label className="form-field">
-            <span>카테고리</span>
-            <select name="subtype" defaultValue="card_story">
-              {STORY_SUBTYPE_OPTIONS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+  <label className="form-field">
+    <span>slug</span>
+    <input
+      name="slug"
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck={false}
+      placeholder="비워두면 자동 생성"
+    />
+  </label>
 
-          <label className="form-field">
-            <span>연도</span>
-            <input
-              name="releaseYear"
-              type="number"
-              defaultValue={2025}
-              required
-            />
-          </label>
+  <label className="form-field">
+    <span>카테고리</span>
+    <select name="subtype" defaultValue="card_story">
+      {STORY_SUBTYPE_OPTIONS.map((item) => (
+        <option key={item.value} value={item.value}>
+          {item.label}
+        </option>
+      ))}
+    </select>
+  </label>
 
-          <label className="form-field">
-            <span>출시일</span>
-            <input name="releaseDate" type="date" />
-          </label>
+  <label className="form-field">
+    <span>연도</span>
+    <input
+      name="releaseYear"
+      type="number"
+      defaultValue={2025}
+      required
+    />
+  </label>
 
-          <label className="form-field">
-            <span>서버</span>
-            <select name="serverKey" defaultValue="cn">
-              <option value="cn">중국</option>
-              <option value="kr">한국</option>
-            </select>
-          </label>
+  <label className="form-field">
+    <span>출시일</span>
+    <input name="releaseDate" type="date" />
+  </label>
 
-          <label className="form-field">
-            <span>대표 캐릭터</span>
-            <select name="characterKey" defaultValue="baiqi">
-              {CHARACTER_OPTIONS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+  <label className="form-field">
+    <span>서버</span>
+    <select name="serverKey" defaultValue="cn">
+      <option value="cn">중국</option>
+      <option value="kr">한국</option>
+    </select>
+  </label>
+
+  <label className="form-field">
+    <span>대표 캐릭터</span>
+    <select name="characterKey" defaultValue="baiqi">
+      {CHARACTER_OPTIONS.map((item) => (
+        <option key={item.value} value={item.value}>
+          {item.label}
+        </option>
+      ))}
+    </select>
+  </label>
 
           <label className="form-field form-field-full">
             <span>해시태그</span>
@@ -258,6 +331,14 @@ export default async function NewStoryPage({
           categoryOptions={[...PHONE_CATEGORY_OPTIONS]}
           subtypeOptions={[...PHONE_SUBTYPE_OPTIONS]}
         />
+<RelationPicker
+  label="연결 스토리"
+  name="linkedStorySlugs"
+  candidates={storyCandidates}
+  characterOptions={[...CHARACTER_OPTIONS]}
+  subtypeOptions={[...STORY_SUBTYPE_OPTIONS]}
+/>
+
 
         <RelationPicker
           label="연결 이벤트"

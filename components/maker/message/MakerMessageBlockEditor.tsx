@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import {
   type MakerMessageChoiceNode,
   type MakerMessageNode,
@@ -65,38 +66,63 @@ function NestedEditor({
   onChange: (next: MakerMessageNode[]) => void;
 }) {
   return (
-    <div style={{ marginTop: 12, paddingLeft: 14, borderLeft: "2px solid #d7e0ec" }}>
+    <div className="maker-choice-nested">
       <MakerMessageBlockEditor value={value} onChange={onChange} />
     </div>
   );
 }
 
 export default function MakerMessageBlockEditor({ value, onChange }: Props) {
+  const pendingFocusIndexRef = useRef<number | null>(null);
+
   function addBlock(node: MakerMessageNode) {
+    pendingFocusIndexRef.current = value.length;
     onChange([...value, node]);
   }
 
+  useEffect(() => {
+    const index = pendingFocusIndexRef.current;
+    if (index === null) return;
+
+    const timer = window.setTimeout(() => {
+      const root = document.querySelector(
+        `[data-maker-block-index="${index}"]`
+      ) as HTMLElement | null;
+
+      const target = root?.querySelector(
+        '[data-maker-primary-field="true"]'
+      ) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+
+      if (target) {
+        root?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+
+        target.focus();
+
+        if ("selectionStart" in target && typeof target.value === "string") {
+          const length = target.value.length;
+          try {
+            target.setSelectionRange(length, length);
+          } catch {
+            // noop
+          }
+        }
+      }
+
+      pendingFocusIndexRef.current = null;
+    }, 80);
+
+    return () => window.clearTimeout(timer);
+  }, [value]);
+
   return (
-    <div style={{ display: "grid", gap: 14 }}>
-      <div
-        style={{
-          position: "sticky",
-          top: 12,
-          zIndex: 20,
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          padding: 14,
-          border: "1px solid #d7e0ec",
-          borderRadius: 14,
-          background: "#f8fbff",
-          boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-        }}
-      >
+    <div className="maker-block-editor">
+      <div className="maker-block-toolbar">
         <button
           type="button"
           className="primary-button"
-          style={{ marginTop: 0 }}
           onClick={() => addBlock(createMakerTextNode("left"))}
         >
           상대 대사 추가
@@ -104,7 +130,6 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
         <button
           type="button"
           className="primary-button"
-          style={{ marginTop: 0 }}
           onClick={() => addBlock(createMakerTextNode("right"))}
         >
           내 대사 추가
@@ -112,7 +137,6 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
         <button
           type="button"
           className="primary-button"
-          style={{ marginTop: 0 }}
           onClick={() => addBlock(createMakerSystemNode())}
         >
           시스템 문구 추가
@@ -120,7 +144,6 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
         <button
           type="button"
           className="primary-button"
-          style={{ marginTop: 0 }}
           onClick={() => addBlock(createMakerImageNode("left"))}
         >
           이미지 추가
@@ -128,7 +151,6 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
         <button
           type="button"
           className="primary-button"
-          style={{ marginTop: 0 }}
           onClick={() => addBlock(createMakerAudioNode("left"))}
         >
           음성 추가
@@ -136,7 +158,6 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
         <button
           type="button"
           className="primary-button"
-          style={{ marginTop: 0 }}
           onClick={() => addBlock(createMakerChoiceNode())}
         >
           선택지 추가
@@ -150,7 +171,11 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
       {value.map((node, index) => {
         if (node.type === "text") {
           return (
-            <div key={index} className="archive-card">
+            <div
+              key={index}
+              className="archive-card maker-block-card"
+              data-maker-block-index={index}
+            >
               <BlockToolbar
                 onMoveUp={() => onChange(moveItem(value, index, -1))}
                 onMoveDown={() => onChange(moveItem(value, index, 1))}
@@ -181,6 +206,7 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
                   <textarea
                     rows={4}
                     value={node.text}
+                    data-maker-primary-field="true"
                     onChange={(e) =>
                       onChange(
                         replaceAt(value, index, {
@@ -198,7 +224,11 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
 
         if (node.type === "system") {
           return (
-            <div key={index} className="archive-card">
+            <div
+              key={index}
+              className="archive-card maker-block-card"
+              data-maker-block-index={index}
+            >
               <BlockToolbar
                 onMoveUp={() => onChange(moveItem(value, index, -1))}
                 onMoveDown={() => onChange(moveItem(value, index, 1))}
@@ -209,6 +239,7 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
                 <span>시스템 문구</span>
                 <input
                   value={node.text}
+                  data-maker-primary-field="true"
                   onChange={(e) =>
                     onChange(
                       replaceAt(value, index, {
@@ -225,7 +256,11 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
 
         if (node.type === "image") {
           return (
-            <div key={index} className="archive-card">
+            <div
+              key={index}
+              className="archive-card maker-block-card"
+              data-maker-block-index={index}
+            >
               <BlockToolbar
                 onMoveUp={() => onChange(moveItem(value, index, -1))}
                 onMoveDown={() => onChange(moveItem(value, index, 1))}
@@ -255,6 +290,7 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
                   <span>이미지 URL</span>
                   <input
                     value={node.url}
+                    data-maker-primary-field="true"
                     onChange={(e) =>
                       onChange(
                         replaceAt(value, index, {
@@ -287,7 +323,11 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
 
         if (node.type === "audio") {
           return (
-            <div key={index} className="archive-card">
+            <div
+              key={index}
+              className="archive-card maker-block-card"
+              data-maker-block-index={index}
+            >
               <BlockToolbar
                 onMoveUp={() => onChange(moveItem(value, index, -1))}
                 onMoveDown={() => onChange(moveItem(value, index, 1))}
@@ -317,6 +357,7 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
                   <span>mp3 URL</span>
                   <input
                     value={node.url}
+                    data-maker-primary-field="true"
                     onChange={(e) =>
                       onChange(
                         replaceAt(value, index, {
@@ -372,7 +413,11 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
         const selectedOption = choiceNode.options[safeSelectedIndex];
 
         return (
-          <div key={index} className="archive-card">
+          <div
+            key={index}
+            className="archive-card maker-block-card"
+            data-maker-block-index={index}
+          >
             <BlockToolbar
               onMoveUp={() => onChange(moveItem(value, index, -1))}
               onMoveDown={() => onChange(moveItem(value, index, 1))}
@@ -393,7 +438,6 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
                 <button
                   type="button"
                   className="primary-button"
-                  style={{ marginTop: 0 }}
                   onClick={() => {
                     const nextNode: MakerMessageChoiceNode = {
                       ...choiceNode,
@@ -475,6 +519,9 @@ export default function MakerMessageBlockEditor({ value, onChange }: Props) {
                     <span>선택지 {optionIndex + 1}</span>
                     <input
                       value={option.label}
+                      data-maker-primary-field={
+                        safeSelectedIndex === optionIndex ? "true" : undefined
+                      }
                       onChange={(e) => {
                         const nextOptions = replaceAt(choiceNode.options, optionIndex, {
                           ...option,

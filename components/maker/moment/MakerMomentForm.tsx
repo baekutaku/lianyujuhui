@@ -213,13 +213,15 @@ export default function MakerMomentForm({
           />
         </label>
 
-        <input
-          type="hidden"
-          name="moment_author_avatar_url"
-          value={authorAvatarUrl}
-          readOnly
-        />
-
+        <label className="form-field form-field-full">
+  <span>작성자 프사 URL</span>
+  <input
+    name="moment_author_avatar_url"
+    value={authorAvatarUrl}
+    onChange={(e) => setAuthorAvatarUrl(e.target.value)}
+    placeholder="/profile/baiqi.png 또는 https://..."
+  />
+</label>
         <label className="form-field form-field-full">
           <span>본문</span>
           <textarea

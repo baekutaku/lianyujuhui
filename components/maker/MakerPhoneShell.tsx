@@ -4,9 +4,9 @@ export default function MakerPhoneShell({
   children: React.ReactNode;
 }) {
   return (
-    <main className="phone-page">
-      <div className="phone-shell">
-        <div className="phone-shell-inner">{children}</div>
+    <main className="phone-page maker-page">
+      <div className="phone-shell maker-shell">
+        <div className="phone-shell-inner maker-shell-inner">{children}</div>
       </div>
     </main>
   );

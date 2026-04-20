@@ -8,6 +8,7 @@ export type RelationCandidate = {
   subtype?: string | null;
   characterKey?: string | null;
   category?: string | null;
+  tags?: string[] | null;
 };
 
 type SelectOption = {
@@ -49,20 +50,20 @@ export default function RelationPicker({
       const matchesCharacter =
         character === "all" || item.characterKey === character;
       const matchesCategory = category === "all" || item.category === category;
-
-      const matchesQuery =
-        !q ||
-        [
-          item.title,
-          item.slug,
-          item.subtype,
-          item.characterKey,
-          item.category,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase()
-          .includes(q);
+const matchesQuery =
+  !q ||
+  [
+    item.title,
+    item.slug,
+    item.subtype,
+    item.characterKey,
+    item.category,
+    ...(item.tags ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes(q);
 
       const notSelected = !selected.some((s) => s.slug === item.slug);
 
@@ -160,7 +161,7 @@ export default function RelationPicker({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="제목, slug 검색"
+           placeholder="제목, slug, 해시태그 검색"
           />
         </label>
       </div>
@@ -228,9 +229,15 @@ export default function RelationPicker({
                   whiteSpace: "nowrap",
                 }}
               >
-                {[item.characterKey, item.subtype, item.category, item.slug]
-                  .filter(Boolean)
-                  .join(" · ")}
+          {[
+  item.characterKey,
+  item.subtype,
+  item.category,
+  ...(item.tags ?? []).slice(0, 3),
+  item.slug,
+]
+  .filter(Boolean)
+  .join(" · ")}
               </div>
             </div>
 

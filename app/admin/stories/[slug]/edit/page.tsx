@@ -110,80 +110,86 @@ export default async function EditStoryPage({
   }
 
   const [
-    { data: translations },
-    { data: mediaRows },
-    { data: coverMedia },
-    { data: relations },
-    { data: characters },
-    { data: appearingCharacterRows },
-    { data: itemTagRows },
-    { data: cards },
-    { data: phoneItems },
-    { data: events },
-  ] = await Promise.all([
-    supabase
-      .from("translations")
-      .select("id, title, body, language_code")
-      .eq("parent_type", "story")
-      .eq("parent_id", story.id),
+  { data: translations },
+  { data: mediaRows },
+  { data: coverMedia },
+  { data: relations },
+  { data: characters },
+  { data: appearingCharacterRows },
+  { data: itemTagRows },
+  { data: stories },
+  { data: cards },
+  { data: phoneItems },
+  { data: events },
+] = await Promise.all([
+  supabase
+    .from("translations")
+    .select("id, title, body, language_code")
+    .eq("parent_type", "story")
+    .eq("parent_id", story.id),
 
-    supabase
-      .from("media_assets")
-      .select("id, url, usage_type")
-      .eq("parent_type", "story")
-      .eq("parent_id", story.id)
-      .eq("media_type", "youtube"),
+  supabase
+    .from("media_assets")
+    .select("id, url, usage_type")
+    .eq("parent_type", "story")
+    .eq("parent_id", story.id)
+    .eq("media_type", "youtube"),
 
-    supabase
-      .from("media_assets")
-      .select("id, url")
-      .eq("parent_type", "story")
-      .eq("parent_id", story.id)
-      .eq("media_type", "image")
-      .eq("usage_type", "cover")
-      .maybeSingle(),
+  supabase
+    .from("media_assets")
+    .select("id, url")
+    .eq("parent_type", "story")
+    .eq("parent_id", story.id)
+    .eq("media_type", "image")
+    .eq("usage_type", "cover")
+    .maybeSingle(),
 
-    supabase
-      .from("item_relations")
-      .select("parent_type, parent_id, sort_order")
-      .eq("child_type", "story")
-      .eq("child_id", story.id)
-      .order("sort_order", { ascending: true }),
+  supabase
+    .from("item_relations")
+    .select("parent_type, parent_id, child_type, child_id, relation_type, sort_order")
+    .eq("child_type", "story")
+    .eq("child_id", story.id)
+    .order("sort_order", { ascending: true }),
 
-    supabase
-      .from("characters")
-      .select("id, key, name_ko")
-      .order("sort_order", { ascending: true }),
+  supabase
+    .from("characters")
+    .select("id, key, name_ko")
+    .order("sort_order", { ascending: true }),
 
-    supabase
-      .from("item_characters")
-      .select("character_id")
-      .eq("item_type", "story")
-      .eq("item_id", story.id),
+  supabase
+    .from("item_characters")
+    .select("character_id")
+    .eq("item_type", "story")
+    .eq("item_id", story.id),
 
-    supabase
-      .from("item_tags")
-      .select("tag_id, sort_order")
-      .eq("item_type", "story")
-      .eq("item_id", story.id)
-      .order("sort_order", { ascending: true }),
+  supabase
+    .from("item_tags")
+    .select("tag_id, sort_order")
+    .eq("item_type", "story")
+    .eq("item_id", story.id)
+    .order("sort_order", { ascending: true }),
 
-    supabase
-      .from("cards")
-      .select("id, title, slug, primary_character_id, card_category")
-      .order("release_year", { ascending: false }),
+  supabase
+    .from("stories")
+    .select("id, title, slug, subtype, primary_character_id")
+    .neq("id", story.id)
+    .order("release_year", { ascending: false }),
 
-    supabase
-      .from("phone_items")
-      .select("id, title, slug, subtype, content_json")
-      .order("release_year", { ascending: false }),
+  supabase
+    .from("cards")
+    .select("id, title, slug, primary_character_id, card_category")
+    .order("release_year", { ascending: false }),
 
-    supabase
-      .from("events")
-      .select("id, title, slug, subtype, primary_character_id")
-      .order("release_year", { ascending: false }),
-  ]);
+  supabase
+    .from("phone_items")
+    .select("id, title, slug, subtype, content_json")
+    .order("release_year", { ascending: false }),
 
+  supabase
+    .from("events")
+    .select("id, title, slug, subtype, primary_character_id")
+    .order("release_year", { ascending: false }),
+]);
   const translationCn =
     translations?.find((item) => normalizeLang(item.language_code) === "cn") ??
     null;
@@ -271,6 +277,45 @@ const characterKey =
       subtype: item.subtype ?? null,
       characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
     })) ?? [];
+
+const { data: outgoingStoryRelations } = await supabase
+  .from("item_relations")
+  .select("child_id")
+  .eq("parent_type", "story")
+  .eq("parent_id", story.id)
+  .eq("child_type", "story")
+  .eq("relation_type", "story_story");
+
+
+const storyCandidates: RelationCandidate[] =
+  (stories ?? []).map((item: any) => ({
+    slug: item.slug,
+    title: item.title,
+    subtype: item.subtype ?? null,
+    characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+  })) ?? [];
+
+const storyIdToCandidate = new Map(
+  (stories ?? []).map((item: any) => [
+    item.id,
+    storyCandidates.find((c) => c.slug === item.slug),
+  ])
+);
+
+const initialStories = Array.from(
+  new Set([
+    ...(relations ?? [])
+      .filter(
+        (rel: any) =>
+          rel.parent_type === "story" && rel.relation_type === "story_story"
+      )
+      .map((rel: any) => rel.parent_id),
+    ...((outgoingStoryRelations ?? []).map((rel: any) => rel.child_id)),
+  ])
+)
+  .map((id) => storyIdToCandidate.get(id))
+  .filter(Boolean) as RelationCandidate[];
+
 
   const cardIdToCandidate = new Map(
     (cards ?? []).map((item: any) => [item.id, cardCandidates.find((c) => c.slug === item.slug)])
@@ -480,6 +525,15 @@ const characterKey =
           categoryOptions={[...PHONE_CATEGORY_OPTIONS]}
           subtypeOptions={[...PHONE_SUBTYPE_OPTIONS]}
         />
+<RelationPicker
+  label="연결 스토리"
+  name="linkedStorySlugs"
+  candidates={storyCandidates}
+  initialSelected={initialStories}
+  characterOptions={[...CHARACTER_OPTIONS]}
+  subtypeOptions={[...STORY_SUBTYPE_OPTIONS]}
+/>
+
 
         <RelationPicker
           label="연결 이벤트"
@@ -488,6 +542,7 @@ const characterKey =
           initialSelected={initialEvents}
           characterOptions={[...CHARACTER_OPTIONS]}
         />
+
 
         <StoryVisibilityFields
           values={{
