@@ -236,6 +236,53 @@ export default async function EditStoryPage({
   const characterKeyMap = new Map(
     characterRows.map((item: any) => [item.id, item.key])
   );
+
+
+  const relationSourceIds = [
+  ...(stories ?? []).map((item: any) => item.id),
+  ...(cards ?? []).map((item: any) => item.id),
+  ...(phoneItems ?? []).map((item: any) => item.id),
+  ...(events ?? []).map((item: any) => item.id),
+];
+
+let itemTagsMap = new Map<string, string[]>();
+
+if (relationSourceIds.length > 0) {
+  const { data: itemTagRows } = await supabase
+    .from("item_tags")
+    .select("item_id, tag_id, item_type, sort_order")
+    .in("item_id", relationSourceIds)
+    .in("item_type", ["story", "card", "phone_item", "event"])
+    .order("sort_order", { ascending: true });
+
+  const tagIds = Array.from(
+    new Set((itemTagRows ?? []).map((row: any) => row.tag_id))
+  );
+
+  if (tagIds.length > 0) {
+    const { data: tagRows } = await supabase
+      .from("tags")
+      .select("id, label, name, slug")
+      .in("id", tagIds);
+
+    const tagLabelMap = new Map(
+      (tagRows ?? []).map((row: any) => [
+        row.id,
+        row.label ?? row.name ?? row.slug,
+      ])
+    );
+
+    itemTagsMap = (itemTagRows ?? []).reduce((map, row: any) => {
+      const label = tagLabelMap.get(row.tag_id);
+      if (!label) return map;
+
+      const prev = map.get(row.item_id) ?? [];
+      prev.push(label);
+      map.set(row.item_id, prev);
+      return map;
+    }, new Map<string, string[]>());
+  }
+}
 const { data: serverRow } = story.server_id
   ? await supabase
       .from("servers")
@@ -250,33 +297,36 @@ const characterKey =
   characterRows.find((item: any) => item.id === story.primary_character_id)?.key ??
   "baiqi";
 
-  const cardCandidates: RelationCandidate[] =
-    (cards ?? []).map((item: any) => ({
-      slug: item.slug,
-      title: item.title,
-      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
-      category: item.card_category ?? null,
-    })) ?? [];
+ const cardCandidates: RelationCandidate[] =
+  (cards ?? []).map((item: any) => ({
+    slug: item.slug,
+    title: item.title,
+    characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    category: item.card_category ?? null,
+    tags: itemTagsMap.get(item.id) ?? [],
+  })) ?? [];
 
-  const phoneCandidates: RelationCandidate[] =
-    (phoneItems ?? []).map((item: any) => ({
-      slug: item.slug,
-      title: item.title,
-      subtype: item.subtype ?? null,
-      characterKey: item.content_json?.characterKey ?? null,
-      category:
-        item.content_json?.historyCategory ??
-        item.content_json?.momentCategory ??
-        null,
-    })) ?? [];
+const phoneCandidates: RelationCandidate[] =
+  (phoneItems ?? []).map((item: any) => ({
+    slug: item.slug,
+    title: item.title,
+    subtype: item.subtype ?? null,
+    characterKey: item.content_json?.characterKey ?? null,
+    category:
+      item.content_json?.historyCategory ??
+      item.content_json?.momentCategory ??
+      null,
+    tags: itemTagsMap.get(item.id) ?? [],
+  })) ?? [];
 
-  const eventCandidates: RelationCandidate[] =
-    (events ?? []).map((item: any) => ({
-      slug: item.slug,
-      title: item.title,
-      subtype: item.subtype ?? null,
-      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
-    })) ?? [];
+const eventCandidates: RelationCandidate[] =
+  (events ?? []).map((item: any) => ({
+    slug: item.slug,
+    title: item.title,
+    subtype: item.subtype ?? null,
+    characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    tags: itemTagsMap.get(item.id) ?? [],
+  })) ?? [];
 
 const { data: outgoingStoryRelations } = await supabase
   .from("item_relations")
@@ -286,13 +336,13 @@ const { data: outgoingStoryRelations } = await supabase
   .eq("child_type", "story")
   .eq("relation_type", "story_story");
 
-
 const storyCandidates: RelationCandidate[] =
   (stories ?? []).map((item: any) => ({
     slug: item.slug,
     title: item.title,
     subtype: item.subtype ?? null,
     characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    tags: itemTagsMap.get(item.id) ?? [],
   })) ?? [];
 
 const storyIdToCandidate = new Map(

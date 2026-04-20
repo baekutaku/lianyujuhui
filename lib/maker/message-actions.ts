@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseMessageBulk } from "@/lib/admin/phoneBulkParsers";
-import { ensureMakerGuest } from "@/lib/maker/auth";
+import { ensureMakerGuest, getMakerActor } from "@/lib/maker/auth";
 import {
   buildMakerEditorNodesFromStoredEntries,
   buildMakerMessagePreview,
@@ -19,6 +19,8 @@ import {
   getMakerCharacterName,
 } from "@/lib/maker/defaults";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { MAKER_EXAMPLE_OWNER_ID } from "@/lib/maker/constants";
+
 
 function normalizeText(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
@@ -184,4 +186,53 @@ export async function softDeleteMakerMessage(formData: FormData) {
 
   revalidateMakerMessagePaths(threadId);
   redirect("/maker/messages");
+}
+
+export async function cloneMakerMessageThread(formData: FormData) {
+  const threadId = String(formData.get("threadId") || "").trim();
+  if (!threadId) {
+    throw new Error("threadId가 없습니다.");
+  }
+
+  const { guestId } = await ensureMakerGuest();
+
+  const { data: source, error: sourceError } = await supabaseAdmin
+    .from("maker_message_threads")
+    .select(
+      "id, owner_id, title, character_key, character_name, avatar_url, preview, payload_json, is_deleted"
+    )
+    .eq("id", threadId)
+    .eq("owner_id", MAKER_EXAMPLE_OWNER_ID)
+    .eq("is_deleted", false)
+    .maybeSingle();
+
+  if (sourceError) {
+    throw new Error(sourceError.message);
+  }
+
+  if (!source) {
+    throw new Error("복사할 예시 메시지를 찾지 못했습니다.");
+  }
+
+  const { data: inserted, error: insertError } = await supabaseAdmin
+    .from("maker_message_threads")
+    .insert({
+      owner_id: guestId,
+      title: source.title,
+      character_key: source.character_key,
+      character_name: source.character_name,
+      avatar_url: source.avatar_url,
+      preview: source.preview,
+      payload_json: source.payload_json,
+      is_deleted: false,
+    })
+    .select("id")
+    .single();
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+
+  revalidateMakerMessagePaths(inserted.id);
+  redirect(`/maker/messages/${inserted.id}/edit`);
 }

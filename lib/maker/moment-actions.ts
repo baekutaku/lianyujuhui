@@ -235,3 +235,4 @@ export async function softDeleteMakerMoment(formData: FormData) {
   revalidateMakerMomentPaths(momentId);
   redirect("/maker/moments");
 }
+

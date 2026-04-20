@@ -103,6 +103,7 @@ const [
 
 
 const relationSourceIds = [
+  ...(stories ?? []).map((item: any) => item.id),
   ...(cards ?? []).map((item: any) => item.id),
   ...(phoneItems ?? []).map((item: any) => item.id),
   ...(events ?? []).map((item: any) => item.id),
@@ -115,7 +116,7 @@ if (relationSourceIds.length > 0) {
     .from("item_tags")
     .select("item_id, tag_id, item_type, sort_order")
     .in("item_id", relationSourceIds)
-    .in("item_type", ["card", "phone_item", "event"])
+    .in("item_type", ["story", "card", "phone_item", "event"])
     .order("sort_order", { ascending: true });
 
   const tagIds = Array.from(new Set((itemTagRows ?? []).map((row: any) => row.tag_id)));
@@ -149,6 +150,14 @@ if (relationSourceIds.length > 0) {
   const characterKeyMap = new Map(
     characterRows.map((item: any) => [item.id, item.key])
   );
+const storyCandidates: RelationCandidate[] =
+  (stories ?? []).map((item: any) => ({
+    slug: item.slug,
+    title: item.title,
+    subtype: item.subtype ?? null,
+    characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    tags: itemTagsMap.get(item.id) ?? [],
+  })) ?? [];
 
 const cardCandidates: RelationCandidate[] =
   (cards ?? []).map((item: any) => ({
@@ -172,14 +181,6 @@ const phoneCandidates: RelationCandidate[] =
     tags: itemTagsMap.get(item.id) ?? [],
   })) ?? [];
 
- const storyCandidates: RelationCandidate[] =
-  (stories ?? []).map((item: any) => ({
-    slug: item.slug,
-    title: item.title,
-    subtype: item.subtype ?? null,
-    characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
-    tags: itemTagsMap.get(item.id) ?? [],
-  })) ?? [];
 const eventCandidates: RelationCandidate[] =
   (events ?? []).map((item: any) => ({
     slug: item.slug,
@@ -188,7 +189,6 @@ const eventCandidates: RelationCandidate[] =
     characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
     tags: itemTagsMap.get(item.id) ?? [],
   })) ?? [];
-
   return (
     <main>
       <header className="page-header">

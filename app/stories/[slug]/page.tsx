@@ -53,6 +53,12 @@ type RelatedEvent = {
   slug: string;
 };
 
+type RelatedStory = {
+  id: string;
+  title: string;
+  slug: string;
+};
+
 type StoryNavCard = {
   id: string;
   title: string;
@@ -668,9 +674,49 @@ const nextStoryHref = nextStory ? buildStoryNavHref(nextStory.slug) : null;
     console.error("[stories/[slug]] relations fetch error:", relationsError);
   }
 
+  const { data: outgoingStoryRelations, error: outgoingStoryRelationsError } =
+  await supabase
+    .from("item_relations")
+    .select("child_id")
+    .eq("parent_type", "story")
+    .eq("parent_id", story.id)
+    .eq("child_type", "story")
+    .eq("relation_type", "story_story");
+
+if (outgoingStoryRelationsError) {
+  console.error(
+    "[stories/[slug]] outgoing story relations fetch error:",
+    outgoingStoryRelationsError
+  );
+}
+let relatedStories: RelatedStory[] = [];
 let relatedCards: RelatedCard[] = [];
 let relatedPhoneItems: RelatedPhoneItem[] = [];
 let relatedEvents: RelatedEvent[] = [];
+
+const relatedStoryIds = Array.from(
+  new Set([
+    ...(relations ?? [])
+      .filter(
+        (rel) => rel.parent_type === "story" && rel.relation_type === "story_story"
+      )
+      .map((rel) => rel.parent_id),
+    ...((outgoingStoryRelations ?? []).map((rel: any) => rel.child_id)),
+  ])
+);
+
+if (relatedStoryIds.length > 0) {
+  const { data: storyRows, error: relatedStoriesError } = await supabase
+    .from("stories")
+    .select("id, title, slug")
+    .in("id", relatedStoryIds);
+
+  if (relatedStoriesError) {
+    console.error("[stories/[slug]] related stories fetch error:", relatedStoriesError);
+  }
+
+  relatedStories = storyRows ?? [];
+}
 
 if (relations && relations.length > 0) {
   const cardRelationIds = relations
@@ -726,6 +772,7 @@ if (relations && relations.length > 0) {
 }
 
 const hasConnections =
+  relatedStories.length > 0 ||
   relatedCards.length > 0 ||
   relatedPhoneItems.length > 0 ||
   relatedEvents.length > 0;
@@ -822,6 +869,8 @@ const hasConnections =
 
  {hasConnections ? (
   <aside className="story-topbar-side">
+
+
     {relatedCards.length > 0 ? (
       <details className="story-side-block story-side-disclosure">
         <summary className="story-side-summary">
@@ -851,6 +900,8 @@ const hasConnections =
       </details>
     ) : null}
 
+
+
     {relatedPhoneItems.length > 0 ? (
       <details className="story-side-block story-side-disclosure">
         <summary className="story-side-summary">
@@ -879,6 +930,35 @@ const hasConnections =
         </div>
       </details>
     ) : null}
+
+    {relatedStories.length > 0 ? (
+  <details className="story-side-block story-side-disclosure">
+    <summary className="story-side-summary">
+      <div className="story-side-title-row">
+        <h2 className="story-side-title">연결된 스토리</h2>
+        <span className="story-side-count">{relatedStories.length}</span>
+      </div>
+      <span className="story-side-toggle" aria-hidden="true">
+        ▾
+      </span>
+    </summary>
+
+    <div className="story-side-content">
+      <div className="story-side-links">
+        {relatedStories.map((item) => (
+          <Link
+            key={item.id}
+            href={`/stories/${item.slug}`}
+            className="story-side-chip"
+            title={item.title}
+          >
+            {item.title}
+          </Link>
+        ))}
+      </div>
+    </div>
+  </details>
+) : null}
 
     {relatedEvents.length > 0 ? (
       <details className="story-side-block story-side-disclosure">

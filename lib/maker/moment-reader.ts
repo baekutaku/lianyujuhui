@@ -1,4 +1,5 @@
 import { getMakerActor } from "@/lib/maker/auth";
+import { MAKER_EXAMPLE_OWNER_ID } from "@/lib/maker/constants";
 import {
   getMakerCharacterAvatar,
   getMakerCharacterName,
@@ -20,7 +21,7 @@ type MakerMomentRow = {
   updated_at: string | null;
 };
 
-function normalizeMomentPayload(row: MakerMomentRow) {
+function normalizeMomentPayload(row: MakerMomentRow, actorOwnerId: string) {
   const payload = (row.payload_json ?? {}) as Partial<MakerMomentPayload>;
 
   const authorKey =
@@ -40,6 +41,9 @@ function normalizeMomentPayload(row: MakerMomentRow) {
 
   return {
     id: row.id,
+    ownerId: row.owner_id,
+    isOwner: row.owner_id === actorOwnerId,
+    isExample: row.owner_id === MAKER_EXAMPLE_OWNER_ID,
     title: String(row.title || "").trim() || `${authorName} 모멘트`,
     authorKey,
     authorName,
@@ -88,12 +92,16 @@ export async function listMakerMoments() {
   const actor = await getMakerActor();
   if (!actor.ownerId) return [];
 
+  const ownerIds = Array.from(
+    new Set([actor.ownerId, MAKER_EXAMPLE_OWNER_ID].filter(Boolean))
+  );
+
   const { data, error } = await supabaseAdmin
     .from("maker_moments")
     .select(
       "id, owner_id, title, author_key, author_name, author_avatar_url, preview, payload_json, is_deleted, created_at, updated_at"
     )
-    .eq("owner_id", actor.ownerId)
+    .in("owner_id", ownerIds)
     .eq("is_deleted", false)
     .order("updated_at", { ascending: false })
     .order("created_at", { ascending: false });
@@ -102,12 +110,18 @@ export async function listMakerMoments() {
     throw new Error(error.message);
   }
 
-  return ((data ?? []) as MakerMomentRow[]).map(normalizeMomentPayload);
+  return ((data ?? []) as MakerMomentRow[]).map((row) =>
+    normalizeMomentPayload(row, actor.ownerId)
+  );
 }
 
 export async function getMakerMoment(momentId: string) {
   const actor = await getMakerActor();
   if (!actor.ownerId) return null;
+
+  const ownerIds = Array.from(
+    new Set([actor.ownerId, MAKER_EXAMPLE_OWNER_ID].filter(Boolean))
+  );
 
   const { data, error } = await supabaseAdmin
     .from("maker_moments")
@@ -115,7 +129,7 @@ export async function getMakerMoment(momentId: string) {
       "id, owner_id, title, author_key, author_name, author_avatar_url, preview, payload_json, is_deleted, created_at, updated_at"
     )
     .eq("id", momentId)
-    .eq("owner_id", actor.ownerId)
+    .in("owner_id", ownerIds)
     .eq("is_deleted", false)
     .maybeSingle();
 
@@ -124,5 +138,5 @@ export async function getMakerMoment(momentId: string) {
   }
 
   if (!data) return null;
-  return normalizeMomentPayload(data as MakerMomentRow);
+  return normalizeMomentPayload(data as MakerMomentRow, actor.ownerId);
 }

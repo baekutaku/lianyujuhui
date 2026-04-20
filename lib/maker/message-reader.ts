@@ -1,4 +1,5 @@
 import { getMakerActor } from "@/lib/maker/auth";
+import { MAKER_EXAMPLE_OWNER_ID } from "@/lib/maker/constants";
 import {
   MAKER_CHARACTER_AVATAR_MAP,
   MAKER_CHARACTER_NAME_MAP,
@@ -20,7 +21,10 @@ type MakerMessageThreadRow = {
   updated_at: string | null;
 };
 
-function normalizeMessagePayload(row: MakerMessageThreadRow) {
+function normalizeMessagePayload(
+  row: MakerMessageThreadRow,
+  actorOwnerId: string
+) {
   const payload = (row.payload_json ?? {}) as Partial<MakerMessagePayload>;
   const characterKey =
     String(payload.characterKey || row.character_key || "").trim() || "baiqi";
@@ -44,6 +48,9 @@ function normalizeMessagePayload(row: MakerMessageThreadRow) {
 
   return {
     id: row.id,
+    ownerId: row.owner_id,
+    isOwner: row.owner_id === actorOwnerId,
+    isExample: row.owner_id === MAKER_EXAMPLE_OWNER_ID,
     title: String(row.title || "").trim() || `${characterName} 메시지`,
     characterKey,
     characterName,
@@ -67,12 +74,16 @@ export async function listMakerMessageThreads() {
   const actor = await getMakerActor();
   if (!actor.ownerId) return [];
 
+  const ownerIds = Array.from(
+    new Set([actor.ownerId, MAKER_EXAMPLE_OWNER_ID].filter(Boolean))
+  );
+
   const { data, error } = await supabaseAdmin
     .from("maker_message_threads")
     .select(
       "id, owner_id, title, character_key, character_name, avatar_url, preview, payload_json, is_deleted, created_at, updated_at"
     )
-    .eq("owner_id", actor.ownerId)
+    .in("owner_id", ownerIds)
     .eq("is_deleted", false)
     .order("updated_at", { ascending: false })
     .order("created_at", { ascending: false });
@@ -81,12 +92,18 @@ export async function listMakerMessageThreads() {
     throw new Error(error.message);
   }
 
-  return ((data ?? []) as MakerMessageThreadRow[]).map(normalizeMessagePayload);
+  return ((data ?? []) as MakerMessageThreadRow[]).map((row) =>
+    normalizeMessagePayload(row, actor.ownerId)
+  );
 }
 
 export async function getMakerMessageThread(threadId: string) {
   const actor = await getMakerActor();
   if (!actor.ownerId) return null;
+
+  const ownerIds = Array.from(
+    new Set([actor.ownerId, MAKER_EXAMPLE_OWNER_ID].filter(Boolean))
+  );
 
   const { data, error } = await supabaseAdmin
     .from("maker_message_threads")
@@ -94,7 +111,7 @@ export async function getMakerMessageThread(threadId: string) {
       "id, owner_id, title, character_key, character_name, avatar_url, preview, payload_json, is_deleted, created_at, updated_at"
     )
     .eq("id", threadId)
-    .eq("owner_id", actor.ownerId)
+    .in("owner_id", ownerIds)
     .eq("is_deleted", false)
     .maybeSingle();
 
@@ -103,5 +120,5 @@ export async function getMakerMessageThread(threadId: string) {
   }
 
   if (!data) return null;
-  return normalizeMessagePayload(data as MakerMessageThreadRow);
+  return normalizeMessagePayload(data as MakerMessageThreadRow, actor.ownerId);
 }

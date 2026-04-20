@@ -1,0 +1,1 @@
+export const MAKER_EXAMPLE_OWNER_ID = "maker-example";
