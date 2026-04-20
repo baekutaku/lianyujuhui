@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import StoriesFilterModal from "@/components/story/StoriesFilterModal";
+import StoryCategoryCompactTabs from "@/components/story/StoryCategoryCompactTabs";
 
 
 type SearchParamValue = string | string[] | undefined;
@@ -920,33 +921,130 @@ const eventIds = events.map((event) => event.id);
         </p>
 
 
-        <div className="story-archive-tabs">
-          {STORY_TAB_OPTIONS.map((item) => {
-            const href = buildStoriesHref({
-              tab: item.key,
-              q,
-              years: selectedYears,
-              characters: selectedCharacterKeys,
-              scope,
-              sort,
-              page: 1,
-            });
-
-            const active = item.key === activeTab.key;
-            
-
-            return (
-              <Link
-                key={item.key}
-                href={href}
-                className={`story-archive-tab ${active ? "active" : ""}`}
-              >
-                {item.label}
-                
-              </Link>
-            );
-          })}
-        </div>
+      <StoryCategoryCompactTabs
+  activeKey={activeTab.key}
+  primaryKeys={["all", "main", "card"]}
+  storageKey="stories-main-tabs"
+  items={[
+    {
+      key: "all",
+      label: "전체",
+      href: buildStoriesHref({
+        tab: "all",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "main",
+      label: "메인스토리",
+      href: buildStoriesHref({
+        tab: "main",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "card",
+      label: "데이트",
+      href: buildStoriesHref({
+        tab: "card",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "event",
+      label: "이벤트 / 기념일",
+      href: buildStoriesHref({
+        tab: "event",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "asmr",
+      label: "너의 곁에",
+      href: buildStoriesHref({
+        tab: "asmr",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "side",
+      label: "외전",
+      href: buildStoriesHref({
+        tab: "side",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "xiyue",
+      label: "서월국",
+      href: buildStoriesHref({
+        tab: "xiyue",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "myhome",
+      label: "마이홈",
+      href: buildStoriesHref({
+        tab: "myhome",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "company",
+      label: "촬영장 / 회사 프로젝트",
+      href: buildStoriesHref({
+        tab: "company",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+  ]}
+/>
        
 </header>
 
@@ -1180,31 +1278,130 @@ const eventIds = events.map((event) => event.id);
       메인스토리와 데이트를 우선으로 정리하는 연결형 스토리 목록입니다.
     </p>
 
-    <div className="story-archive-tabs">
-      {STORY_TAB_OPTIONS.map((item) => {
-        const href = buildStoriesHref({
-          tab: item.key,
-          q,
-          years: selectedYears,
-          characters: selectedCharacterKeys,
-          scope,
-          sort,
-          page: 1,
-        });
-
-        const active = item.key === activeTab.key;
-
-        return (
-          <Link
-            key={item.key}
-            href={href}
-            className={`story-archive-tab ${active ? "active" : ""}`}
-          >
-            {item.label}
-          </Link>
-        );
-      })}
-    </div>
+ <StoryCategoryCompactTabs
+  activeKey={activeTab.key}
+  primaryKeys={["all", "main", "card"]}
+  storageKey="stories-main-tabs"
+  items={[
+    {
+      key: "all",
+      label: "전체",
+      href: buildStoriesHref({
+        tab: "all",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "main",
+      label: "메인스토리",
+      href: buildStoriesHref({
+        tab: "main",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "card",
+      label: "데이트",
+      href: buildStoriesHref({
+        tab: "card",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "event",
+      label: "이벤트 / 기념일",
+      href: buildStoriesHref({
+        tab: "event",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "asmr",
+      label: "너의 곁에",
+      href: buildStoriesHref({
+        tab: "asmr",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "side",
+      label: "외전",
+      href: buildStoriesHref({
+        tab: "side",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "xiyue",
+      label: "서월국",
+      href: buildStoriesHref({
+        tab: "xiyue",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "myhome",
+      label: "마이홈",
+      href: buildStoriesHref({
+        tab: "myhome",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+    {
+      key: "company",
+      label: "촬영장 / 회사 프로젝트",
+      href: buildStoriesHref({
+        tab: "company",
+        q,
+        years: selectedYears,
+        characters: selectedCharacterKeys,
+        scope,
+        sort,
+        page: 1,
+      }),
+    },
+  ]}
+/>
 
     <form
   key={formStateKey}

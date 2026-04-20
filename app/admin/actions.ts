@@ -1083,6 +1083,90 @@ async function syncIncomingRelationsBySlugs(params: {
   }
 }
 
+async function syncStoryStoryRelationsBySlugs(
+  storyId: string,
+  slugs: string[]
+) {
+  const uniqueSlugs = Array.from(new Set(slugs)).filter(Boolean);
+
+  const [incoming, outgoing] = await Promise.all([
+    supabase
+      .from("item_relations")
+      .select("id")
+      .eq("relation_type", "story_story")
+      .eq("parent_type", "story")
+      .eq("child_type", "story")
+      .eq("child_id", storyId),
+
+    supabase
+      .from("item_relations")
+      .select("id")
+      .eq("relation_type", "story_story")
+      .eq("parent_type", "story")
+      .eq("child_type", "story")
+      .eq("parent_id", storyId),
+  ]);
+
+  if (incoming.error) throw new Error(incoming.error.message);
+  if (outgoing.error) throw new Error(outgoing.error.message);
+
+  const idsToDelete = [
+    ...(incoming.data ?? []).map((row) => row.id),
+    ...(outgoing.data ?? []).map((row) => row.id),
+  ];
+
+  if (idsToDelete.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("item_relations")
+      .delete()
+      .in("id", idsToDelete);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+  }
+
+  if (uniqueSlugs.length === 0) return;
+
+  const { data: relatedStories, error: lookupError } = await supabase
+    .from("stories")
+    .select("id, slug")
+    .in("slug", uniqueSlugs);
+
+  if (lookupError) {
+    throw new Error(lookupError.message);
+  }
+
+  const foundStories = relatedStories ?? [];
+  const foundSlugSet = new Set(foundStories.map((item) => item.slug));
+  const missingSlugs = uniqueSlugs.filter((slug) => !foundSlugSet.has(slug));
+
+  if (missingSlugs.length > 0) {
+    throw new Error(`story slug를 찾을 수 없습니다:\n${missingSlugs.join("\n")}`);
+  }
+
+  const rows = foundStories
+    .filter((item) => item.id !== storyId)
+    .map((item, index) => ({
+      parent_type: "story",
+      parent_id: item.id,
+      child_type: "story",
+      child_id: storyId,
+      relation_type: "story_story",
+      sort_order: index,
+    }));
+
+  if (rows.length === 0) return;
+
+  const { error: insertError } = await supabase
+    .from("item_relations")
+    .insert(rows);
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+}
+
 // export async function updateCard(formData: FormData) {
 //   const rawSlug = String(formData.get("slug") || "").trim();
 //   const safeSlug = encodeURIComponent(rawSlug);
@@ -1592,24 +1676,26 @@ export async function createStoryBundle(formData: FormData) {
     const youtubeUrlKr = String(formData.get("youtubeUrlKr") || "").trim();
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
 
-const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
-const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
-const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
-const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
+    const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
+    const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
+    const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
+
     const meta = await resolveStoryMetaFromForm(formData);
 
-  const manualSlug = String(formData.get("slug") || "").trim();
+    const manualSlug = String(formData.get("slug") || "").trim();
 
-const { slug: autoSlug, originKey, contentId } = buildStoryKeys({
-  subtype,
-  characterKey,
-  title,
-  year: releaseYear,
-  serverKey,
-});
+    const { slug: autoSlug, originKey, contentId } = buildStoryKeys({
+      subtype,
+      characterKey,
+      title,
+      year: releaseYear,
+      serverKey,
+    });
 
-const slug = manualSlug || autoSlug;
-successSlug = slug;
+    const slug = manualSlug || autoSlug;
+    successSlug = slug;
+
     const { data: server, error: serverError } = await supabase
       .from("servers")
       .select("id")
@@ -1724,7 +1810,7 @@ successSlug = slug;
       sortOrder: coverImageUrl ? 2 : 1,
     });
 
-
+    await syncStoryStoryRelationsBySlugs(insertedStory.id, linkedStorySlugs);
 
     await syncIncomingRelationsBySlugs({
       childType: "story",
@@ -1750,94 +1836,9 @@ successSlug = slug;
       slugs: linkedEventSlugs,
     });
 
-    async function syncStoryStoryRelationsBySlugs(
-  storyId: string,
-  slugs: string[]
-) {
-  const uniqueSlugs = Array.from(new Set(slugs)).filter(Boolean);
-
-  const [incoming, outgoing] = await Promise.all([
-    supabase
-      .from("item_relations")
-      .select("id")
-      .eq("relation_type", "story_story")
-      .eq("parent_type", "story")
-      .eq("child_type", "story")
-      .eq("child_id", storyId),
-
-    supabase
-      .from("item_relations")
-      .select("id")
-      .eq("relation_type", "story_story")
-      .eq("parent_type", "story")
-      .eq("child_type", "story")
-      .eq("parent_id", storyId),
-  ]);
-
-  if (incoming.error) throw new Error(incoming.error.message);
-  if (outgoing.error) throw new Error(outgoing.error.message);
-
-  const idsToDelete = [
-    ...(incoming.data ?? []).map((row) => row.id),
-    ...(outgoing.data ?? []).map((row) => row.id),
-  ];
-
-  if (idsToDelete.length > 0) {
-    const { error: deleteError } = await supabase
-      .from("item_relations")
-      .delete()
-      .in("id", idsToDelete);
-
-    if (deleteError) {
-      throw new Error(deleteError.message);
-    }
-  }
-
-  if (uniqueSlugs.length === 0) return;
-
-  const { data: relatedStories, error: lookupError } = await supabase
-    .from("stories")
-    .select("id, slug")
-    .in("slug", uniqueSlugs);
-
-  if (lookupError) {
-    throw new Error(lookupError.message);
-  }
-
-  const foundStories = relatedStories ?? [];
-  const foundSlugSet = new Set(foundStories.map((item) => item.slug));
-  const missingSlugs = uniqueSlugs.filter((slug) => !foundSlugSet.has(slug));
-
-  if (missingSlugs.length > 0) {
-    throw new Error(`story slug를 찾을 수 없습니다:\n${missingSlugs.join("\n")}`);
-  }
-
-  const rows = foundStories
-    .filter((item) => item.id !== storyId)
-    .map((item, index) => ({
-      parent_type: "story",
-      parent_id: item.id,
-      child_type: "story",
-      child_id: storyId,
-      relation_type: "story_story",
-      sort_order: index,
-    }));
-
-  if (rows.length === 0) return;
-
-  const { error: insertError } = await supabase
-    .from("item_relations")
-    .insert(rows);
-
-  if (insertError) {
-    throw new Error(insertError.message);
-  }
-}
-    
-
     revalidatePath("/admin/stories");
     revalidatePath("/stories");
-    // revalidatePath(`/stories/${insertedStory.slug}`); // 일단 끔
+    revalidatePath(`/stories/${encodeURIComponent(insertedStory.slug)}`);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
@@ -1855,11 +1856,8 @@ successSlug = slug;
     redirect(`/stories/${safeSuccessSlug}`);
   }
 
-  // 일단 edit로 바로 안 보내고 공개 상세로 보냄
   redirect(`/stories/${safeSuccessSlug}`);
 }
-
-
 
 
 // export async function updateStoryBundle(formData: FormData) {
@@ -2117,10 +2115,11 @@ export async function updateStoryBundle(formData: FormData) {
     const coverMediaId = String(formData.get("coverMediaId") || "").trim();
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
 
-   const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
-const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
-const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
-const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
+    const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
+    const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
+    const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
+
     const { data: currentStory, error: currentStoryError } = await supabase
       .from("stories")
       .select("access_password_hash")
@@ -2273,6 +2272,8 @@ const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
         throw new Error(error.message);
       }
     }
+
+   await syncStoryStoryRelationsBySlugs(storyId, linkedStorySlugs);
 
     await syncIncomingRelationsBySlugs({
       childType: "story",
