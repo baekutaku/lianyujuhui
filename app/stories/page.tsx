@@ -231,7 +231,47 @@ function toStringArray(value: SearchParamValue) {
 function getActiveTab(tab: string | undefined) {
   return STORY_TAB_OPTIONS.find((item) => item.key === tab) ?? STORY_TAB_OPTIONS[0];
 }
+const CHARACTER_SUBFILTER_TABS = new Set([
+  "card",
+  "asmr",
+  "side",
+  "xiyue",
+  "myhome",
+  "company",
+]);
 
+const CHARACTER_SUBFILTER_KEYS = new Set([
+  "baiqi",
+  "lizeyan",
+  "xumo",
+  "zhouqiluo",
+  "lingxiao",
+]);
+
+function resolveSelectedCharacterKeys(
+  tab: string,
+  sub: string,
+  rawSelectedCharacterKeys: string[]
+) {
+  const merged = new Set(rawSelectedCharacterKeys);
+
+  if (CHARACTER_SUBFILTER_TABS.has(tab) && CHARACTER_SUBFILTER_KEYS.has(sub)) {
+    merged.add(sub);
+  }
+
+  return Array.from(merged);
+}
+
+function getCharactersForSubfilterLink(
+  tab: string,
+  rawSelectedCharacterKeys: string[]
+) {
+  if (CHARACTER_SUBFILTER_TABS.has(tab)) {
+    return [];
+  }
+
+  return rawSelectedCharacterKeys;
+}
 function getSubtypeLabel(subtype: string | null) {
   if (!subtype) return "미분류";
   return SUBTYPE_LABELS[subtype] ?? subtype;
@@ -413,25 +453,18 @@ const selectedTag = toSingleString(resolvedSearchParams?.tag);
     )
   ).sort((a, b) => Number(b) - Number(a));
 
-  const rawSelectedCharacterKeys = Array.from(
+ const rawSelectedCharacterKeys = Array.from(
   new Set(toStringArray(resolvedSearchParams?.character))
 );
 
-const selectedCharacterKeys = Array.from(
-  new Set(
-    [
-      ...rawSelectedCharacterKeys,
-      ["card", "asmr", "side", "xiyue", "myhome", "company"].includes(tab) &&
-      ["baiqi", "lizeyan", "xumo", "zhouqiluo", "lingxiao"].includes(sub)
-        ? sub
-        : "",
-    ].filter(Boolean)
-  )
+const selectedCharacterKeys = resolveSelectedCharacterKeys(
+  tab,
+  sub,
+  rawSelectedCharacterKeys
 );
 
   const activeTab = getActiveTab(tab);
-  const admin = await isAdmin();
-
+const admin = await isAdmin();
 
   const { data: characters } = await supabase
     .from("characters")
@@ -743,7 +776,7 @@ const activeFilterChips = [
     tab: activeTab.key,
     q,
     years: selectedYears,
-    characters: selectedCharacterKeys,
+    characters: rawSelectedCharacterKeys,
     scope,
     sort,
   });
@@ -933,7 +966,7 @@ const eventIds = events.map((event) => event.id);
         tab: "all",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -946,7 +979,7 @@ const eventIds = events.map((event) => event.id);
         tab: "main",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -959,7 +992,7 @@ const eventIds = events.map((event) => event.id);
         tab: "card",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -972,7 +1005,7 @@ const eventIds = events.map((event) => event.id);
         tab: "event",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -985,7 +1018,7 @@ const eventIds = events.map((event) => event.id);
         tab: "asmr",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -998,7 +1031,7 @@ const eventIds = events.map((event) => event.id);
         tab: "side",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1011,7 +1044,7 @@ const eventIds = events.map((event) => event.id);
         tab: "xiyue",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1024,7 +1057,7 @@ const eventIds = events.map((event) => event.id);
         tab: "myhome",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1037,7 +1070,7 @@ const eventIds = events.map((event) => event.id);
         tab: "company",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1077,7 +1110,7 @@ const eventIds = events.map((event) => event.id);
         sort,
         tag: selectedTag,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
       }}
       yearOptions={yearOptions.map(String)}
       characterOptions={characterRows.map((item) => ({
@@ -1230,7 +1263,7 @@ const eventIds = events.map((event) => event.id);
               tag,
               q: "",
               years: selectedYears,
-              characters: selectedCharacterKeys,
+              characters: rawSelectedCharacterKeys,
               scope,
               sort,
               page: 1,
@@ -1290,7 +1323,7 @@ const eventIds = events.map((event) => event.id);
         tab: "all",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1303,7 +1336,7 @@ const eventIds = events.map((event) => event.id);
         tab: "main",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1316,7 +1349,7 @@ const eventIds = events.map((event) => event.id);
         tab: "card",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1329,7 +1362,7 @@ const eventIds = events.map((event) => event.id);
         tab: "event",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1342,7 +1375,7 @@ const eventIds = events.map((event) => event.id);
         tab: "asmr",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1355,7 +1388,7 @@ const eventIds = events.map((event) => event.id);
         tab: "side",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1368,7 +1401,7 @@ const eventIds = events.map((event) => event.id);
         tab: "xiyue",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1381,7 +1414,7 @@ const eventIds = events.map((event) => event.id);
         tab: "myhome",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1394,7 +1427,7 @@ const eventIds = events.map((event) => event.id);
         tab: "company",
         q,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
         scope,
         sort,
         page: 1,
@@ -1432,7 +1465,7 @@ const eventIds = events.map((event) => event.id);
         sort,
         tag: selectedTag,
         years: selectedYears,
-        characters: selectedCharacterKeys,
+        characters: rawSelectedCharacterKeys,
       }}
       yearOptions={yearOptions.map(String)}
       characterOptions={characterRows.map((item) => ({
@@ -1488,15 +1521,18 @@ const eventIds = events.map((event) => event.id);
   <div className="archive-subchip-row" style={{ marginTop: "12px" }}>
     {(STORY_SUBFILTERS[activeTab.key as keyof typeof STORY_SUBFILTERS] ?? []).map((item) => {
       const href = buildStoriesHref({
-        tab: activeTab.key,
-        sub: item.key,
-        q,
-        years: selectedYears,
-        characters: rawSelectedCharacterKeys,
-        scope,
-        sort,
-        page: 1,
-      });
+  tab: activeTab.key,
+  sub: item.key,
+  q,
+  years: selectedYears,
+  characters: getCharactersForSubfilterLink(
+    activeTab.key,
+    rawSelectedCharacterKeys
+  ),
+  scope,
+  sort,
+  page: 1,
+});
 
       const active = sub === item.key;
 
@@ -1622,7 +1658,7 @@ const eventIds = events.map((event) => event.id);
               tag,
               q: "",
               years: selectedYears,
-              characters: selectedCharacterKeys,
+              characters: rawSelectedCharacterKeys,
               scope,
               sort,
               page: 1,
@@ -1644,14 +1680,15 @@ const eventIds = events.map((event) => event.id);
                 <nav className="story-pagination" aria-label="스토리 페이지 이동">
                   <Link
                     href={buildStoriesHref({
-                      tab: activeTab.key,
-                      q,
-                      years: selectedYears,
-                      characters: selectedCharacterKeys,
-                      scope,
-                      sort,
-                      page: Math.max(1, currentPage - 1),
-                    })}
+  tab: activeTab.key,
+  sub: sub !== "all" ? sub : undefined,
+  q,
+  years: selectedYears,
+  characters: rawSelectedCharacterKeys,
+  scope,
+  sort,
+  page: Math.max(1, currentPage - 1),
+})}
                     className={`story-page-btn ${currentPage <= 1 ? "is-disabled" : ""}`}
                     aria-disabled={currentPage <= 1}
                   >
@@ -1668,15 +1705,16 @@ const eventIds = events.map((event) => event.id);
                           {showGap ? <span className="story-page-gap">…</span> : null}
 
                           <Link
-                            href={buildStoriesHref({
-                              tab: activeTab.key,
-                              q,
-                              years: selectedYears,
-                              characters: selectedCharacterKeys,
-                              scope,
-                              sort,
-                              page: pageNumber,
-                            })}
+                          href={buildStoriesHref({
+  tab: activeTab.key,
+  sub: sub !== "all" ? sub : undefined,
+  q,
+  years: selectedYears,
+  characters: rawSelectedCharacterKeys,
+  scope,
+  sort,
+  page: pageNumber,
+})}
                             className={`story-page-btn ${
                               currentPage === pageNumber ? "is-active" : ""
                             }`}
@@ -1689,15 +1727,16 @@ const eventIds = events.map((event) => event.id);
                   </div>
 
                   <Link
-                    href={buildStoriesHref({
-                      tab: activeTab.key,
-                      q,
-                      years: selectedYears,
-                      characters: selectedCharacterKeys,
-                      scope,
-                      sort,
-                      page: Math.min(totalPages, currentPage + 1),
-                    })}
+               href={buildStoriesHref({
+  tab: activeTab.key,
+  sub: sub !== "all" ? sub : undefined,
+  q,
+  years: selectedYears,
+  characters: rawSelectedCharacterKeys,
+  scope,
+  sort,
+  page: Math.min(totalPages, currentPage + 1),
+})}
                     className={`story-page-btn ${
                       currentPage >= totalPages ? "is-disabled" : ""
                     }`}
