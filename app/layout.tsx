@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Analytics } from '@vercel/analytics/next';
 import "./globals.css";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import FloatingMobileMenu from "@/components/FloatingMobileMenu";
@@ -107,6 +108,7 @@ export default async function SiteLayout({
           <FloatingMobileMenu />
           <ScrollToTopButton />
         </GlobalMusicProvider>
+        <Analytics />
       </body>
     </html>
   );
