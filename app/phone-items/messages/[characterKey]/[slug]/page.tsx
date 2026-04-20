@@ -268,22 +268,20 @@ export default async function CharacterMessageThreadPage({
 
   const rows = (data as MessageThreadRow[] | null) ?? [];
 
-  const item =
-    rows.find(
-      (row) => (row.content_json?.characterKey ?? "baiqi") === characterKey
-    ) ?? null;
-
+const item =
+  rows.find(
+    (row) => (row.content_json?.characterKey?.trim() ?? "npc") === characterKey
+  ) ?? null;
   if (!item) notFound();
 
   const characterName =
     item.content_json?.characterName ||
     DEFAULT_NAME_MAP[characterKey] ||
     "이름 없음";
-
-  const avatarUrl =
-    item.content_json?.avatarUrl?.trim() ||
-    DEFAULT_AVATAR_MAP[characterKey] ||
-    "/profile/baiqi.png";
+const avatarUrl =
+  item.content_json?.avatarUrl?.trim() ||
+  DEFAULT_AVATAR_MAP[characterKey] ||
+  "/profile/npc.png";
 
   const entries: ThreadEntries = Array.isArray(item.content_json?.editorEntries)
     ? (item.content_json.editorEntries as ThreadEntries)

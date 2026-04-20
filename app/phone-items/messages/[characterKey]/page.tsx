@@ -119,6 +119,7 @@ const DEFAULT_AVATAR_MAP: Record<string, string> = {
   zhouqiluo: "/profile/zhouqiluo.png",
   xumo: "/profile/xumo.png",
   lingxiao: "/profile/lingxiao.png",
+  npc: "/profile/npc.png",
 };
 
 const DEFAULT_NAME_MAP: Record<string, string> = {
@@ -151,9 +152,8 @@ export default async function CharacterMessagePage({ params }: PageProps) {
   }
 
   const item = (data ?? []).find((row) => {
-    return (row.content_json?.characterKey ?? "baiqi") === characterKey;
-  });
-
+  return (row.content_json?.characterKey?.trim() ?? "npc") === characterKey;
+});
   if (!item) {
     notFound();
   }
@@ -163,10 +163,10 @@ export default async function CharacterMessagePage({ params }: PageProps) {
     DEFAULT_NAME_MAP[characterKey] ||
     "이름 없음";
 
-  const avatarUrl =
-    item.content_json?.avatarUrl?.trim() ||
-    DEFAULT_AVATAR_MAP[characterKey] ||
-    "/profile/baiqi.png";
+const avatarUrl =
+  item.content_json?.avatarUrl?.trim() ||
+  DEFAULT_AVATAR_MAP[characterKey] ||
+  "/profile/npc.png";
 
   const entries = Array.isArray(item.content_json?.editorEntries)
     ? item.content_json.editorEntries

@@ -1979,8 +1979,14 @@ export async function createStoryBundle(formData: FormData) {
 //   redirect(`/stories/${safeSlug}`);
 // }
 export async function updateStoryBundle(formData: FormData) {
-  const rawSlug = String(formData.get("slug") || "").trim();
-  const safeSlug = encodeURIComponent(rawSlug);
+  const originalSlug = String(
+    formData.get("originalSlug") || formData.get("slug") || ""
+  ).trim();
+  const nextSlug = String(formData.get("slug") || "").trim();
+  const targetSlug = nextSlug || originalSlug;
+
+  const safeOriginalSlug = encodeURIComponent(originalSlug);
+  const safeTargetSlug = encodeURIComponent(targetSlug);
 
   try {
     await requireAdmin();
@@ -1993,9 +1999,17 @@ export async function updateStoryBundle(formData: FormData) {
 
     const title = String(formData.get("title") || "").trim();
     const subtype = String(formData.get("subtype") || "card_story").trim();
+
+    if (!ALLOWED_STORY_SUBTYPES.has(subtype)) {
+      throw new Error(`지원하지 않는 스토리 카테고리: ${subtype}`);
+    }
+
     const releaseYear = Number(formData.get("releaseYear") || 2025);
     const releaseDate = String(formData.get("releaseDate") || "").trim();
     const tagLabels = parseTagLabelsFromForm(formData);
+
+    const serverKey = String(formData.get("serverKey") || "cn").trim();
+    const characterKey = String(formData.get("characterKey") || "baiqi").trim();
 
     const translationCnId = String(formData.get("translationCnId") || "").trim();
     const translationKrId = String(formData.get("translationKrId") || "").trim();
@@ -2028,18 +2042,42 @@ export async function updateStoryBundle(formData: FormData) {
       throw new Error(currentStoryError.message);
     }
 
+    const { data: server, error: serverError } = await supabase
+      .from("servers")
+      .select("id")
+      .eq("key", serverKey)
+      .single();
+
+    if (serverError || !server) {
+      throw new Error(`server 조회 실패: ${serverError?.message || serverKey}`);
+    }
+
+    const { data: character, error: characterError } = await supabase
+      .from("characters")
+      .select("id")
+      .eq("key", characterKey)
+      .single();
+
+    if (characterError || !character) {
+      throw new Error(`character 조회 실패: ${characterError?.message || characterKey}`);
+    }
+
     const meta = await resolveStoryMetaFromForm(
       formData,
       currentStory?.access_password_hash ?? null
     );
 
+    const primaryCharacterId = meta.primaryCharacterId ?? character.id;
+
     const { error: storyError } = await supabase
       .from("stories")
       .update({
         title,
+        slug: targetSlug,
         subtype,
         release_year: releaseYear,
         release_date: releaseDate || null,
+        server_id: server.id,
         visibility: meta.visibility,
         access_password_hash: meta.accessPasswordHash,
         access_hint: meta.accessHint,
@@ -2049,7 +2087,7 @@ export async function updateStoryBundle(formData: FormData) {
         chapter_no: meta.chapterNo,
         main_kind: meta.mainKind,
         route_scope: meta.routeScope,
-        primary_character_id: meta.primaryCharacterId,
+        primary_character_id: primaryCharacterId,
         manual_sort_order: meta.manualSortOrder,
         arc_title: meta.arcTitle,
         episode_title: meta.episodeTitle,
@@ -2173,17 +2211,21 @@ export async function updateStoryBundle(formData: FormData) {
 
     revalidatePath("/admin/stories");
     revalidatePath("/stories");
-    revalidatePath(`/stories/${safeSlug}`);
+    revalidatePath(`/stories/${safeOriginalSlug}`);
+    revalidatePath(`/stories/${safeTargetSlug}`);
+    revalidatePath(`/admin/stories/${safeOriginalSlug}/edit`);
+    revalidatePath(`/admin/stories/${safeTargetSlug}/edit`);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
 
-    redirect(`/admin/stories/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
+    redirect(
+      `/admin/stories/${safeOriginalSlug}/edit?error=${encodeURIComponent(message)}`
+    );
   }
 
-  redirect(`/stories/${safeSlug}`);
+  redirect(`/stories/${safeTargetSlug}`);
 }
-
 export async function deleteStoryBundle(formData: FormData) {
   await requireAdmin();
 

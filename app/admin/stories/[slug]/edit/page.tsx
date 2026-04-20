@@ -230,6 +230,19 @@ export default async function EditStoryPage({
   const characterKeyMap = new Map(
     characterRows.map((item: any) => [item.id, item.key])
   );
+const { data: serverRow } = story.server_id
+  ? await supabase
+      .from("servers")
+      .select("key")
+      .eq("id", story.server_id)
+      .maybeSingle()
+  : { data: null };
+
+const serverKey = serverRow?.key ?? "cn";
+
+const characterKey =
+  characterRows.find((item: any) => item.id === story.primary_character_id)?.key ??
+  "baiqi";
 
   const cardCandidates: RelationCandidate[] =
     (cards ?? []).map((item: any) => ({
@@ -329,93 +342,125 @@ export default async function EditStoryPage({
       ) : null}
 
       <form action={updateStoryBundle} className="form-panel">
-        <input type="hidden" name="storyId" value={story.id} />
-        <input type="hidden" name="slug" value={story.slug} />
+       <input type="hidden" name="storyId" value={story.id} />
+<input type="hidden" name="originalSlug" value={story.slug} />
         <input type="hidden" name="translationCnId" value={translationCn?.id ?? ""} />
         <input type="hidden" name="translationKrId" value={translationKr?.id ?? ""} />
         <input type="hidden" name="mediaCnId" value={mediaCn?.id ?? ""} />
         <input type="hidden" name="mediaKrId" value={mediaKr?.id ?? ""} />
         <input type="hidden" name="coverMediaId" value={coverMedia?.id ?? ""} />
 
-        <div className="form-grid">
-          <label className="form-field form-field-full">
-            <span>제목</span>
-            <input name="title" defaultValue={story.title} required />
-          </label>
+       <div className="form-grid">
+  <label className="form-field form-field-full">
+    <span>제목</span>
+    <input name="title" defaultValue={story.title} required />
+  </label>
 
-          <label className="form-field">
-            <span>카테고리</span>
-            <select name="subtype" defaultValue={story.subtype}>
-              {STORY_SUBTYPE_OPTIONS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+  <label className="form-field">
+    <span>slug</span>
+    <input
+      name="slug"
+      defaultValue={story.slug}
+      autoComplete="off"
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck={false}
+      placeholder="예: baiqi-어쩌고-kr"
+    />
+  </label>
 
-          <label className="form-field">
-            <span>연도</span>
-            <input
-              name="releaseYear"
-              type="number"
-              defaultValue={story.release_year}
-              required
-            />
-          </label>
+  <label className="form-field">
+    <span>카테고리</span>
+    <select name="subtype" defaultValue={story.subtype}>
+      {STORY_SUBTYPE_OPTIONS.map((item) => (
+        <option key={item.value} value={item.value}>
+          {item.label}
+        </option>
+      ))}
+    </select>
+  </label>
 
-          <label className="form-field">
-            <span>출시일</span>
-            <input
-              name="releaseDate"
-              type="date"
-              defaultValue={story.release_date ?? ""}
-            />
-          </label>
+  <label className="form-field">
+    <span>서버</span>
+    <select name="serverKey" defaultValue={serverKey}>
+      <option value="cn">중국</option>
+      <option value="kr">한국</option>
+    </select>
+  </label>
 
-          <label className="form-field form-field-full">
-            <span>해시태그</span>
-            <input
-              name="tagLabels"
-              defaultValue={defaultTagText}
-              placeholder="예: 학교, 어머니, 추천, 고백전"
-            />
-          </label>
+  <label className="form-field">
+    <span>대표 캐릭터</span>
+    <select name="characterKey" defaultValue={characterKey}>
+      {CHARACTER_OPTIONS.map((item) => (
+        <option key={item.value} value={item.value}>
+          {item.label}
+        </option>
+      ))}
+    </select>
+  </label>
 
-          <label className="form-field form-field-full">
-            <span>CN 유튜브 링크</span>
-            <input
-              name="youtubeUrlCn"
-              defaultValue={mediaCn?.url ?? ""}
-              placeholder="https://www.youtube.com/watch?v=..."
-            />
-          </label>
+  <label className="form-field">
+    <span>연도</span>
+    <input
+      name="releaseYear"
+      type="number"
+      defaultValue={story.release_year}
+      required
+    />
+  </label>
 
-          <label className="form-field form-field-full">
-            <span>KR 유튜브 링크</span>
-            <input
-              name="youtubeUrlKr"
-              defaultValue={mediaKr?.url ?? ""}
-              placeholder="https://www.youtube.com/watch?v=..."
-            />
-          </label>
+  <label className="form-field">
+    <span>출시일</span>
+    <input
+      name="releaseDate"
+      type="date"
+      defaultValue={story.release_date ?? ""}
+    />
+  </label>
 
-          <label className="form-field form-field-full">
-            <span>커버 이미지 URL</span>
-            <input
-              name="coverImageUrl"
-              defaultValue={coverMedia?.url ?? ""}
-              placeholder="https://..."
-            />
-          </label>
+  <label className="form-field form-field-full">
+    <span>해시태그</span>
+    <input
+      name="tagLabels"
+      defaultValue={defaultTagText}
+      placeholder="예: 학교, 어머니, 추천, 고백전"
+    />
+  </label>
 
-          <StoryTranslationFields
-            cnTitle={translationCn?.title ?? ""}
-            cnBody={translationCn?.body ?? ""}
-            krTitle={translationKr?.title ?? ""}
-            krBody={translationKr?.body ?? ""}
-          />
-        </div>
+  <label className="form-field form-field-full">
+    <span>CN 유튜브 링크</span>
+    <input
+      name="youtubeUrlCn"
+      defaultValue={mediaCn?.url ?? ""}
+      placeholder="https://www.youtube.com/watch?v=..."
+    />
+  </label>
+
+  <label className="form-field form-field-full">
+    <span>KR 유튜브 링크</span>
+    <input
+      name="youtubeUrlKr"
+      defaultValue={mediaKr?.url ?? ""}
+      placeholder="https://www.youtube.com/watch?v=..."
+    />
+  </label>
+
+  <label className="form-field form-field-full">
+    <span>커버 이미지 URL</span>
+    <input
+      name="coverImageUrl"
+      defaultValue={coverMedia?.url ?? ""}
+      placeholder="https://..."
+    />
+  </label>
+
+  <StoryTranslationFields
+    cnTitle={translationCn?.title ?? ""}
+    cnBody={translationCn?.body ?? ""}
+    krTitle={translationKr?.title ?? ""}
+    krBody={translationKr?.body ?? ""}
+  />
+</div>
 
         <RelationPicker
           label="연결 카드"
