@@ -119,8 +119,8 @@ export async function createMakerMessageFromForm(formData: FormData) {
     throw new Error(error?.message || "maker_message_threads 저장 실패");
   }
 
-  revalidateMakerMessagePaths(data.id);
-  redirect(`/maker/messages/${data.id}/edit?saved=1`);
+revalidateMakerMessagePaths(data.id);
+redirect("/maker/messages?saved=1");
 }
 
 export async function updateMakerMessageFromForm(formData: FormData) {

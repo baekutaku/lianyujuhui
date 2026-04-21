@@ -175,7 +175,7 @@ export async function createMakerMomentFromForm(formData: FormData) {
   }
 
   revalidateMakerMomentPaths(data.id);
-  redirect(`/maker/moments/${data.id}/edit?saved=1`);
+redirect("/maker/moments?saved=1");
 }
 
 export async function updateMakerMomentFromForm(formData: FormData) {
@@ -207,8 +207,8 @@ export async function updateMakerMomentFromForm(formData: FormData) {
     throw new Error(error.message);
   }
 
-  revalidateMakerMomentPaths(momentId);
-  redirect(`/maker/moments/${momentId}/edit?saved=1`);
+revalidateMakerMomentPaths(momentId);
+redirect("/maker/moments?saved=1");
 }
 
 export async function softDeleteMakerMoment(formData: FormData) {
