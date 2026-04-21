@@ -1474,19 +1474,35 @@ a {
   padding: 20px 18px 0;
 }
 
-.call-back-button {
-  width: 54px;
-  height: 54px;
-  border-radius: 999px;
-  background: rgba(245, 112, 167, 0.96);
-  color: #fff;
-  font-size: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  box-shadow: 0 8px 20px rgba(245, 112, 167, 0.26);
+.call-top-only {
+  position: relative;
+  z-index: 20;
+    padding: 16px 14px 0;
 }
+
+.call-back-button {
+  position: relative;
+  z-index: 21;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 62px !important;
+  height: 62px !important;
+  flex: 0 0 62px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: url("/images/phone/button01.png") center / contain no-repeat !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  text-decoration: none !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px !important;
+  white-space: nowrap !important;
+}
+
 
 .call-fullscreen-empty {
   width: 100%;
