@@ -159,8 +159,8 @@ export async function updateMakerMessageFromForm(formData: FormData) {
     throw new Error(error.message);
   }
 
-  revalidateMakerMessagePaths(threadId);
-  redirect(`/maker/messages/${threadId}/edit?saved=1`);
+revalidateMakerMessagePaths(threadId);
+redirect("/maker/messages?saved=1");
 }
 
 export async function softDeleteMakerMessage(formData: FormData) {
