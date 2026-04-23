@@ -12318,19 +12318,24 @@ button,
   }
 }
 
+/* =========================
+   PHONE BOTTOM FIX - FINAL
+========================= */
+
 .phone-shell-inner {
   height: 100%;
-  display: grid;
+  display: grid !important;
   grid-template-rows: 92px minmax(0, 1fr) 76px !important;
 }
 
-.phone-tabbar {
-  height: 76px !important;
-  min-height: 76px !important;
-  box-sizing: border-box !important;
-  padding-bottom: 0 !important;
-  margin: 0 !important;
-  align-self: stretch !important;
+.phone-page-frame {
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+.phone-page-content {
+  min-height: 0 !important;
+  height: 100% !important;
 }
 
 .phone-page-tabbar {
@@ -12341,13 +12346,61 @@ button,
   min-height: 0 !important;
 }
 
+.phone-tabbar {
+  height: 76px !important;
+  min-height: 76px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  align-self: stretch !important;
+}
+
+.phone-content {
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow-y: auto !important;
+}
+
+/* maker도 같이 고정 */
+.maker-shell-inner {
+  height: 100%;
+  display: grid !important;
+  grid-template-rows: 92px minmax(0, 1fr) 76px !important;
+}
+
 .maker-shell .phone-tabbar {
   height: 76px !important;
   min-height: 76px !important;
-  padding-bottom: 0 !important;
   margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
 }
 
-.maker-shell-inner {
-  grid-template-rows: 92px minmax(0, 1fr) 76px !important;
+/* =========================
+   MESSAGE DETAIL BOTTOM FIX
+========================= */
+
+.thread-layout {
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) auto !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.thread-scroll {
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+.thread-wrap {
+  min-height: auto !important;
+  padding-bottom: 0 !important;
+}
+
+.thread-toolbar {
+  position: relative !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
 }

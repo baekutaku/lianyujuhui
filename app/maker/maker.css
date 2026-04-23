@@ -63,7 +63,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px;
-  padding-bottom: 28px;
+  padding-bottom: 0;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -210,3 +210,4 @@
     z-index: auto;
   }
 }
+
