@@ -12317,3 +12317,37 @@ button,
     font-size: 12px;
   }
 }
+
+.phone-shell-inner {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 92px minmax(0, 1fr) 76px !important;
+}
+
+.phone-tabbar {
+  height: 76px !important;
+  min-height: 76px !important;
+  box-sizing: border-box !important;
+  padding-bottom: 0 !important;
+  margin: 0 !important;
+  align-self: stretch !important;
+}
+
+.phone-page-tabbar {
+  margin-top: 0 !important;
+  padding: 0 !important;
+  border-top: 0 !important;
+  background: transparent !important;
+  min-height: 0 !important;
+}
+
+.maker-shell .phone-tabbar {
+  height: 76px !important;
+  min-height: 76px !important;
+  padding-bottom: 0 !important;
+  margin: 0 !important;
+}
+
+.maker-shell-inner {
+  grid-template-rows: 92px minmax(0, 1fr) 76px !important;
+}
