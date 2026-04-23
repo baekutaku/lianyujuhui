@@ -882,11 +882,6 @@ a {
     url("/images/phone/huapujie.png") center/cover no-repeat;
 } */
 
-.phone-shell-inner {
-  height: 100%;
-  display: grid;
-  grid-template-rows: 92px minmax(0, 1fr) 72px;
-}
 
 .phone-topbar {
   height: 92px;
@@ -979,14 +974,7 @@ a {
   font-size: 15px;
 }
 
-.phone-tabbar {
-  height: 72px;
-  background: rgba(255, 255, 255, 0.9);
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  align-items: center;
-}
+
 
 .phone-tab {
   text-decoration: none;
@@ -1944,23 +1932,14 @@ a {
   padding: 24px 0 40px;
 }
 
-.phone-page-frame {
-  min-height: 820px;
-  display: flex;
-  flex-direction: column;
-}
+
 
 .phone-page-content {
   flex: 1;
   min-height: 0;
 }
 
-.phone-page-tabbar {
-  margin-top: auto;
-  border-top: 1px solid rgba(220, 210, 220, 0.7);
-  background: rgba(255, 255, 255, 0.94);
-  padding: 8px 10px 10px;
-}
+
 
 /* .mobile-fab-menu {
   position: fixed;
@@ -2247,20 +2226,8 @@ a {
   overflow-y: auto;
 }
 
-.thread-wrap {
-  min-height: 100%;
-  padding-bottom: 12px;
-  box-sizing: border-box;
-}
 
-.thread-toolbar {
-  flex-shrink: 0;
-  position: sticky;
-  bottom: 0;
-  z-index: 5;
-  background: #f7f1f6;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
-}
+
 
 .call-action .material-symbols-rounded {
   font-size: 24px;
@@ -12318,3 +12285,109 @@ button,
   }
 }
 
+
+
+/* =========================
+   PHONE / MAKER MOBILE MODE
+========================= */
+
+.phone-shell-inner {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 92px minmax(0, 1fr) 76px;
+}
+
+.phone-shell-inner.no-tabbar {
+  grid-template-rows: 92px minmax(0, 1fr);
+}
+
+.phone-tabbar {
+  height: 76px;
+  min-height: 76px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  border-top: 1px solid rgba(210, 201, 212, 0.8);
+  background: rgba(255, 255, 255, 0.96);
+  margin: 0;
+  padding: 0;
+}
+
+.phone-page-frame,
+.phone-page-content {
+  min-height: 0;
+  height: 100%;
+}
+
+.phone-page-tabbar {
+  margin: 0;
+  padding: 0;
+  border-top: 0;
+  background: transparent;
+  min-height: 0;
+}
+
+.thread-layout {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.thread-scroll {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.thread-wrap {
+  min-height: auto;
+  padding-bottom: 0;
+  box-sizing: border-box;
+}
+
+.thread-toolbar {
+  position: relative;
+  bottom: auto;
+  margin: 0;
+  flex-shrink: 0;
+  z-index: 5;
+  background: #f7f1f6;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 768px) {
+  .phone-page,
+  .maker-page {
+    padding: 0 !important;
+  }
+
+  .phone-shell,
+  .maker-shell {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100svh !important;
+    aspect-ratio: auto !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .phone-shell-inner,
+  .maker-shell-inner {
+    height: 100svh !important;
+  }
+
+  .maker-shell-inner {
+    grid-template-rows: 92px minmax(0, 1fr) 76px !important;
+  }
+
+  .maker-shell-inner.no-tabbar {
+    grid-template-rows: 92px minmax(0, 1fr) !important;
+  }
+
+  .maker-phone-content {
+    padding-bottom: 0 !important;
+  }
+}
