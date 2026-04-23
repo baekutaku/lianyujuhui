@@ -211,3 +211,13 @@
   }
 }
 
+
+.maker-shell .phone-tabbar {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+
+.maker-shell .phone-tab {
+  width: 100%;
+  height: 100%;
+  justify-self: stretch;
+}

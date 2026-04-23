@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import MakerPhoneShell from "@/components/maker/MakerPhoneShell";
 import MakerPhoneTopBar from "@/components/maker/MakerPhoneTopBar";
-import MakerPhoneTabNav from "@/components/maker/MakerPhoneTabNav";
 import MakerMessageThreadView from "@/components/maker/message/MakerMessageThreadView";
 import { getMakerActor } from "@/lib/maker/auth";
 import { getMakerViewerProfile } from "@/lib/maker/profile";
@@ -31,7 +30,7 @@ export default async function MakerMessageDetailPage({ params }: Props) {
   const viewer = await getMakerViewerProfile();
 
   return (
-    <MakerPhoneShell>
+    <MakerPhoneShell noTabbar>
       <MakerPhoneTopBar
         title={thread.title}
         subtitle={thread.characterName}
@@ -45,16 +44,34 @@ export default async function MakerMessageDetailPage({ params }: Props) {
           </Link>
         }
       />
-      <div className="maker-phone-content">
-        <MakerMessageThreadView
-          entries={thread.entriesForView as any[]}
-          otherAvatarUrl={thread.avatarUrl}
-          myAvatarUrl={viewer.avatarUrl}
-          otherProfileHref="/maker/me"
-          myProfileHref="/maker/me"
-        />
+
+      <div className="maker-phone-content thread-layout">
+        <div className="thread-scroll">
+          <MakerMessageThreadView
+            entries={thread.entriesForView as any[]}
+            otherAvatarUrl={thread.avatarUrl}
+            myAvatarUrl={viewer.avatarUrl}
+            otherProfileHref="/maker/me"
+            myProfileHref="/maker/me"
+          />
+        </div>
+
+        <div className="thread-toolbar">
+          <button type="button" className="thread-toolbar-btn" aria-label="음성">
+            <span className="material-symbols-rounded">volume_up</span>
+          </button>
+
+          <input className="thread-toolbar-input" readOnly />
+
+          <button type="button" className="thread-toolbar-btn" aria-label="이모지">
+            <span className="material-symbols-rounded">sentiment_satisfied</span>
+          </button>
+
+          <button type="button" className="thread-toolbar-btn" aria-label="추가">
+            <span className="material-symbols-rounded">add</span>
+          </button>
+        </div>
       </div>
-      <MakerPhoneTabNav active="messages" />
     </MakerPhoneShell>
   );
 }
