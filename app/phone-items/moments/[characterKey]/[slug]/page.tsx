@@ -426,85 +426,70 @@ const choiceOptions: MomentChoiceOption[] = Array.isArray(
                   )}
                 </div>
 
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 8,
-                      alignItems: "start",
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontSize: UI.nameSize,
-                          fontWeight: 700,
-                          lineHeight: 1.15,
-                          color: UI.replyAccent,
-                          marginBottom: 8,
-                        }}
-                      >
-                        {authorName}
-                      </div>
+               <div style={{ minWidth: 0 }}>
+  <div
+    style={{
+      fontSize: UI.nameSize,
+      fontWeight: 700,
+      lineHeight: 1.15,
+      color: UI.replyAccent,
+    marginBottom: 6,
+    }}
+  >
+    {authorName}
+  </div>
 
-                      <div
-                        style={{
-                          fontSize: UI.bodySize,
-                          lineHeight: UI.bodyLineHeight,
-                          letterSpacing: "-0.015em",
-                          color: "#66606b",
-                          whiteSpace: "pre-wrap",
-                        }}
-                      >
-                        {body}
-                      </div>
+  <div
+    style={{
+      fontSize: UI.bodySize,
+      lineHeight: UI.bodyLineHeight,
+      letterSpacing: "-0.015em",
+      color: "#66606b",
+      whiteSpace: "pre-wrap",
+    }}
+  >
+    {body}
+  </div>
 
-                      <div
-                        style={{
-                          marginTop: 12,
-                          fontSize: UI.dateSize,
-                          color: "#b8adb9",
-                        }}
-                      >
-                        {dateText}
-                      </div>
-                    </div>
+  <div
+    style={{
+marginTop: 10,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+    }}
+  >
+    <div
+      style={{
+        fontSize: UI.dateSize,
+        color: "#b8adb9",
+        minWidth: 0,
+      }}
+    >
+      {dateText}
+    </div>
 
-                    <div
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        flex: "0 0 auto",
-                        paddingTop: 2,
-                      }}
-                    >
-                      {choiceOptions.length ? (
-                        <MomentChoiceTrigger
-                          title={item.title?.trim() || authorName}
-                          options={choiceOptions.map((option) => ({
-                            id: option.id,
-                            label: option.label,
-                            isHistory: option.isHistory,
-                          }))}
-                          selectedOptionId={selectedOptionId}
-                        />
-                      ) : null}
-
-                      <span
-                        style={{
-                          fontSize: 22,
-                          color: item.content_json?.isFavorite
-                            ? "#e8d8df"
-                            : "#e5dce6",
-                          lineHeight: 1,
-                        }}
-                      >
-                        ♡
-                      </span>
-                    </div>
-                  </div>
+    {choiceOptions.length ? (
+      <div
+        style={{
+          flex: "0 0 auto",
+          display: "inline-flex",
+          alignItems: "center",
+        }}
+      >
+        <MomentChoiceTrigger
+          title={item.title?.trim() || authorName}
+          options={choiceOptions.map((option) => ({
+            id: option.id,
+            label: option.label,
+            isHistory: option.isHistory,
+          }))}
+          selectedOptionId={selectedOptionId}
+        />
+      </div>
+    ) : null}
+  </div>
 
                   {imageUrls.length ? (
                     <div style={{ marginTop: 14, display: "grid", gap: 10 }}>

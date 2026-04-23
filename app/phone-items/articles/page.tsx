@@ -97,51 +97,53 @@ export default async function PhoneArticlesPage() {
     <Link
       key={publisher.slug}
       href={`/phone-items/articles/${publisher.slug}`}
-      style={{
-        display: "grid",
-        gridTemplateColumns: "72px minmax(0, 1fr)",
-        gap: 14,
-        alignItems: "center",
-        padding: "18px 18px",
-        textDecoration: "none",
-        color: "inherit",
-        borderBottom: "1px solid rgba(214, 206, 214, 0.8)",
-        background: "rgba(255,255,255,0.08)",
-        WebkitTapHighlightColor: "transparent",
-      }}
+ style={{
+  display: "grid",
+  gridTemplateColumns: "52px minmax(0, 1fr)",
+  gap: 8,
+  alignItems: "center",
+  padding: "10px 8px 12px",
+  textDecoration: "none",
+  color: "inherit",
+  borderBottom: "1px solid rgba(214, 206, 214, 0.8)",
+  background: "rgba(255,255,255,0.08)",
+  WebkitTapHighlightColor: "transparent",
+}}
     >
               <img
                 src={publisher.iconUrl}
                 alt={publisher.name}
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 999,
-                  objectFit: "cover",
-                  display: "block",
-                }}
+           style={{
+  width: 44,
+  height: 44,
+  borderRadius: 999,
+  objectFit: "cover",
+  display: "block",
+}}
               />
 
               <div style={{ minWidth: 0 }}>
                 <div
-                  style={{
-                    fontSize: 17,
-                    fontWeight: 500,
-                    color: "#615967",
-                    marginBottom: 4,
-                  }}
+                 style={{
+  fontSize: 15,
+  fontWeight: 500,
+  color: "#615967",
+  marginBottom: 2,
+  lineHeight: 1.14,
+}}
                 >
                   {publisher.name}
                 </div>
 
                 <div
-                  style={{
-                    fontSize: 14,
-                    color: "#8a8490",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
+              style={{
+  fontSize: 12,
+  color: "#8a8490",
+  lineHeight: 1.28,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+}}
                 >
                   {publisher.latestTitle}
                 </div>

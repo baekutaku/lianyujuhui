@@ -163,188 +163,204 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
         background: "transparent",
       }}
     >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "66px minmax(0, 1fr)",
-          gap: 10,
-          alignItems: "start",
-        }}
-      >
-        <div
+     <div
   style={{
+    display: "grid",
+    gridTemplateColumns: "66px minmax(0, 1fr)",
+    gap: 10,
+    alignItems: "start",
     position: "relative",
-    zIndex: 3,
   }}
 >
- {canOpenProfile ? (
-  <Link
-    href={profileHref}
+  <div
     style={{
-      display: "block",
-      width: 58,
-      height: 58,
-      borderRadius: "999px",
-      overflow: "hidden",
       position: "relative",
       zIndex: 3,
     }}
-    aria-label={`${item.authorName} 개인창`}
-    title={`${item.authorName} 개인창`}
   >
-    <img
-      src={item.authorAvatarUrl}
-      alt={item.authorName}
-      style={{
-        display: "block",
-        width: 58,
-        height: 58,
-        borderRadius: "999px",
-        objectFit: "cover",
-      }}
-    />
-  </Link>
-) : (
-  <img
-    src={item.authorAvatarUrl}
-    alt={item.authorName}
-    style={{
-      display: "block",
-      width: 58,
-      height: 58,
-      borderRadius: "999px",
-      objectFit: "cover",
-    }}
-  />
-)}
-</div>
+    {canOpenProfile ? (
+      <Link
+        href={profileHref}
+        style={{
+          display: "block",
+          width: 58,
+          height: 58,
+          borderRadius: "999px",
+          overflow: "hidden",
+          position: "relative",
+          zIndex: 3,
+        }}
+        aria-label={`${item.authorName} 개인창`}
+        title={`${item.authorName} 개인창`}
+      >
+        <img
+          src={item.authorAvatarUrl}
+          alt={item.authorName}
+          style={{
+            display: "block",
+            width: 58,
+            height: 58,
+            borderRadius: "999px",
+            objectFit: "cover",
+          }}
+        />
+      </Link>
+    ) : (
+      <img
+        src={item.authorAvatarUrl}
+        alt={item.authorName}
+        style={{
+          display: "block",
+          width: 58,
+          height: 58,
+          borderRadius: "999px",
+          objectFit: "cover",
+        }}
+      />
+    )}
+  </div>
 
-        <div
+ <div
   style={{
     minWidth: 0,
-    position: "relative",
     zIndex: 1,
   }}
 >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 8,
-              alignItems: "start",
-            }}
-          >
-            <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: UI.nameSize,
-                  fontWeight: 700,
-                  lineHeight: 1.15,
-                  color: UI.replyAccent,
-                  marginBottom: 8,
-                }}
-              >
-                {item.authorName}
-              </div>
+  <div
+    style={{
+      fontSize: UI.nameSize,
+      fontWeight: 700,
+      lineHeight: 1.15,
+      color: UI.replyAccent,
+      marginBottom: 6,
+      minWidth: 0,
+    }}
+  >
+    {item.authorName}
+  </div>
 
-              <div
-                style={{
-                  fontSize: UI.bodySize,
-                  lineHeight: UI.bodyLineHeight,
-                  letterSpacing: "-0.015em",
-                  color: "#66606b",
-                  whiteSpace: "pre-wrap",
-                }}
-              >
-                {item.body}
-              </div>
+  <div
+    style={{
+      fontSize: UI.bodySize,
+      lineHeight: UI.bodyLineHeight,
+      letterSpacing: "-0.015em",
+      color: "#66606b",
+      whiteSpace: "pre-wrap",
+    }}
+  >
+    {item.body}
+  </div>
 
-              <div
-                style={{
-                  marginTop: 12,
-                  fontSize: UI.dateSize,
-                  color: "#b8adb9",
-                }}
-              >
-                {item.dateText}
-              </div>
-            </div>
+  <div
+    style={{
+      marginTop: 10,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 8,
+    }}
+  >
+    <div
+      style={{
+        fontSize: UI.dateSize,
+        color: "#b8adb9",
+        minWidth: 0,
+      }}
+    >
+      {item.dateText}
+    </div>
 
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                flex: "0 0 auto",
-                paddingTop: 2,
-              }}
-            >
-              <Link
-                href={`/phone-items/moments/${item.authorKey}/${item.slug}`}
-                className="moment-choice-trigger"
-                aria-label="모멘트 상세"
-                title="모멘트 상세"
-              >
-                <span className="material-symbols-rounded">autorenew</span>
-              </Link>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        flex: "0 0 auto",
+      }}
+    >
+      <Link
+  href={`/phone-items/moments/${item.authorKey}/${item.slug}`}
+  className="moment-choice-trigger"
+  aria-label="모멘트 상세"
+  title="모멘트 상세"
+  style={{
+    width: 30,
+    height: 30,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: "0 0 30px",
+  }}
+>
+  <span
+    className="material-symbols-rounded"
+    style={{
+      fontSize: 18,
+      lineHeight: 1,
+    }}
+  >
+    autorenew
+  </span>
+</Link>
 
-              <span
-                style={{
-                  fontSize: 22,
-                  color: item.isFavorite ? "#e8d8df" : "#e5dce6",
-                  lineHeight: 1,
-                }}
-              >
-                ♡
-              </span>
-            </div>
-          </div>
+      {/* 좋아요는 모바일에선 빼는 게 나음 */}
+      {/* <span
+        style={{
+          fontSize: 20,
+          color: item.isFavorite ? "#e8d8df" : "#e5dce6",
+          lineHeight: 1,
+        }}
+      >
+        ♡
+      </span> */}
+    </div>
+  </div>
 
-          {item.imageUrls.length ? (
-            <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-              {item.imageUrls.map((url, index) => (
-                <img
-                  key={`${url}-${index}`}
-                  src={url}
-                  alt={`moment-${index + 1}`}
-                  style={{
-                    display: "block",
-                    width: UI.imageWidth,
-                    maxWidth: 430,
-                    aspectRatio: UI.imageAspectRatio,
-                    objectFit: "cover",
-                    background: "#fff",
-                  }}
-                />
-              ))}
-            </div>
-          ) : null}
+  {item.imageUrls.length ? (
+    <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+      {item.imageUrls.map((url, index) => (
+        <img
+          key={`${url}-${index}`}
+          src={url}
+          alt={`moment-${index + 1}`}
+          style={{
+            display: "block",
+            width: UI.imageWidth,
+            maxWidth: 430,
+            aspectRatio: UI.imageAspectRatio,
+            objectFit: "cover",
+            background: "#fff",
+          }}
+        />
+      ))}
+    </div>
+  ) : null}
 
-          {renderLines.length ? (
-            <div
-              style={{
-                marginTop: 14,
-                padding: "11px 14px",
-                background: UI.replyBg,
-                color: "#665561",
-                whiteSpace: "pre-wrap",
-                lineHeight: UI.replyLineHeight,
-                letterSpacing: "-0.015em",
-                fontSize: UI.replyFontSize,
-                display: "grid",
-                gap: 4,
-              }}
-            >
-              {renderLines.map((line, index) => (
-                <div key={`reaction-${index}`}>
-                  <ReactionPrefix line={line} />
-                  <span>{line.content}</span>
-                </div>
-              ))}
-            </div>
-          ) : null}
+  {renderLines.length ? (
+    <div
+      style={{
+        marginTop: 14,
+        padding: "11px 14px",
+        background: UI.replyBg,
+        color: "#665561",
+        whiteSpace: "pre-wrap",
+        lineHeight: UI.replyLineHeight,
+        letterSpacing: "-0.015em",
+        fontSize: UI.replyFontSize,
+        display: "grid",
+        gap: 4,
+      }}
+    >
+      {renderLines.map((line, index) => (
+        <div key={`reaction-${index}`}>
+          <ReactionPrefix line={line} />
+          <span>{line.content}</span>
         </div>
-      </div>
+      ))}
+    </div>
+  ) : null}
+</div>
+</div>
     </div>
   );
 }

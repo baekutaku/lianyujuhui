@@ -59,7 +59,9 @@ export default function MomentChoiceTrigger({
         aria-label={buttonTitle}
         title={buttonTitle}
       >
-        <span className="material-symbols-rounded">autorenew</span>
+     <span className="material-symbols-rounded moment-choice-trigger-icon">
+  autorenew
+</span>
       </button>
 
       <MomentChoiceHistoryModal

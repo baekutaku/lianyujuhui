@@ -12740,28 +12740,43 @@ button,
 
 @media (max-width: 768px) {
   .article-item {
-    grid-template-columns: 52px minmax(0, 1fr) !important;
-    gap: 8px !important;
-    padding: 10px 8px 12px !important;
+    grid-template-columns: 46px minmax(0, 1fr) !important;
+    gap: 6px !important;
+    padding: 8px 6px 10px !important;
   }
 
   .article-item:first-child {
-    padding-top: 6px !important;
+    padding-top: 4px !important;
   }
 
   .article-icon {
-    width: 44px !important;
-    height: 44px !important;
+    width: 38px !important;
+    height: 38px !important;
   }
 
   .article-name {
-    font-size: 15px !important;
-    line-height: 1.14 !important;
+    font-size: 13px !important;
+    line-height: 1.12 !important;
   }
 
   .article-preview {
-    margin-top: 2px !important;
-    font-size: 12px !important;
-    line-height: 1.28 !important;
+    margin-top: 1px !important;
+    font-size: 11px !important;
+    line-height: 1.22 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .moment-choice-trigger {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+    padding: 0 !important;
+  }
+
+  .moment-choice-trigger .moment-choice-trigger-icon {
+    font-size: 18px !important;
+    line-height: 1 !important;
   }
 }
