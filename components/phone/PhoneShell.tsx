@@ -1,16 +1,21 @@
-import { ReactNode } from "react";
-
-type PhoneShellProps = {
-  children: ReactNode;
-};
-
-export default function PhoneShell({ children }: PhoneShellProps) {
+export default function PhoneShell({
+  topbar,
+  children,
+  tabbar,
+}: {
+  topbar?: React.ReactNode;
+  children: React.ReactNode;
+  tabbar?: React.ReactNode;
+}) {
   return (
-    <section className="phone-shell-wrap">
-      <div className="phone-shell-backdrop" aria-hidden="true" />
-      <section className="phone-shell">
-        <div className="phone-shell-inner">{children}</div>
-      </section>
-    </section>
+    <div className="phone-shell-wrap">
+      <div className="phone-shell">
+        <div className="phone-shell-inner">
+          {topbar}
+          {children}
+          {tabbar}
+        </div>
+      </div>
+    </div>
   );
 }

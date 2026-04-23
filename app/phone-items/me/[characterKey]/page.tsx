@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
+import PhoneProfileShell from "@/components/phone/PhoneProfileShell";
 import { getMomentCountByAuthorKey } from "@/lib/phone/moment-author";
 
 type PageProps = {
@@ -92,56 +93,48 @@ export default async function PhoneMeCharacterPage({ params }: PageProps) {
   if (error) throw new Error(error.message);
 
   const items =
-  ((data as PhoneItemRow[] | null) ?? []).filter(
-    (item) => item.content_json?.characterKey === characterKey
-  ) ?? [];
+    ((data as PhoneItemRow[] | null) ?? []).filter(
+      (item) => item.content_json?.characterKey === characterKey
+    ) ?? [];
 
-const messageCount = items.filter((item) => item.subtype === "message").length;
+  const messageCount = items.filter((item) => item.subtype === "message").length;
 
-const callCount = items.filter(
-  (item) => item.subtype === "call" || item.subtype === "video_call"
-).length;
+  const callCount = items.filter(
+    (item) => item.subtype === "call" || item.subtype === "video_call"
+  ).length;
 
-const articleCount = items.filter((item) => item.subtype === "article").length;
+  const articleCount = items.filter((item) => item.subtype === "article").length;
 
-const momentCount = await getMomentCountByAuthorKey(characterKey);
+  const momentCount = await getMomentCountByAuthorKey(characterKey);
 
-const totalCollected = momentCount + messageCount + callCount + articleCount;
+  const totalCollected = momentCount + messageCount + callCount + articleCount;
+
   const progressPercent =
     meta.affinityMax > 0
       ? Math.min((meta.affinityNow / meta.affinityMax) * 100, 100)
       : 0;
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "start center",
-        padding: "24px 0 40px",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 520,
-          minHeight: 820,
-          display: "flex",
-          flexDirection: "column",
-         background: "rgba(255,255,255,0.12)",
-          borderRadius: 30,
-          overflow: "hidden",
-          border: "1px solid rgba(226, 208, 224, 0.7)",
-          boxShadow: "0 10px 30px rgba(196, 177, 199, 0.12)",
-        }}
-      >
-        <div style={{ flex: 1 }}>
+    <main className="phone-page">
+      <PhoneProfileShell tabbar={<PhoneTabNav currentPath="/phone-items/me" />}>
+        <div className="phone-me-character-page">
+          <div className="phone-me-character-topbar">
+            <Link
+              href="/phone-items/me"
+              className="phone-me-back-button"
+              aria-label="뒤로가기"
+              title="뒤로가기"
+            >
+              뒤로가기
+            </Link>
+          </div>
+
           <div
             style={{
               position: "relative",
               padding: "24px 22px 18px",
-             background:
-  "linear-gradient(135deg, rgba(234,214,255,0.72) 0%, rgba(255,214,229,0.72) 100%)",
+              background:
+                "linear-gradient(135deg, rgba(234,214,255,0.72) 0%, rgba(255,214,229,0.72) 100%)",
             }}
           >
             <div
@@ -176,7 +169,7 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
                 gridTemplateColumns: "86px 1fr auto",
                 gap: 16,
                 alignItems: "center",
-            background: "rgba(255,255,255,0.20)",
+                background: "rgba(255,255,255,0.20)",
                 borderRadius: 22,
                 padding: 14,
                 marginBottom: 14,
@@ -262,7 +255,7 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
             <section
               style={{
                 position: "relative",
-             background: "rgba(255,255,255,0.18)",
+                background: "rgba(255,255,255,0.18)",
                 borderRadius: 20,
                 padding: "16px 18px 24px",
                 boxShadow: "0 6px 20px rgba(227, 215, 224, 0.22)",
@@ -293,20 +286,20 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
           </div>
 
           <div style={{ padding: "14px 18px 26px", display: "grid", gap: 12 }}>
-          <Link
-  href={`/phone-items/moments/${characterKey}`}
-  className="link-card"
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "18px 20px",
-    fontSize: 20,
-    fontWeight: 700,
-    borderRadius: 22,
-    background: "rgba(255,255,255,0.12)",
-  }}
->
+            <Link
+              href={`/phone-items/moments/${characterKey}`}
+              className="link-card"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "18px 20px",
+                fontSize: 20,
+                fontWeight: 700,
+                borderRadius: 22,
+                background: "rgba(255,255,255,0.12)",
+              }}
+            >
               <span>모멘트</span>
               <span style={{ color: "#de9fc2", fontWeight: 800 }}>
                 {momentCount}
@@ -315,17 +308,17 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
 
             <Link
               href={`/phone-items/messages/${characterKey}/history`}
-             className="link-card"
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "18px 20px",
-    fontSize: 20,
-    fontWeight: 700,
-    borderRadius: 22,
-    background: "rgba(255,255,255,0.12)",
-  }}
+              className="link-card"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "18px 20px",
+                fontSize: 20,
+                fontWeight: 700,
+                borderRadius: 22,
+                background: "rgba(255,255,255,0.12)",
+              }}
             >
               <span>문자 목록</span>
               <span style={{ color: "#de9fc2", fontWeight: 800 }}>
@@ -336,16 +329,16 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
             <Link
               href={`/phone-items/calls/${characterKey}/history`}
               className="link-card"
-      style={{
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "18px 20px",
-  fontSize: 20,
-  fontWeight: 700,
-  borderRadius: 22,
-  background: "rgba(255,255,255,0.12)",
-}}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "18px 20px",
+                fontSize: 20,
+                fontWeight: 700,
+                borderRadius: 22,
+                background: "rgba(255,255,255,0.12)",
+              }}
             >
               <span>통화 목록</span>
               <span style={{ color: "#de9fc2", fontWeight: 800 }}>
@@ -354,17 +347,17 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
             </Link>
 
             <div
-            className="link-card"
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "18px 20px",
-    fontSize: 20,
-    fontWeight: 700,
-    borderRadius: 22,
-    background: "rgba(255,255,255,0.12)",
-  }}
+              className="link-card"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "18px 20px",
+                fontSize: 20,
+                fontWeight: 700,
+                borderRadius: 22,
+                background: "rgba(255,255,255,0.12)",
+              }}
             >
               <span>기록 수집</span>
               <span style={{ color: "#de9fc2", fontWeight: 800 }}>
@@ -373,34 +366,34 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
             </div>
 
             <div
-        className="link-card"
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "18px 20px",
-    fontSize: 20,
-    fontWeight: 700,
-    borderRadius: 22,
-    background: "rgba(255,255,255,0.12)",
-  }}
+              className="link-card"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "18px 20px",
+                fontSize: 20,
+                fontWeight: 700,
+                borderRadius: 22,
+                background: "rgba(255,255,255,0.12)",
+              }}
             >
               <span>채팅 배경 변경</span>
               <span>나중에</span>
             </div>
 
             <div
-             className="link-card"
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "18px 20px",
-    fontSize: 20,
-    fontWeight: 700,
-    borderRadius: 22,
-    background: "rgba(255,255,255,0.12)",
-  }}
+              className="link-card"
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "18px 20px",
+                fontSize: 20,
+                fontWeight: 700,
+                borderRadius: 22,
+                background: "rgba(255,255,255,0.12)",
+              }}
             >
               <span>통화 배경 변경</span>
               <span>나중에</span>
@@ -413,18 +406,7 @@ const totalCollected = momentCount + messageCount + callCount + articleCount;
             </div>
           </div>
         </div>
-
-        <div
-          style={{
-            marginTop: "auto",
-            borderTop: "1px solid rgba(220, 210, 220, 0.7)",
-            background: "rgba(255,255,255,0.18)",
-            padding: "8px 10px 10px",
-          }}
-        >
-          <PhoneTabNav currentPath="/phone-items/me" />
-        </div>
-      </div>
+      </PhoneProfileShell>
     </main>
   );
 }

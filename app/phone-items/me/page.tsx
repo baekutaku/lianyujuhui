@@ -2,18 +2,12 @@ import { cookies } from "next/headers";
 import { supabase } from "@/lib/supabase/server";
 import PhoneMeScreen from "@/components/phone/PhoneMeScreen";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
+import PhoneTopBar from "@/components/phone/PhoneTopBar";
+import PhoneShell from "@/components/phone/PhoneShell";
 import { getPhoneProfileActor } from "@/lib/phone/get-phone-profile-actor";
 import { redirect } from "next/navigation";
 import { getMomentCountByAuthorKey } from "@/lib/phone/moment-author";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-
-type PhoneItemRow = {
-  id: string;
-  subtype: string;
-  content_json?: {
-    characterKey?: string;
-  } | null;
-};
 
 type BaseProfileRow = {
   id: string;
@@ -36,19 +30,13 @@ const CHARACTERS = [
   { key: "lingxiao", label: "연시호", avatarUrl: "/profile/lingxiao.png", affinity: 17 },
 ] as const;
 
-function getMomentCount(items: PhoneItemRow[], characterKey: string) {
-  return items.filter(
-    (item) =>
-      item.content_json?.characterKey === characterKey &&
-      item.subtype === "moment"
-  ).length;
-}
-
 export default async function PhoneMePage() {
   const actor = await getPhoneProfileActor();
+
   if (actor.needsGuestCookie) {
-  redirect("/phone-items/me/init?redirectTo=/phone-items/me");
-}
+    redirect("/phone-items/me/init?redirectTo=/phone-items/me");
+  }
+
   const cookieStore = await cookies();
   const guestId = cookieStore.get("phone_guest_id")?.value?.trim();
 
@@ -57,17 +45,13 @@ export default async function PhoneMePage() {
   const profileDb = ownerType === "guest" ? supabaseAdmin : supabase;
 
   const [
-    { data: phoneItems, error: phoneError },
     { data: baseProfiles, error: baseError },
     { data: customProfiles, error: customError },
     { data: selectedRow, error: selectedError },
+    myMomentCount,
+    totalMomentCount,
+    ...characterMomentCounts
   ] = await Promise.all([
-    supabase
-      .from("phone_items")
-      .select("id, subtype, content_json")
-      .eq("is_published", true)
-      .order("created_at", { ascending: false }),
-
     supabase
       .from("phone_profile_options")
       .select("id, title, image_url, sort_order")
@@ -75,44 +59,45 @@ export default async function PhoneMePage() {
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false }),
 
-  ownerId
-  ? profileDb
-      .from("phone_profile_custom")
-      .select("id, title, image_url")
-      .eq("owner_type", ownerType)
-      .eq("owner_id", ownerId)
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-  : Promise.resolve({ data: [], error: null } as any),
-ownerId
-  ? profileDb
-      .from("phone_profile_selected")
-      .select("source_type, source_id")
-      .eq("owner_type", ownerType)
-      .eq("owner_id", ownerId)
-      .maybeSingle()
-  : Promise.resolve({ data: null, error: null } as any),
+    ownerId
+      ? profileDb
+          .from("phone_profile_custom")
+          .select("id, title, image_url")
+          .eq("owner_type", ownerType)
+          .eq("owner_id", ownerId)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null } as any),
+
+    ownerId
+      ? profileDb
+          .from("phone_profile_selected")
+          .select("source_type, source_id")
+          .eq("owner_type", ownerType)
+          .eq("owner_id", ownerId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null } as any),
+
+    getMomentCountByAuthorKey("mc"),
+
+    supabase
+      .from("phone_items")
+      .select("*", { count: "exact", head: true })
+      .eq("subtype", "moment")
+      .eq("is_published", true)
+      .then((res) => res.count ?? 0),
+
+    ...CHARACTERS.map((character) => getMomentCountByAuthorKey(character.key)),
   ]);
 
-  if (phoneError) throw new Error(phoneError.message);
   if (baseError) throw new Error(baseError.message);
   if (customError) throw new Error(customError.message);
   if (selectedError) throw new Error(selectedError.message);
 
-const items = (phoneItems as PhoneItemRow[] | null) ?? [];
-
-const myMomentCount = await getMomentCountByAuthorKey("mc");
-
-const { count: totalMomentCount } = await supabase
-  .from("phone_items")
-  .select("*", { count: "exact", head: true })
-  .eq("subtype", "moment")
-  .eq("is_published", true);
-
-const characters = CHARACTERS.map((character) => ({
-  ...character,
-  moments: getMomentCount(items, character.key),
-}));
+  const characters = CHARACTERS.map((character, index) => ({
+    ...character,
+    moments: Number(characterMomentCounts[index] ?? 0),
+  }));
 
   const baseProfileOptions =
     ((baseProfiles as BaseProfileRow[] | null) ?? []).map((item) => ({
@@ -131,80 +116,53 @@ const characters = CHARACTERS.map((character) => ({
       sourceType: "custom" as const,
     })) ?? [];
 
-    const guestName = cookieStore.get("phone_guest_name")?.value?.trim() || "유연";
+  const guestName = cookieStore.get("phone_guest_name")?.value?.trim() || "유연";
 
-let avatarUrl = "/profile/mc.png";
+  let avatarUrl = "/profile/mc.png";
 
-if (selectedRow?.source_type === "option") {
-  const selectedOption = baseProfileOptions.find(
-    (item) => item.id === selectedRow.source_id
-  );
-  if (selectedOption?.imageUrl) {
-    avatarUrl = selectedOption.imageUrl;
+  if (selectedRow?.source_type === "option") {
+    const selectedOption = baseProfileOptions.find(
+      (item) => item.id === selectedRow.source_id
+    );
+    if (selectedOption?.imageUrl) {
+      avatarUrl = selectedOption.imageUrl;
+    }
+  } else if (selectedRow?.source_type === "custom") {
+    const selectedCustom = customProfileOptions.find(
+      (item) => item.id === selectedRow.source_id
+    );
+    if (selectedCustom?.imageUrl) {
+      avatarUrl = selectedCustom.imageUrl;
+    }
   }
-} else if (selectedRow?.source_type === "custom") {
-  const selectedCustom = customProfileOptions.find(
-    (item) => item.id === selectedRow.source_id
-  );
-  if (selectedCustom?.imageUrl) {
-    avatarUrl = selectedCustom.imageUrl;
-  }
-}
 
-const viewerProfile = {
-  displayName: guestName,
-  avatarUrl,
-};
+  const viewerProfile = {
+    displayName: guestName,
+    avatarUrl,
+  };
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "start center",
-        padding: "24px 0 40px",
-      }}
-    >
-     <div
-  style={{
-    width: "100%",
-    maxWidth: 520,
-    minHeight: 820,
-    display: "flex",
-    flexDirection: "column",
-    background: "rgba(255,255,255,0.12)",
-    borderRadius: 30,
-    overflow: "hidden",
-    border: "1px solid rgba(226, 208, 224, 0.45)",
-    boxShadow: "0 10px 30px rgba(196, 177, 199, 0.08)",
-  }}
-      >
-        <div style={{ flex: 1 }}>
-<PhoneMeScreen
-  viewerName={viewerProfile.displayName}
-  defaultAvatarUrl={viewerProfile.avatarUrl}
-  characters={characters}
-  baseProfileOptions={baseProfileOptions}
-  customProfileOptions={customProfileOptions}
-  myMomentCount={myMomentCount}
-  totalMomentCount={totalMomentCount ?? 0}
-  initialSelectedSourceType={selectedRow?.source_type ?? null}
-  initialSelectedSourceId={selectedRow?.source_id ?? null}
-  isAdmin={actor.isAdmin}
-/>
+    <main className="phone-page">
+      <PhoneShell>
+        <PhoneTopBar title="나" subtitle="개인 정보" />
+
+        <div className="phone-content">
+          <PhoneMeScreen
+            viewerName={viewerProfile.displayName}
+            defaultAvatarUrl={viewerProfile.avatarUrl}
+            characters={characters}
+            baseProfileOptions={baseProfileOptions}
+            customProfileOptions={customProfileOptions}
+            myMomentCount={myMomentCount}
+            totalMomentCount={totalMomentCount ?? 0}
+            initialSelectedSourceType={selectedRow?.source_type ?? null}
+            initialSelectedSourceId={selectedRow?.source_id ?? null}
+            isAdmin={actor.isAdmin}
+          />
         </div>
 
-     <div
-  style={{
-    marginTop: "auto",
-    borderTop: "1px solid rgba(220, 210, 220, 0.5)",
-    background: "rgba(255,255,255,0.18)",
-    padding: "8px 10px 10px",
-  }}
->
-          <PhoneTabNav currentPath="/phone-items/me" />
-        </div>
-      </div>
+        <PhoneTabNav currentPath="/phone-items/me" />
+      </PhoneShell>
     </main>
   );
 }
