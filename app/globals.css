@@ -12482,25 +12482,9 @@ button,
 }
 
 @media (max-width: 768px) {
-  .phone-topbar,
-  .maker-shell .phone-topbar {
-    height: 78px !important;
-    padding: 10px 12px 8px !important;
-  }
+  
 
-  .phone-topbar-title,
-  .maker-shell .phone-topbar-title {
-    font-size: 16px !important;
-    line-height: 1.1 !important;
-    letter-spacing: 0 !important;
-  }
-
-  .phone-topbar-subtitle,
-  .maker-shell .phone-topbar-subtitle {
-    margin-top: 1px !important;
-    font-size: 10px !important;
-    line-height: 1.1 !important;
-  }
+  
 
   .phone-topbar-spacer {
     width: 44px !important;
@@ -12589,52 +12573,80 @@ button,
   }
 }
 
+
+
 @media (max-width: 768px) {
   .phone-topbar,
   .maker-shell .phone-topbar {
-    height: 74px !important;
-    padding: 8px 12px 6px !important;
+    height: 82px !important;
+    padding: 12px 14px 10px !important;
+    align-items: center !important;
   }
 
   .phone-topbar-title,
   .maker-shell .phone-topbar-title {
-    font-size: 16px !important;
-    line-height: 1.05 !important;
+    font-size: 18px !important;
+    line-height: 1.08 !important;
+    letter-spacing: 0 !important;
+    text-shadow: 0 0 8px rgba(139, 92, 246, 0.22) !important;
   }
 
   .phone-topbar-subtitle,
   .maker-shell .phone-topbar-subtitle {
-    margin-top: 0 !important;
-    font-size: 10px !important;
-    line-height: 1 !important;
+    margin-top: 1px !important;
+    font-size: 11px !important;
+    line-height: 1.05 !important;
+    opacity: 0.92 !important;
+  }
+
+  .phone-topbar-spacer {
+    width: 46px !important;
+    height: 46px !important;
+  }
+
+  .phone-topbar-icon-button,
+  .maker-shell .maker-phone-topbar-icon,
+  .call-back-button {
+    width: 46px !important;
+    height: 46px !important;
+    flex: 0 0 46px !important;
+  }
+
+  .message-inbox-list > .message-inbox-item:first-child,
+  .call-history-list > .call-history-item:first-child,
+  .article-list > .article-item:first-child,
+  .moment-feed > .moment-card:first-child {
+    padding-top: 6px !important;
   }
 
   .message-inbox-item,
   .call-history-item,
   .article-item {
-    padding-top: 8px !important;
+    padding-top: 10px !important;
     padding-bottom: 12px !important;
   }
 
   .moment-card {
-    padding-top: 8px !important;
+    padding-top: 10px !important;
     padding-bottom: 14px !important;
   }
 
   .thread-wrap {
-    padding-top: 8px !important;
+    padding-top: 10px !important;
   }
 }
 
 @media (max-width: 768px) {
-  .message-inbox-list > .message-inbox-item:first-child,
-  .call-history-list > .call-history-item:first-child,
-  .article-list > .article-item:first-child,
-  .moment-feed > .moment-card:first-child {
-    padding-top: 4px !important;
+  .thread-wrap {
+    padding: 10px 10px 0 !important;
+    gap: 10px !important;
   }
 
   .thread-wrap > .thread-row:first-child {
-    margin-top: -4px !important;
+    margin-top: -2px !important;
+  }
+
+  .thread-bubble {
+    max-width: 79% !important;
   }
 }
