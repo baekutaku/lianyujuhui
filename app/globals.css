@@ -12588,3 +12588,53 @@ button,
     height: 32px !important;
   }
 }
+
+@media (max-width: 768px) {
+  .phone-topbar,
+  .maker-shell .phone-topbar {
+    height: 74px !important;
+    padding: 8px 12px 6px !important;
+  }
+
+  .phone-topbar-title,
+  .maker-shell .phone-topbar-title {
+    font-size: 16px !important;
+    line-height: 1.05 !important;
+  }
+
+  .phone-topbar-subtitle,
+  .maker-shell .phone-topbar-subtitle {
+    margin-top: 0 !important;
+    font-size: 10px !important;
+    line-height: 1 !important;
+  }
+
+  .message-inbox-item,
+  .call-history-item,
+  .article-item {
+    padding-top: 8px !important;
+    padding-bottom: 12px !important;
+  }
+
+  .moment-card {
+    padding-top: 8px !important;
+    padding-bottom: 14px !important;
+  }
+
+  .thread-wrap {
+    padding-top: 8px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .message-inbox-list > .message-inbox-item:first-child,
+  .call-history-list > .call-history-item:first-child,
+  .article-list > .article-item:first-child,
+  .moment-feed > .moment-card:first-child {
+    padding-top: 4px !important;
+  }
+
+  .thread-wrap > .thread-row:first-child {
+    margin-top: -4px !important;
+  }
+}
