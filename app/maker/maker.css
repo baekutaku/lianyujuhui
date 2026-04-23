@@ -221,3 +221,132 @@
   height: 100%;
   justify-self: stretch;
 }
+
+@media (max-width: 768px) {
+  .maker-shell .phone-topbar {
+    height: 80px !important;
+    padding: 11px 14px 9px !important;
+  }
+
+  .maker-shell .phone-topbar-title {
+    font-size: 17px !important;
+    line-height: 1.08 !important;
+    letter-spacing: 0 !important;
+  }
+
+  .maker-shell .phone-topbar-subtitle {
+    margin-top: 1px !important;
+    font-size: 11px !important;
+    line-height: 1.05 !important;
+  }
+
+  .maker-shell .maker-phone-topbar-icon {
+    width: 44px !important;
+    height: 44px !important;
+    flex: 0 0 44px !important;
+  }
+
+  .maker-shell .phone-tabbar {
+    grid-template-columns: repeat(3, 1fr) !important;
+    height: 74px !important;
+    min-height: 74px !important;
+  }
+
+  .maker-shell .phone-tab {
+    gap: 3px !important;
+  }
+
+  .maker-shell .phone-tab-icon {
+    font-size: 23px !important;
+  }
+
+  .maker-shell .phone-tab-label {
+    font-size: 11px !important;
+  }
+
+  .maker-phone-content {
+    padding: 0 !important;
+  }
+
+  .maker-phone-content .message-inbox-item,
+  .maker-phone-content .moment-card {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    gap: 10px !important;
+  }
+
+  .maker-phone-content .message-inbox-item:first-child,
+  .maker-phone-content .moment-card:first-child {
+    padding-top: 6px !important;
+  }
+
+  .maker-phone-content .message-inbox-item {
+    grid-template-columns: 56px minmax(0, 1fr) !important;
+  }
+
+
+  .maker-phone-content .phone-avatar-wrap,
+  .maker-phone-content .phone-avatar {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .maker-phone-content.thread-layout {
+    padding: 0 !important;
+  }
+
+  .maker-phone-content .thread-wrap {
+    padding: 10px 10px 0 !important;
+    gap: 10px !important;
+  }
+
+  .maker-phone-content .thread-row {
+    gap: 8px !important;
+  }
+
+  .maker-phone-content .thread-mini-avatar {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .maker-phone-content .thread-bubble {
+    max-width: 79% !important;
+    padding: 12px 13px !important;
+    font-size: 14px !important;
+    line-height: 1.45 !important;
+    border-radius: 16px !important;
+  }
+
+  .maker-phone-content .thread-toolbar {
+    padding: 8px 10px 10px !important;
+    gap: 8px !important;
+  }
+
+  .maker-phone-content .thread-toolbar-btn {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 19px !important;
+  }
+
+  .maker-phone-content .thread-toolbar-input {
+    height: 32px !important;
+  }
+
+  .maker-phone-content .message-name,
+.maker-phone-content .moment-author {
+  font-size: 14px !important;
+  line-height: 1.14 !important;
+}
+
+.maker-phone-content .message-preview,
+.maker-phone-content .moment-body {
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+}
+
+.maker-phone-content .moment-quote {
+  font-size: 11px !important;
+  line-height: 1.34 !important;
+  padding: 7px 9px !important;
+}
+}

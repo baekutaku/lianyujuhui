@@ -12650,3 +12650,23 @@ button,
     max-width: 79% !important;
   }
 }
+
+@media (max-width: 768px) {
+  .moment-author {
+    font-size: 14px !important;
+    line-height: 1.14 !important;
+  }
+
+  .moment-body {
+    margin-top: 2px !important;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+  }
+
+  .moment-quote {
+    margin-top: 8px !important;
+    padding: 7px 9px !important;
+    font-size: 11px !important;
+    line-height: 1.34 !important;
+  }
+}
