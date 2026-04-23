@@ -12674,3 +12674,98 @@ button,
     line-height: 1.34 !important;
   }
 }
+
+@media (max-width: 768px) {
+  .message-inbox-item,
+  .article-item {
+    grid-template-columns: 52px minmax(0, 1fr) !important;
+    gap: 8px !important;
+    padding: 9px 8px 11px !important;
+  }
+
+  .message-inbox-item:first-child,
+  .article-item:first-child {
+    padding-top: 5px !important;
+  }
+
+  .phone-avatar-wrap,
+  .phone-avatar,
+  .article-icon {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .message-name,
+  .article-name {
+    font-size: 15px !important;
+    line-height: 1.14 !important;
+  }
+
+  .message-preview,
+  .article-preview {
+    margin-top: 2px !important;
+    font-size: 12px !important;
+    line-height: 1.28 !important;
+  }
+
+  .thread-wrap {
+    padding: 8px 8px 0 !important;
+    gap: 8px !important;
+  }
+
+  .thread-row {
+    gap: 6px !important;
+  }
+
+  .thread-mini-avatar {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .thread-bubble {
+    max-width: 70% !important;
+    padding: 10px 11px !important;
+    font-size: 12px !important;
+    line-height: 1.32 !important;
+    border-radius: 14px !important;
+  }
+
+  .thread-choice-inline-btn {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 14px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .message-inbox-item,
+  .article-item {
+    grid-template-columns: 56px minmax(0, 1fr) !important;
+    gap: 10px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .message-inbox-item:first-child,
+  .article-item:first-child {
+    padding-top: 6px !important;
+  }
+
+  .phone-avatar,
+  .article-icon {
+    width: 48px !important;
+    height: 48px !important;
+  }
+
+  .message-name,
+  .article-name {
+    font-size: 16px !important;
+    line-height: 1.18 !important;
+  }
+
+  .message-preview,
+  .article-preview {
+    font-size: 13px !important;
+    line-height: 1.32 !important;
+  }
+}

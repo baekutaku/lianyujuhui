@@ -331,22 +331,68 @@
   .maker-phone-content .thread-toolbar-input {
     height: 32px !important;
   }
-.maker-phone-content .message-name,
-.maker-phone-content .moment-author {
-  font-size: 14px !important;
-  line-height: 1.14 !important;
+
+
+
+
 }
 
-.maker-phone-content .message-preview,
-.maker-phone-content .moment-body {
-  font-size: 12px !important;
-  line-height: 1.3 !important;
-}
+@media (max-width: 768px) {
+  .maker-phone-content .message-inbox-item,
+  .maker-phone-content .moment-card {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    gap: 8px !important;
+  }
 
-.maker-phone-content .moment-quote {
-  font-size: 11px !important;
-  line-height: 1.34 !important;
-  padding: 7px 9px !important;
-}
+  .maker-phone-content .message-inbox-item:first-child,
+  .maker-phone-content .moment-card:first-child {
+    padding-top: 5px !important;
+  }
 
+  .maker-phone-content .message-inbox-item {
+    grid-template-columns: 52px minmax(0, 1fr) !important;
+  }
+
+  .maker-phone-content .phone-avatar-wrap,
+  .maker-phone-content .phone-avatar,
+  .maker-phone-content .thread-mini-avatar {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .maker-phone-content .message-name,
+  .maker-phone-content .moment-author {
+    font-size: 14px !important;
+    line-height: 1.14 !important;
+  }
+
+  .maker-phone-content .message-preview,
+  .maker-phone-content .moment-body {
+    font-size: 12px !important;
+    line-height: 1.28 !important;
+  }
+
+  .maker-phone-content .moment-quote {
+    font-size: 11px !important;
+    line-height: 1.32 !important;
+    padding: 7px 8px !important;
+  }
+
+  .maker-phone-content .thread-wrap {
+    padding: 8px 8px 0 !important;
+    gap: 8px !important;
+  }
+
+  .maker-phone-content .thread-row {
+    gap: 6px !important;
+  }
+
+  .maker-phone-content .thread-bubble {
+    max-width: 70% !important;
+    padding: 10px 11px !important;
+    font-size: 12px !important;
+    line-height: 1.32 !important;
+    border-radius: 14px !important;
+  }
 }
