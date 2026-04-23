@@ -331,8 +331,7 @@
   .maker-phone-content .thread-toolbar-input {
     height: 32px !important;
   }
-
-  .maker-phone-content .message-name,
+.maker-phone-content .message-name,
 .maker-phone-content .moment-author {
   font-size: 14px !important;
   line-height: 1.14 !important;
@@ -349,4 +348,5 @@
   line-height: 1.34 !important;
   padding: 7px 9px !important;
 }
+
 }
