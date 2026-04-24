@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
+import { createServerSupabase } from "@/lib/supabase/server";
+const supabase = createServerSupabase();
 import { deleteStoryBundle } from "@/app/admin/actions";
 
 export default async function AdminStoriesPage() {

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
+import { createServerSupabase } from "@/lib/supabase/server";
+const supabase = createServerSupabase();
 
 export default async function AdminEventsPage() {
   const { data: events, error } = await supabase

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { supabase } from "@/lib/supabase/client";
+import { createServerSupabase } from "@/lib/supabase/server";
+const supabase = createServerSupabase();
 
 function extractYoutubeVideoId(url: string) {
   const regExp = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/;

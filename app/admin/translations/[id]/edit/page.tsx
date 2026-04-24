@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
+import { createServerSupabase } from "@/lib/supabase/server";
+const supabase = createServerSupabase();
 import { updateTranslation } from "@/app/admin/actions";
 
 type EditTranslationPageProps = {
