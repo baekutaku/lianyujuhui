@@ -1,9 +1,9 @@
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { supabase } from "@/lib/supabase/server";
 import PhoneMeScreen from "@/components/phone/PhoneMeScreen";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
-import PhoneTopBar from "@/components/phone/PhoneTopBar";
-import PhoneShell from "@/components/phone/PhoneShell";
+import PhoneProfileShell from "@/components/phone/PhoneProfileShell";
 import { getPhoneProfileActor } from "@/lib/phone/get-phone-profile-actor";
 import { redirect } from "next/navigation";
 import { getMomentCountByAuthorKey } from "@/lib/phone/moment-author";
@@ -143,26 +143,33 @@ export default async function PhoneMePage() {
 
   return (
     <main className="phone-page">
-      <PhoneShell>
-        <PhoneTopBar title="나" subtitle="개인 정보" />
+      <PhoneProfileShell tabbar={<PhoneTabNav currentPath="/phone-items/me" />}>
+      <div className="phone-me-page">
+  <Link
+    href="/phone-items"
+    className="phone-me-back-button phone-me-back-button-inside"
+    aria-label="뒤로가기"
+    title="뒤로가기"
+  >
+    뒤로가기
+  </Link>
 
-        <div className="phone-content">
-          <PhoneMeScreen
-            viewerName={viewerProfile.displayName}
-            defaultAvatarUrl={viewerProfile.avatarUrl}
-            characters={characters}
-            baseProfileOptions={baseProfileOptions}
-            customProfileOptions={customProfileOptions}
-            myMomentCount={myMomentCount}
-            totalMomentCount={totalMomentCount ?? 0}
-            initialSelectedSourceType={selectedRow?.source_type ?? null}
-            initialSelectedSourceId={selectedRow?.source_id ?? null}
-            isAdmin={actor.isAdmin}
-          />
+  <div className="phone-profile-content">
+            <PhoneMeScreen
+              viewerName={viewerProfile.displayName}
+              defaultAvatarUrl={viewerProfile.avatarUrl}
+              characters={characters}
+              baseProfileOptions={baseProfileOptions}
+              customProfileOptions={customProfileOptions}
+              myMomentCount={myMomentCount}
+              totalMomentCount={totalMomentCount ?? 0}
+              initialSelectedSourceType={selectedRow?.source_type ?? null}
+              initialSelectedSourceId={selectedRow?.source_id ?? null}
+              isAdmin={actor.isAdmin}
+            />
+          </div>
         </div>
-
-        <PhoneTabNav currentPath="/phone-items/me" />
-      </PhoneShell>
+      </PhoneProfileShell>
     </main>
   );
 }

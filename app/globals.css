@@ -13430,3 +13430,65 @@ button,
     padding: 10px 12px 12px;
   }
 }
+
+.phone-me-page {
+  min-height: 100%;
+  position: relative;
+}
+
+.phone-me-page > .phone-profile-content {
+  min-height: 100%;
+}
+
+.phone-me-page,
+.phone-me-character-page {
+  position: relative;
+  min-height: 100%;
+}
+
+.phone-me-character-topbar {
+  display: none;
+}
+
+.phone-me-back-button {
+  position: relative;
+  z-index: 6;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 62px !important;
+  height: 62px !important;
+  flex: 0 0 62px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: url("/images/phone/button01.png") center / contain no-repeat !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  text-decoration: none !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  text-indent: -9999px !important;
+  white-space: nowrap !important;
+}
+
+.phone-me-back-button-inside {
+  position: absolute !important;
+  top: 14px;
+  left: 14px;
+  z-index: 20 !important;
+}
+
+@media (max-width: 768px) {
+  .phone-me-back-button {
+    width: 56px !important;
+    height: 56px !important;
+    flex-basis: 56px !important;
+  }
+
+  .phone-me-back-button-inside {
+    top: 10px;
+    left: 10px;
+  }
+}

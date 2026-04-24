@@ -118,21 +118,19 @@ export default async function PhoneMeCharacterPage({ params }: PageProps) {
     <main className="phone-page">
       <PhoneProfileShell tabbar={<PhoneTabNav currentPath="/phone-items/me" />}>
         <div className="phone-me-character-page">
-          <div className="phone-me-character-topbar">
-            <Link
-              href="/phone-items/me"
-              className="phone-me-back-button"
-              aria-label="뒤로가기"
-              title="뒤로가기"
-            >
-              뒤로가기
-            </Link>
-          </div>
+  <Link
+    href="/phone-items/me"
+    className="phone-me-back-button phone-me-back-button-inside"
+    aria-label="뒤로가기"
+    title="뒤로가기"
+  >
+    뒤로가기
+  </Link>
 
-          <div
-            style={{
-              position: "relative",
-              padding: "24px 22px 18px",
+  <div
+    style={{
+      position: "relative",
+      padding: "24px 22px 18px",
               background:
                 "linear-gradient(135deg, rgba(234,214,255,0.72) 0%, rgba(255,214,229,0.72) 100%)",
             }}
@@ -148,7 +146,7 @@ export default async function PhoneMeCharacterPage({ params }: PageProps) {
               }}
             />
 
-            <div
+            {/* <div
               style={{
                 position: "relative",
                 fontSize: 18,
@@ -160,7 +158,7 @@ export default async function PhoneMeCharacterPage({ params }: PageProps) {
               }}
             >
               {meta.title}
-            </div>
+            </div> */}
 
             <section
               style={{
