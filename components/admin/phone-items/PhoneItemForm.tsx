@@ -125,6 +125,8 @@ const CHARACTER_OPTIONS = [
   { key: "zhouqiluo", label: "주기락" },
   { key: "xumo", label: "허묵" },
   { key: "lingxiao", label: "연시호" },
+  { key: "helios", label: "Helios (주기락 알트)" },
+  { key: "unknown", label: "알 수 없음 (주기락 알트)" },
 ] as const;
 
 const ARTICLE_PUBLISHERS = [
@@ -161,6 +163,8 @@ const DEFAULT_AVATAR_MAP: Record<string, string> = {
   zhouqiluo: "/profile/zhouqiluo.png",
   xumo: "/profile/xumo.png",
   lingxiao: "/profile/lingxiao.png",
+  helios: "/profile/helios.png",
+  unknown: "/profile/npc.png",
 };
 
 const DEFAULT_CHARACTER_NAME_MAP: Record<string, string> = {
@@ -169,6 +173,8 @@ const DEFAULT_CHARACTER_NAME_MAP: Record<string, string> = {
   zhouqiluo: "주기락",
   xumo: "허묵",
   lingxiao: "연시호",
+  helios: "Helios",
+  unknown: "알 수 없음",
   mc: "유연",
   other: "",
 };

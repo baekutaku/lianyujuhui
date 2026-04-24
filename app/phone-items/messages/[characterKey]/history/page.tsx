@@ -5,41 +5,25 @@ import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import DeletePhoneItemButton from "@/components/admin/phone-items/DeletePhoneItemButton";
 import { deletePhoneItem } from "@/app/admin/actions";
-import { supabase } from "@/lib/supabase/server";
+import { createServerSupabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
+import {
+  DEFAULT_NAME_MAP,
+  isKnownCharacter,
+} from "@/lib/message-constants";
 
-const DEFAULT_NAME_MAP: Record<string, string> = {
-  baiqi: "백기",
-  lizeyan: "이택언",
-  zhouqiluo: "주기락",
-  xumo: "허묵",
-  lingxiao: "연시호",
-};
-
-const CATEGORY_KEYS = [
-  "all",
-  "daily",
-  "companion",
-  "card_story",
-  "main_story",
-] as const;
-
+const CATEGORY_KEYS = ["all", "daily", "companion", "card_story", "main_story"] as const;
 const CATEGORY_LABEL_MAP: Record<string, string> = {
   daily: "일상",
   companion: "동반",
   card_story: "카드",
   main_story: "메인스토리",
 };
-
 type CategoryKey = (typeof CATEGORY_KEYS)[number];
 
 type PageProps = {
-  params: Promise<{
-    characterKey: string;
-  }>;
-  searchParams?: Promise<{
-    category?: string;
-  }>;
+  params: Promise<{ characterKey: string }>;
+  searchParams?: Promise<{ category?: string }>;
 };
 
 type MessageHistoryRow = {
@@ -64,78 +48,36 @@ type MessageHistoryRow = {
   } | null;
 };
 
-type HistoryItem = {
-  id: string;
-  title: string;
-  slug: string;
-  preview: string;
-  groupLabel: string;
-  categoryKey: string;
-  metaSummary: string;
-  metaSource: string;
-  isComplete: boolean;
-  isFavorite: boolean;
-};
-
 function normalizeCategory(value?: string): CategoryKey {
   if (
     value === "daily" ||
     value === "companion" ||
     value === "card_story" ||
     value === "main_story"
-  ) {
+  )
     return value;
-  }
-
   return "all";
 }
 
 function extractPreview(entries: unknown): string {
   if (!Array.isArray(entries)) return "";
-
   for (const entry of entries) {
     if (!entry || typeof entry !== "object") continue;
-
     const type = (entry as { type?: string }).type;
-
     if (type === "text") {
       const text = String((entry as { text?: string }).text ?? "").trim();
       if (text) return text;
     }
-
-    if (type === "choice") {
-      const options = (entry as { options?: unknown[] }).options;
-      if (!Array.isArray(options) || !options.length) continue;
-
-      const first = options[0];
-
-      if (typeof first === "string" && first.trim()) {
-        return first.trim();
-      }
-
-      if (
-        first &&
-        typeof first === "object" &&
-        "label" in first &&
-        typeof (first as { label?: string }).label === "string"
-      ) {
-        return (first as { label: string }).label.trim();
-      }
-    }
-
     if (type === "system") {
       const text = String((entry as { text?: string }).text ?? "").trim();
       if (text) return text;
     }
   }
-
   return "";
 }
 
-export default async function MessageHistoryPage({
-  params,
-  searchParams,
-}: PageProps) {
+export default async function MessageHistoryPage({ params, searchParams }: PageProps) {
+  const supabase = createServerSupabase();
   const { characterKey } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const selectedCategory = normalizeCategory(resolvedSearchParams?.category);
@@ -148,33 +90,48 @@ export default async function MessageHistoryPage({
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 
-  if (error) {
-    notFound();
+  if (error) notFound();
+
+  const allRows = (data as MessageHistoryRow[] | null) ?? [];
+
+  let rows: MessageHistoryRow[];
+
+  if (isKnownCharacter(characterKey)) {
+    // 알려진 캐릭터: characterKey 매칭
+    rows = allRows.filter(
+      (row) => (row.content_json?.characterKey?.trim() ?? "npc") === characterKey
+    );
+  } else {
+    // NPC: characterKey 자체가 NPC 식별자 (slug 혹은 임의 키)
+    // characterName이 같은 것들을 모두 묶음
+    // 우선 characterKey로 1건 찾아서 이름 확인 후 같은 이름 전부 수집
+    const sample = allRows.find(
+      (row) => (row.content_json?.characterKey?.trim() ?? "npc") === characterKey
+    );
+    if (sample) {
+      const npcName = sample.content_json?.characterName?.trim() || characterKey;
+      rows = allRows.filter(
+        (row) => (row.content_json?.characterName?.trim() || "") === npcName
+      );
+    } else {
+      rows = [];
+    }
   }
 
-  const rows = ((data as MessageHistoryRow[] | null) ?? []).filter((row) => {
-    return (row.content_json?.characterKey ?? "baiqi") === characterKey;
-  });
-
-  if (!rows.length) {
-    notFound();
-  }
+  if (!rows.length) notFound();
 
   const characterName =
     rows[0]?.content_json?.characterName ||
     DEFAULT_NAME_MAP[characterKey] ||
     "이름 없음";
 
-  const allItems: HistoryItem[] = rows.map((row) => {
+  const allItems = rows.map((row) => {
     const preview =
       row.content_json?.preview?.trim() ||
       extractPreview(row.content_json?.editorEntries) ||
       extractPreview(row.content_json?.entries) ||
       "미리보기가 없습니다.";
-
-    const categoryKey =
-      row.content_json?.historyCategory?.trim() || "daily";
-
+    const categoryKey = row.content_json?.historyCategory?.trim() || "daily";
     return {
       id: String(row.id),
       title: row.title?.trim() || "제목 없음",
@@ -215,7 +172,6 @@ export default async function MessageHistoryPage({
                 >
                   <span className="material-symbols-rounded">add</span>
                 </Link>
-
                 <Link
                   href="/admin/phone-items"
                   className="history-top-admin-btn"
@@ -238,12 +194,10 @@ export default async function MessageHistoryPage({
                   categoryKey === "all"
                     ? "전체"
                     : CATEGORY_LABEL_MAP[categoryKey] || categoryKey;
-
                 const href =
                   categoryKey === "all"
                     ? `/phone-items/messages/${characterKey}/history`
                     : `/phone-items/messages/${characterKey}/history?category=${categoryKey}`;
-
                 return (
                   <Link
                     key={categoryKey}
@@ -258,16 +212,9 @@ export default async function MessageHistoryPage({
 
             <div className="message-history-grid">
               {items.map((item) => (
-                <div
-                  key={item.id}
-                  className="message-history-card"
-                  style={{ position: "relative" }}
-                >
+                <div key={item.id} className="message-history-card" style={{ position: "relative" }}>
                   <div className="message-history-card-top">
-                    <span className="message-history-badge">
-                      {item.groupLabel}
-                    </span>
-
+                    <span className="message-history-badge">{item.groupLabel}</span>
                     {admin ? (
                       <div className="call-inline-admin">
                         <Link
@@ -278,7 +225,6 @@ export default async function MessageHistoryPage({
                         >
                           <span className="material-symbols-rounded">edit</span>
                         </Link>
-
                         <form action={deletePhoneItem}>
                           <input type="hidden" name="phoneItemId" value={item.id} />
                           <DeletePhoneItemButton
@@ -298,11 +244,7 @@ export default async function MessageHistoryPage({
 
                   <Link
                     href={`/phone-items/messages/${characterKey}/${item.slug}`}
-                    style={{
-                      textDecoration: "none",
-                      color: "inherit",
-                      display: "contents",
-                    }}
+                    style={{ textDecoration: "none", color: "inherit", display: "contents" }}
                   >
                     <div className="message-history-title-row">
                       <span className="message-history-title">{item.title}</span>
@@ -310,19 +252,12 @@ export default async function MessageHistoryPage({
                         <span className="message-history-status">[미완료]</span>
                       ) : null}
                     </div>
-
                     {item.metaSummary ? (
-                      <div className="message-history-meta-summary">
-                        {item.metaSummary}
-                      </div>
+                      <div className="message-history-meta-summary">{item.metaSummary}</div>
                     ) : null}
-
                     {item.metaSource ? (
-                      <div className="message-history-meta-source">
-                        {item.metaSource}
-                      </div>
+                      <div className="message-history-meta-source">{item.metaSource}</div>
                     ) : null}
-
                     <div className="message-history-preview">{item.preview}</div>
                   </Link>
                 </div>
