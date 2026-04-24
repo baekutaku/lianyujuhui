@@ -12853,8 +12853,8 @@ button,
 }
 
 .phone-topbar {
-  height: 92px;
-  padding: 18px 18px 14px;
+   height: 84px;
+  padding: 14px 18px 10px;
   background: linear-gradient(
     180deg,
     rgba(233, 198, 223, 0.92) 0%,
