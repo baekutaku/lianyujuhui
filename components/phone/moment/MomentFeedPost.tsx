@@ -155,14 +155,7 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
   ["baiqi", "lizeyan", "zhouqiluo", "xumo", "lingxiao"].includes(item.authorKey);
 
   return (
-    <div
-      style={{
-        padding: UI.wrapperPadding,
-        borderTop: "1px solid rgba(233, 226, 236, 0.95)",
-        borderBottom: "1px solid rgba(233, 226, 236, 0.95)",
-        background: "transparent",
-      }}
-    >
+    <div className="moment-card-item" style={{ padding: UI.wrapperPadding }}>
      <div
   style={{
     display: "grid",
@@ -226,18 +219,18 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
     zIndex: 1,
   }}
 >
-  <div
-    style={{
-      fontSize: UI.nameSize,
-      fontWeight: 700,
-      lineHeight: 1.15,
-      color: UI.replyAccent,
-      marginBottom: 6,
-      minWidth: 0,
-    }}
+  <div className="moment-name-row">
+  <span className="moment-name-text">{item.authorName}</span>
+
+  <Link
+    href={`/phone-items/moments/${item.authorKey}/${item.slug}`}
+    className="moment-refresh-button"
+    aria-label="모멘트 상세"
+    title="모멘트 상세"
   >
-    {item.authorName}
-  </div>
+    <span className="material-symbols-rounded">autorenew</span>
+  </Link>
+</div>
 
   <div
     style={{
@@ -253,67 +246,12 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
 
   <div
     style={{
-      marginTop: 10,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 8,
+      marginTop: 8,
+      fontSize: UI.dateSize,
+      color: "#b8adb9",
     }}
   >
-    <div
-      style={{
-        fontSize: UI.dateSize,
-        color: "#b8adb9",
-        minWidth: 0,
-      }}
-    >
-      {item.dateText}
-    </div>
-
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        flex: "0 0 auto",
-      }}
-    >
-      <Link
-  href={`/phone-items/moments/${item.authorKey}/${item.slug}`}
-  className="moment-choice-trigger"
-  aria-label="모멘트 상세"
-  title="모멘트 상세"
-  style={{
-    width: 30,
-    height: 30,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: "0 0 30px",
-  }}
->
-  <span
-    className="material-symbols-rounded"
-    style={{
-      fontSize: 18,
-      lineHeight: 1,
-    }}
-  >
-    autorenew
-  </span>
-</Link>
-
-      {/* 좋아요는 모바일에선 빼는 게 나음 */}
-      {/* <span
-        style={{
-          fontSize: 20,
-          color: item.isFavorite ? "#e8d8df" : "#e5dce6",
-          lineHeight: 1,
-        }}
-      >
-        ♡
-      </span> */}
-    </div>
+    {item.dateText}
   </div>
 
   {item.imageUrls.length ? (

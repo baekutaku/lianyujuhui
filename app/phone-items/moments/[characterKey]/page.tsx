@@ -327,7 +327,7 @@ authorAvatarUrl:
         />
 
         <div className="phone-content">
-          <div style={{ display: "grid", gap: 0 }}>
+          <div className="moment-feed-list">
             {filteredItems.map((item) => (
               <MomentFeedPost key={item.id} item={item} />
             ))}

@@ -302,331 +302,153 @@ function handleResetGuestName() {
 
   return (
     <>
-      <div
-        style={{
-          width: "100%",
-          background: "transparent",
-        }}
-      >
-        <div
-          style={{
-            padding: "26px 22px 18px",
-            background:
-              "linear-gradient(135deg, rgba(234,214,255,0.92) 0%, rgba(255,214,229,0.92) 100%)",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 800,
-              color: "#7d6c88",
-              textAlign: "right",
-              marginBottom: 16,
-              letterSpacing: "0.04em",
-            }}
-          >
-            개인 정보
-          </div>
+<div className="phone-personal-screen phone-personal-screen-mc">
+  <section className="phone-personal-hero phone-personal-hero-mc">
+    <div className="phone-personal-title">개인 상세</div>
 
-          <section
-            style={{
-              display: "grid",
-              gridTemplateColumns: "84px 1fr",
-              gap: 16,
-              alignItems: "center",
-              background: "rgba(255,255,255,0.45)",
-              borderRadius: 22,
-              padding: 14,
-              backdropFilter: "blur(4px)",
-            }}
-          >
-            <img
-              src={currentAvatar}
-              alt={viewerName}
-              style={{
-                width: 76,
-                height: 76,
-                borderRadius: 16,
-                objectFit: "cover",
-                display: "block",
-                boxShadow: "0 6px 18px rgba(179, 150, 168, 0.18)",
-              }}
-            />
+    <div className="phone-self-panel">
+      <img
+        src={currentAvatar}
+        alt={viewerName}
+        className="phone-self-avatar"
+      />
 
-            <div>
-              <div
-  style={{
-    fontSize: 22,
-    fontWeight: 800,
-    color: "#5e5464",
-    marginBottom: 10,
-  }}
->
-  {viewerName}
-</div>
-
-<div style={{ display: "grid", gap: 10 }}>
-  <input
-    value={draftName}
-    onChange={(e) => setDraftName(e.target.value)}
-    placeholder="이름 입력"
-    maxLength={20}
-    style={inputStyle}
-  />
-
-  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-    <button
-      type="button"
-      className="primary-button"
-      style={{
-        marginTop: 0,
-        borderRadius: 999,
-        paddingInline: 14,
-      }}
-      onClick={handleSaveGuestName}
-      disabled={isPending}
-    >
-      이름 저장
-    </button>
-
-    <button
-      type="button"
-      className="nav-link"
-      style={{
-        border: "none",
-        background: "rgba(183, 191, 255, 0.18)",
-        borderRadius: 999,
-        paddingInline: 18,
-      }}
-      onClick={handleResetGuestName}
-      disabled={isPending}
-    >
-      이름 초기화
-    </button>
-
-    <button
-      type="button"
-      className="primary-button"
-      style={{
-        marginTop: 0,
-        borderRadius: 999,
-        paddingInline: 14,
-      }}
-      onClick={() => setIsPickerOpen(true)}
-    >
-      프로필 변경
-    </button>
-  </div>
-</div>
-            </div>
-          </section>
+      <div className="phone-self-body">
+        <div className="phone-self-name-row">
+          <strong className="phone-self-name">{viewerName}</strong>
         </div>
 
-<div style={{ padding: "18px 18px 26px" }}>
-  <div
-    style={{
-      fontSize: 20,
-      fontWeight: 800,
-      color: "#e1a0c1",
-      marginBottom: 14,
-    }}
-  >
-    남주 탭
-  </div>
-
-  <div
-    style={{
-      display: "grid",
-      gridTemplateColumns: isMobile
-        ? "repeat(5, minmax(0, 1fr))"
-        : "repeat(5, minmax(0, 1fr))",
-      gap: isMobile ? 8 : 10,
-      marginBottom: 18,
-      alignItems: "stretch",
-    }}
-  >
-    {safeCharacters.map((character) => (
-      <Link
-        key={character.key}
-        href={`/phone-items/me/${character.key}`}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "flex-start",
-          textDecoration: "none",
-          color: "inherit",
-          background: "rgba(255,255,255,0.88)",
-          border: "1px solid rgba(234, 218, 228, 0.95)",
-          borderRadius: isMobile ? 20 : 24,
-          padding: isMobile ? "10px 4px 9px" : "14px 8px 12px",
-          textAlign: "center",
-          boxShadow: "0 6px 16px rgba(216, 201, 214, 0.15)",
-          overflow: "hidden",
-          minHeight: isMobile ? 150 : 178,
-        }}
-      >
-        <img
-          src={character.avatarUrl}
-          alt={character.label}
-          style={{
-            width: isMobile ? 46 : 58,
-            height: isMobile ? 46 : 58,
-            borderRadius: 999,
-            objectFit: "cover",
-            display: "block",
-            margin: isMobile ? "0 auto 6px" : "0 auto 8px",
-            flexShrink: 0,
-          }}
+        <input
+          value={draftName}
+          onChange={(e) => setDraftName(e.target.value)}
+          placeholder="이름 입력"
+          maxLength={20}
+          className="phone-self-name-input"
         />
 
-        <div
-          style={{
-            fontSize: isMobile ? 11 : 13,
-            fontWeight: 700,
-            color: "#625967",
-            marginBottom: isMobile ? 5 : 6,
-            lineHeight: 1.15,
-            minHeight: isMobile ? 24 : 28,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-            wordBreak: "keep-all",
-          }}
-        >
-          {character.label}
-        </div>
+        <div className="phone-self-actions">
+          <button
+            type="button"
+            className="phone-self-action phone-self-action-save"
+            onClick={handleSaveGuestName}
+            disabled={isPending}
+          >
+            이름 저장
+          </button>
 
-        <div
-          style={{
-            fontSize: isMobile ? 16 : 22,
-            fontWeight: 900,
-            color: "#f0a8c7",
-            lineHeight: 1,
-            marginBottom: isMobile ? 5 : 6,
-          }}
-        >
-          {character.affinity}
-        </div>
+          <button
+            type="button"
+            className="phone-self-action phone-self-action-reset"
+            onClick={handleResetGuestName}
+            disabled={isPending}
+          >
+            이름 초기화
+          </button>
 
-        <div
-          style={{
-            width: isMobile ? "82%" : "72%",
-            height: isMobile ? 7 : 8,
-            borderRadius: 999,
-            background: "rgba(233, 214, 224, 0.7)",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              width: `${Math.min(character.affinity, 100)}%`,
-              height: "100%",
-              background: "linear-gradient(90deg, #f3a5c7, #f8bfd5)",
-            }}
-          />
-        </div>
-      </Link>
-    ))}
-  </div>
-          <div style={{ display: "grid", gap: 12 }}>
-<Link
-  href="/phone-items/moments/mc"
-  className="link-card"
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "15px 18px",
-    fontSize: 17,
-    fontWeight: 700,
-    borderRadius: 20,
-    textDecoration: "none",
-    color: "inherit",
-  }}
->
-  <span>내 모멘트</span>
-  <span style={{ color: "#de9fc2", fontWeight: 800 }}>
-    {totalMomentCount > 0 ? `${myMomentCount}/${totalMomentCount}` : myMomentCount}
-  </span>
-</Link>
-
-  <div
-    className="link-card"
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-padding: "15px 18px",
-fontSize: 17,
-fontWeight: 700,
-borderRadius: 20,
-      opacity: 0.72,
-    }}
-    
-  >
-    <span>앨범</span>
-    <span />
-  </div>
-
-  <div
-    className="link-card"
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-padding: "15px 18px",
-fontSize: 17,
-fontWeight: 700,
-borderRadius: 20,
-      opacity: 0.72,
-    }}
-  >
-    <span>휴대폰 테마</span>
-    <span />
-  </div>
-
-  <div
-    className="link-card"
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-padding: "15px 18px",
-fontSize: 17,
-fontWeight: 700,
-borderRadius: 20,
-      opacity: 0.72,
-    }}
-  >
-    <span>채팅 버블</span>
-    <span />
-
-    
-  </div>
-
-  <div
-    className="link-card"
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-padding: "15px 18px",
-fontSize: 17,
-fontWeight: 700,
-borderRadius: 20,
-      opacity: 0.72,
-    }}
-  >
-    <span>통화 중 배경음악 끄기</span>
-    <span />
-
-    
-  </div>
-</div>
+          <button
+            type="button"
+            className="phone-self-action phone-self-action-profile"
+            onClick={() => setIsPickerOpen(true)}
+          >
+            프로필 변경
+          </button>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section className="phone-affection-section">
+    <div className="phone-section-title phone-section-title-love">
+      호감도
+    </div>
+
+    <div className="phone-affinity-row">
+      {safeCharacters.map((character) => (
+        <Link
+          key={character.key}
+          href={`/phone-items/me/${character.key}`}
+          className="phone-affinity-card"
+        >
+          <img
+            src={character.avatarUrl}
+            alt={character.label}
+            className="phone-affinity-avatar"
+          />
+
+          <span className="phone-affinity-name">{character.label}</span>
+
+          <span className="phone-affinity-heart">
+            {character.affinity}
+          </span>
+
+          <span className="phone-affinity-bar">
+            <span
+              className="phone-affinity-bar-fill"
+              style={{ width: `${Math.min(character.affinity, 100)}%` }}
+            />
+          </span>
+        </Link>
+      ))}
+    </div>
+  </section>
+
+  <nav className="phone-personal-menu">
+    <Link href="/phone-items/moments/mc" className="phone-menu-row">
+      <span className="phone-menu-left">
+        <span className="material-symbols-rounded phone-menu-icon">
+          local_florist
+        </span>
+        <span>모멘트</span>
+      </span>
+
+      <span className="phone-menu-count">
+        {totalMomentCount > 0
+          ? `${myMomentCount}/${totalMomentCount}`
+          : myMomentCount}
+      </span>
+    </Link>
+
+    <div className="phone-menu-row is-disabled">
+      <span className="phone-menu-left">
+        <span className="material-symbols-rounded phone-menu-icon">
+          image
+        </span>
+        <span>앨범</span>
+      </span>
+    </div>
+
+    <div className="phone-menu-row is-disabled">
+      <span className="phone-menu-left">
+        <span className="material-symbols-rounded phone-menu-icon">
+          palette
+        </span>
+        <span>휴대폰 테마 선택</span>
+      </span>
+    </div>
+
+    <div className="phone-menu-row is-disabled">
+      <span className="phone-menu-left">
+        <span className="material-symbols-rounded phone-menu-icon">
+          chat_bubble
+        </span>
+        <span>채팅 버블 변경</span>
+      </span>
+    </div>
+
+    <div className="phone-menu-row phone-menu-row-toggle">
+      <span className="phone-menu-left">
+        <span className="material-symbols-rounded phone-menu-icon">
+          music_off
+        </span>
+        <span>통화 중 배경음악 끄기</span>
+      </span>
+
+      <span className="phone-menu-switch" aria-hidden="true">
+        <span />
+      </span>
+    </div>
+  </nav>
+</div>
 
       {isPickerOpen ? (
         <div

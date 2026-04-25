@@ -115,296 +115,134 @@ export default async function PhoneMeCharacterPage({ params }: PageProps) {
       : 0;
 
   return (
-    <main className="phone-page">
-      <PhoneProfileShell tabbar={<PhoneTabNav currentPath="/phone-items/me" />}>
-        <div className="phone-me-character-page">
-  <Link
-    href="/phone-items/me"
-    className="phone-me-back-button phone-me-back-button-inside"
-    aria-label="뒤로가기"
-    title="뒤로가기"
-  >
-    뒤로가기
-  </Link>
+  <main className="phone-page">
+    <PhoneProfileShell tabbar={<PhoneTabNav currentPath="/phone-items/me" />}>
+      <div className="phone-me-character-page phone-character-detail-screen">
+        <Link
+          href="/phone-items/me"
+          className="phone-me-back-button phone-me-back-button-inside"
+          aria-label="뒤로가기"
+          title="뒤로가기"
+        >
+          뒤로가기
+        </Link>
 
-  <div
-    style={{
-      position: "relative",
-      padding: "24px 22px 18px",
-              background:
-                "linear-gradient(135deg, rgba(234,214,255,0.72) 0%, rgba(255,214,229,0.72) 100%)",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                backgroundImage: `url(${meta.avatarUrl})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                opacity: 0.08,
-              }}
+        <section className="phone-character-hero">
+          <div
+            className="phone-character-hero-art"
+            style={{ backgroundImage: `url(${meta.avatarUrl})` }}
+          />
+
+          <div className="phone-personal-title">개인 상세</div>
+
+          <div className="phone-character-profile-row">
+            <img
+              src={meta.avatarUrl}
+              alt={meta.label}
+              className="phone-character-avatar"
             />
 
-            {/* <div
-              style={{
-                position: "relative",
-                fontSize: 18,
-                fontWeight: 800,
-                color: "#7d6c88",
-                textAlign: "right",
-                marginBottom: 16,
-                letterSpacing: "0.04em",
-              }}
-            >
-              {meta.title}
-            </div> */}
-
-            <section
-              style={{
-                position: "relative",
-                display: "grid",
-                gridTemplateColumns: "86px 1fr auto",
-                gap: 16,
-                alignItems: "center",
-                background: "rgba(255,255,255,0.20)",
-                borderRadius: 22,
-                padding: 14,
-                marginBottom: 14,
-                backdropFilter: "blur(4px)",
-              }}
-            >
-              <img
-                src={meta.avatarUrl}
-                alt={meta.label}
-                style={{
-                  width: 78,
-                  height: 78,
-                  borderRadius: 16,
-                  objectFit: "cover",
-                  display: "block",
-                  boxShadow: "0 6px 18px rgba(179, 150, 168, 0.18)",
-                }}
-              />
-
-              <div>
-                <div
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 800,
-                    color: "#5f5463",
-                    marginBottom: 8,
-                  }}
-                >
-                  {meta.label}
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 15,
-                    color: "#7a6e7a",
-                    marginBottom: 10,
-                  }}
-                >
-                  {meta.affinityNow}/{meta.affinityMax}
-                </div>
-
-                <div
-                  style={{
-                    height: 10,
-                    borderRadius: 999,
-                    background: "rgba(220, 214, 226, 0.85)",
-                    overflow: "hidden",
-                    maxWidth: 260,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${progressPercent}%`,
-                      height: "100%",
-                      background: "linear-gradient(90deg, #f39cbc, #f7b7ce)",
-                    }}
-                  />
-                </div>
+            <div className="phone-character-profile-main">
+              <div className="phone-character-name-row">
+                <strong className="phone-character-name">{meta.label}</strong>
+                <span className="material-symbols-rounded phone-character-edit">
+                  edit
+                </span>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  justifyItems: "end",
-                  gap: 10,
-                }}
-              >
-                <div
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: 999,
-                    background: "rgba(255,255,255,0.65)",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: "#8a7791",
-                  }}
-                >
-                  {meta.affinity}
-                </div>
-              </div>
-            </section>
-
-            <section
-              style={{
-                position: "relative",
-                background: "rgba(255,255,255,0.18)",
-                borderRadius: 20,
-                padding: "16px 18px 24px",
-                boxShadow: "0 6px 20px rgba(227, 215, 224, 0.22)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: "#8aa2e6",
-                  marginBottom: 12,
-                }}
-              >
-                개인 자료
+              <div className="phone-character-exp">
+                {meta.affinityNow}/{meta.affinityMax}
               </div>
 
-              <div
-                style={{
-                  fontSize: 18,
-                  color: "#69606c",
-                  minHeight: 56,
-                  lineHeight: 1.6,
-                }}
-              >
-                {meta.intro}
+              <div className="phone-character-progress">
+                <span style={{ width: `${progressPercent}%` }} />
               </div>
-            </section>
+            </div>
+
+            <div className="phone-character-level">
+              {meta.affinity}
+            </div>
           </div>
 
-          <div style={{ padding: "14px 18px 26px", display: "grid", gap: 12 }}>
-            <Link
-              href={`/phone-items/moments/${characterKey}`}
-              className="link-card"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "18px 20px",
-                fontSize: 20,
-                fontWeight: 700,
-                borderRadius: 22,
-                background: "rgba(255,255,255,0.12)",
-              }}
-            >
+          <section className="phone-character-info-card">
+            <div className="phone-character-info-label">개인 자료</div>
+            <p>{meta.intro}</p>
+            <span className="phone-character-detail-watermark">DETAIL</span>
+          </section>
+        </section>
+
+        <nav className="phone-personal-menu phone-character-menu">
+          <Link
+            href={`/phone-items/moments/${characterKey}`}
+            className="phone-menu-row"
+          >
+            <span className="phone-menu-left">
+              <span className="material-symbols-rounded phone-menu-icon">
+                local_florist
+              </span>
               <span>모멘트</span>
-              <span style={{ color: "#de9fc2", fontWeight: 800 }}>
-                {momentCount}
-              </span>
-            </Link>
+            </span>
+            <span className="phone-menu-count">{momentCount}</span>
+          </Link>
 
-            <Link
-              href={`/phone-items/messages/${characterKey}/history`}
-              className="link-card"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "18px 20px",
-                fontSize: 20,
-                fontWeight: 700,
-                borderRadius: 22,
-                background: "rgba(255,255,255,0.12)",
-              }}
-            >
-              <span>문자 목록</span>
-              <span style={{ color: "#de9fc2", fontWeight: 800 }}>
-                {messageCount}
+          <Link
+            href={`/phone-items/messages/${characterKey}/history`}
+            className="phone-menu-row"
+          >
+            <span className="phone-menu-left">
+              <span className="material-symbols-rounded phone-menu-icon">
+                forum
               </span>
-            </Link>
+              <span>문자 기록</span>
+            </span>
+            <span className="phone-menu-count">{messageCount}</span>
+          </Link>
 
-            <Link
-              href={`/phone-items/calls/${characterKey}/history`}
-              className="link-card"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "18px 20px",
-                fontSize: 20,
-                fontWeight: 700,
-                borderRadius: 22,
-                background: "rgba(255,255,255,0.12)",
-              }}
-            >
-              <span>통화 목록</span>
-              <span style={{ color: "#de9fc2", fontWeight: 800 }}>
-                {callCount}
+          <Link
+            href={`/phone-items/calls/${characterKey}/history`}
+            className="phone-menu-row"
+          >
+            <span className="phone-menu-left">
+              <span className="material-symbols-rounded phone-menu-icon">
+                volume_up
               </span>
-            </Link>
+              <span>통화 기록</span>
+            </span>
+            <span className="phone-menu-count">{callCount}</span>
+          </Link>
 
-            <div
-              className="link-card"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "18px 20px",
-                fontSize: 20,
-                fontWeight: 700,
-                borderRadius: 22,
-                background: "rgba(255,255,255,0.12)",
-              }}
-            >
+          <div className="phone-menu-row is-disabled">
+            <span className="phone-menu-left">
+              <span className="material-symbols-rounded phone-menu-icon">
+                speaker_notes
+              </span>
               <span>기록 수집</span>
-              <span style={{ color: "#de9fc2", fontWeight: 800 }}>
-                {totalCollected}
-              </span>
-            </div>
-
-            <div
-              className="link-card"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "18px 20px",
-                fontSize: 20,
-                fontWeight: 700,
-                borderRadius: 22,
-                background: "rgba(255,255,255,0.12)",
-              }}
-            >
-              <span>채팅 배경 변경</span>
-              <span>나중에</span>
-            </div>
-
-            <div
-              className="link-card"
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "18px 20px",
-                fontSize: 20,
-                fontWeight: 700,
-                borderRadius: 22,
-                background: "rgba(255,255,255,0.12)",
-              }}
-            >
-              <span>통화 배경 변경</span>
-              <span>나중에</span>
-            </div>
-
-            <div style={{ marginTop: 6 }}>
-              <Link href="/phone-items/me" className="nav-link">
-                나 페이지로
-              </Link>
-            </div>
+            </span>
+            <span className="phone-menu-count">{totalCollected}</span>
           </div>
-        </div>
-      </PhoneProfileShell>
-    </main>
-  );
+
+          <div className="phone-menu-row is-disabled phone-menu-row-extra">
+            <span className="phone-menu-left">
+              <span className="material-symbols-rounded phone-menu-icon">
+                edit
+              </span>
+              <span>채팅 배경 변경</span>
+            </span>
+            <span className="phone-menu-status">나중에</span>
+          </div>
+
+          <div className="phone-menu-row is-disabled phone-menu-row-extra">
+            <span className="phone-menu-left">
+              <span className="material-symbols-rounded phone-menu-icon">
+                edit
+              </span>
+              <span>통화 배경 변경</span>
+            </span>
+            <span className="phone-menu-status">나중에</span>
+          </div>
+        </nav>
+      </div>
+    </PhoneProfileShell>
+  </main>
+);
 }

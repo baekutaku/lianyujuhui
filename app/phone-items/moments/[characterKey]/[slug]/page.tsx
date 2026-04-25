@@ -368,15 +368,8 @@ const choiceOptions: MomentChoiceOption[] = Array.isArray(
         />
 
         <div className="phone-content">
-          <div style={{ display: "grid", gap: 16 }}>
-            <div
-              style={{
-                padding: UI.wrapperPadding,
-                borderTop: "1px solid rgba(233, 226, 236, 0.95)",
-                borderBottom: "1px solid rgba(233, 226, 236, 0.95)",
-                background: "transparent",
-              }}
-            >
+          <div className="moment-feed-list">
+            <div className="moment-detail-card">
               <div
                 style={{
                   display: "grid",
@@ -427,17 +420,22 @@ const choiceOptions: MomentChoiceOption[] = Array.isArray(
                 </div>
 
                <div style={{ minWidth: 0 }}>
-  <div
-    style={{
-      fontSize: UI.nameSize,
-      fontWeight: 700,
-      lineHeight: 1.15,
-      color: UI.replyAccent,
-    marginBottom: 6,
-    }}
-  >
-    {authorName}
-  </div>
+<div className="moment-name-row">
+  <div className="moment-name-text">{authorName}</div>
+
+  {choiceOptions.length ? (
+    <MomentChoiceTrigger
+      title={item.title?.trim() || authorName}
+      options={choiceOptions.map((option) => ({
+        id: option.id,
+        label: option.label,
+        isHistory: option.isHistory,
+      }))}
+      selectedOptionId={selectedOptionId}
+      buttonClassName="moment-refresh-button"
+    />
+  ) : null}
+</div>
 
   <div
     style={{
@@ -451,45 +449,7 @@ const choiceOptions: MomentChoiceOption[] = Array.isArray(
     {body}
   </div>
 
-  <div
-    style={{
-marginTop: 10,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 8,
-    }}
-  >
-    <div
-      style={{
-        fontSize: UI.dateSize,
-        color: "#b8adb9",
-        minWidth: 0,
-      }}
-    >
-      {dateText}
-    </div>
-
-    {choiceOptions.length ? (
-      <div
-        style={{
-          flex: "0 0 auto",
-          display: "inline-flex",
-          alignItems: "center",
-        }}
-      >
-        <MomentChoiceTrigger
-          title={item.title?.trim() || authorName}
-          options={choiceOptions.map((option) => ({
-            id: option.id,
-            label: option.label,
-            isHistory: option.isHistory,
-          }))}
-          selectedOptionId={selectedOptionId}
-        />
-      </div>
-    ) : null}
-  </div>
+  <div className="moment-date-text">{dateText}</div>
 
                   {imageUrls.length ? (
                     <div style={{ marginTop: 14, display: "grid", gap: 10 }}>

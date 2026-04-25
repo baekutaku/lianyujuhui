@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Analytics } from '@vercel/analytics/next';
-import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import FloatingMobileMenu from "@/components/FloatingMobileMenu";
 import ScrollToTopButton from "@/components/ScrollToTopButton";
 import { adminLogout } from "@/app/admin/auth-actions";
 import GlobalMusicProvider from "@/components/music/GlobalMusicProvider";
+
+import "./globals.css";
+import "./styles/layout.css";
+import "./styles/home.css";
+import "./styles/story-cards.css";
+import "./styles/phone.css";
 
 export const metadata: Metadata = {
   title: "연모고 동창회 / Baiqi Archive",

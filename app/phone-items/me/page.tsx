@@ -141,35 +141,33 @@ export default async function PhoneMePage() {
     avatarUrl,
   };
 
-  return (
-    <main className="phone-page">
-      <PhoneProfileShell tabbar={<PhoneTabNav currentPath="/phone-items/me" />}>
-      <div className="phone-me-page">
-  <Link
-    href="/phone-items"
-    className="phone-me-back-button phone-me-back-button-inside"
-    aria-label="뒤로가기"
-    title="뒤로가기"
-  >
-    뒤로가기
-  </Link>
+ return (
+  <main className="phone-page">
+    <PhoneProfileShell tabbar={<PhoneTabNav currentPath="/phone-items/me" />}>
+      <div className="phone-me-page phone-me-root">
+        <Link
+          href="/phone-items"
+          className="phone-me-back-button phone-me-back-button-inside"
+          aria-label="뒤로가기"
+          title="뒤로가기"
+        >
+          뒤로가기
+        </Link>
 
-  <div className="phone-profile-content">
-            <PhoneMeScreen
-              viewerName={viewerProfile.displayName}
-              defaultAvatarUrl={viewerProfile.avatarUrl}
-              characters={characters}
-              baseProfileOptions={baseProfileOptions}
-              customProfileOptions={customProfileOptions}
-              myMomentCount={myMomentCount}
-              totalMomentCount={totalMomentCount ?? 0}
-              initialSelectedSourceType={selectedRow?.source_type ?? null}
-              initialSelectedSourceId={selectedRow?.source_id ?? null}
-              isAdmin={actor.isAdmin}
-            />
-          </div>
-        </div>
-      </PhoneProfileShell>
-    </main>
-  );
+        <PhoneMeScreen
+          viewerName={viewerProfile.displayName}
+          defaultAvatarUrl={viewerProfile.avatarUrl}
+          characters={characters}
+          baseProfileOptions={baseProfileOptions}
+          customProfileOptions={customProfileOptions}
+          myMomentCount={myMomentCount}
+          totalMomentCount={totalMomentCount ?? 0}
+          initialSelectedSourceType={selectedRow?.source_type ?? null}
+          initialSelectedSourceId={selectedRow?.source_id ?? null}
+          isAdmin={actor.isAdmin}
+        />
+      </div>
+    </PhoneProfileShell>
+  </main>
+);
 }

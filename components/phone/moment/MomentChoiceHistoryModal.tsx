@@ -83,7 +83,7 @@ export default function MomentChoiceHistoryModal({
               >
                 <span className="moment-choice-option-label">{option.label}</span>
                 {option.isHistory ? (
-                  <span className="moment-choice-option-badge">역사</span>
+                  <span className="moment-choice-option-badge">회상</span>
                 ) : null}
               </button>
             );

@@ -7,10 +7,12 @@ export default function PhoneShell({
   children: React.ReactNode;
   tabbar?: React.ReactNode;
 }) {
+  const hasTabbar = Boolean(tabbar);
+
   return (
     <div className="phone-shell-wrap">
       <div className="phone-shell">
-        <div className="phone-shell-inner">
+        <div className={`phone-shell-inner${hasTabbar ? "" : " no-tabbar"}`}>
           {topbar}
           {children}
           {tabbar}
