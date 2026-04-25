@@ -35,7 +35,7 @@ export default function MomentFeedFilterButton({
     <>
       <button
         type="button"
-        className="phone-topbar-icon-button"
+       className="phone-topbar-icon-button moment-filter-trigger"
         aria-label="필터"
         title="필터"
         onClick={() => setOpen(true)}

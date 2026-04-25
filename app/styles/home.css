@@ -2019,3 +2019,227 @@
 @media (max-width: 560px) {
   .home-carousel-card { flex: 0 0 142px; width: 142px; min-width: 142px; }
 }
+
+
+/* =========================================================
+   HOME HERO COLLAGE FIX
+   정직한 2단 이미지 → 겹치는 콜라주형
+========================================================= */
+
+.home-hero-visual {
+  position: relative;
+  min-height: 430px;
+  isolation: isolate;
+  transform: rotate(-0.2deg);
+}
+
+.hero-collage {
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.38);
+  box-shadow:
+    0 24px 46px rgba(100, 112, 145, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58);
+  overflow: hidden;
+}
+
+.hero-collage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.22), transparent 42%),
+    radial-gradient(circle at 78% 12%, rgba(255, 224, 238, 0.2), transparent 30%);
+}
+
+.hero-collage-main {
+  inset: 30px 112px 34px 0;
+  z-index: 2;
+  transform: rotate(-3.2deg) translateX(4px);
+  border-radius: 34px;
+}
+
+.hero-collage-sub {
+  width: 230px;
+  right: 4px;
+  z-index: 3;
+  border-radius: 28px;
+}
+
+.hero-collage-top {
+  top: 0;
+  height: 205px;
+  transform: rotate(4.5deg) translate(-10px, 8px);
+}
+
+.hero-collage-bottom {
+  bottom: 0;
+  height: 220px;
+  transform: rotate(-2.8deg) translate(-28px, -6px);
+}
+
+.hero-collage-image {
+  transform: scale(1.04);
+  filter: saturate(1.04) brightness(1.02);
+}
+
+.hero-collage-main .hero-collage-image {
+  transform: scale(1.08);
+}
+
+.hero-collage-top .hero-collage-image {
+  transform: scale(1.07) rotate(-1deg);
+}
+
+.hero-collage-bottom .hero-collage-image {
+  transform: scale(1.06) rotate(1deg);
+}
+
+/* 뒤쪽 장식 종이 */
+.home-hero-visual::before {
+  content: "";
+  position: absolute;
+  right: 64px;
+  top: 24px;
+  width: 270px;
+  height: 360px;
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 219, 235, 0.36), transparent 34%),
+    linear-gradient(145deg, rgba(255,255,255,0.34), rgba(222,230,255,0.26));
+  border: 1px solid rgba(255,255,255,0.54);
+  transform: rotate(7deg);
+  box-shadow: 0 18px 36px rgba(130, 130, 165, 0.08);
+  z-index: 1;
+}
+
+/* 작은 빛 */
+.home-hero-visual::after {
+  content: "";
+  position: absolute;
+  right: 34px;
+  bottom: 42px;
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 192, 222, 0.24), transparent 70%);
+  filter: blur(2px);
+  z-index: 0;
+}
+
+@media (max-width: 1200px) {
+  .home-hero-visual {
+    min-height: 390px;
+  }
+
+  .hero-collage-main {
+    inset: 34px 100px 32px 0;
+  }
+
+  .hero-collage-sub {
+    width: 210px;
+  }
+
+  .hero-collage-top {
+    height: 185px;
+  }
+
+  .hero-collage-bottom {
+    height: 200px;
+  }
+}
+
+/* =========================================================
+   HOME HERO COLLAGE RESTORE
+   배포 때 보이던 자연스러운 콜라주 복구
+========================================================= */
+
+.home-hero-visual {
+  position: relative !important;
+  min-height: 430px !important;
+  transform: none !important;
+  isolation: isolate;
+}
+
+.hero-collage {
+  position: absolute !important;
+  overflow: hidden !important;
+  border-radius: 28px !important;
+  border: 1px solid rgba(255, 255, 255, 0.72) !important;
+  background: rgba(255, 255, 255, 0.36) !important;
+  box-shadow: 0 24px 44px rgba(108, 123, 155, 0.16) !important;
+  transform: none !important;
+}
+
+.hero-collage-main {
+  inset: 0 98px 0 0 !important;
+  z-index: 1 !important;
+  width: auto !important;
+  height: auto !important;
+  transform: none !important;
+}
+
+.hero-collage-sub {
+  width: 180px !important;
+  right: 0 !important;
+  left: auto !important;
+  z-index: 2 !important;
+}
+
+.hero-collage-top {
+  top: 14px !important;
+  bottom: auto !important;
+  height: calc(50% - 18px) !important;
+  transform: none !important;
+}
+
+.hero-collage-bottom {
+  top: auto !important;
+  bottom: 14px !important;
+  height: calc(50% - 18px) !important;
+  transform: none !important;
+}
+
+.hero-collage-image {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+/* 아주 살짝만 콜라주 깊이감 */
+.hero-collage-top {
+  margin-right: 0 !important;
+}
+
+.hero-collage-bottom {
+  margin-right: 10px !important;
+}
+
+/* 오른쪽 작은 이미지가 메인 위에 자연스럽게 겹치도록 */
+.hero-collage-sub::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.16), transparent 45%),
+    radial-gradient(circle at 88% 12%, rgba(255, 225, 240, 0.16), transparent 28%);
+}
+
+@media (max-width: 1200px) {
+  .home-hero-visual {
+    min-height: 400px !important;
+  }
+
+  .hero-collage-main {
+    inset: 0 90px 0 0 !important;
+  }
+
+  .hero-collage-sub {
+    width: 170px !important;
+  }
+}

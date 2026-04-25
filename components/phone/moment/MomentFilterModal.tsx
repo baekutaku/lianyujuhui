@@ -107,7 +107,7 @@ export default function MomentFilterModal({
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 80,
+        zIndex: 9999,
         background: "rgba(40, 34, 52, 0.36)",
         display: "flex",
         alignItems: "center",

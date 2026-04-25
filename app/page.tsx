@@ -89,7 +89,7 @@ export default function HomePage() {
       />
     </div>
 
-    <div className="hero-collage hero-collage-top">
+    <div className="hero-collage hero-collage-sub hero-collage-top">
       <img
         src={heroImages[1]}
         alt=""
@@ -97,7 +97,7 @@ export default function HomePage() {
       />
     </div>
 
-    <div className="hero-collage hero-collage-bottom">
+   <div className="hero-collage hero-collage-sub hero-collage-bottom">
       <img
         src={heroImages[2]}
         alt=""
