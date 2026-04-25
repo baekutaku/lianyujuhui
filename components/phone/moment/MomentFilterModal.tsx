@@ -84,7 +84,8 @@ useEffect(() => {
     setYears(selectedYears);
   }, [selectedAuthor, selectedCategories, selectedReply, selectedYears, open]);
 
-  if (!open) return null;
+   if (!open) return null;
+  if (!portalTarget) return null;
 
   if (!portalTarget) return null;
   const sortedYears = [...availableYears].sort((a, b) => Number(b) - Number(a));
@@ -120,14 +121,13 @@ useEffect(() => {
     cursor: "pointer",
   });
 
-  return createPortal(
-  <div
-    
+ return createPortal(
+    <div
       onClick={onClose}
       style={{
         position: "absolute",
-inset: 0,
-zIndex: 9999,
+        inset: 0,
+        zIndex: 9999,
         background: "rgba(40, 34, 52, 0.36)",
         display: "flex",
         alignItems: "center",
@@ -138,10 +138,10 @@ zIndex: 9999,
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "min(92vw, 560px)",
           position: "relative",
-zIndex: 1,
-          maxHeight: "82vh",
+          zIndex: 1,
+          width: "min(92%, 560px)",
+          maxHeight: "82%",
           overflowY: "auto",
           borderRadius: 18,
           padding: "20px 18px 18px",
