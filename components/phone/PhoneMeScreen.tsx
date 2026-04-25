@@ -679,7 +679,7 @@ function FormBox({
 function ProfileCard({
   item, active, onSelect, footer,
 }: {
-  item: { id: string; title: string; imageUrl: string };
+  item: { id: string; title: string; imageUrl: string; sourceType?: string };
   active: boolean;
   onSelect: () => void;
   footer?: React.ReactNode;
