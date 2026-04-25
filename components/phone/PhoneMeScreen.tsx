@@ -125,10 +125,17 @@ export default function PhoneMeScreen({
     return hasDefault ? baseProfileOptions : [defaultItem, ...baseProfileOptions];
   }, [baseDefaultAvatarUrl, baseProfileOptions]);
 
-  // 피커에서 선택 가능한 전체 목록 (기본 + 내 커스텀)
+   // 피커에서 선택 가능한 전체 목록 (기본 + 공유 커스텀 풀 + 내 커스텀)
   const allOptions = useMemo(
-    () => [...mergedBaseOptions, ...customProfileOptions],
-    [mergedBaseOptions, customProfileOptions]
+    () => [
+      ...mergedBaseOptions,
+      ...sharedCustomPool.map((item) => ({
+        ...item,
+        sourceType: "option" as const, // option으로 취급해서 선택 저장
+      })),
+      ...customProfileOptions,
+    ],
+    [mergedBaseOptions, sharedCustomPool, customProfileOptions]
   );
 
   // 초기 선택값 계산
@@ -464,45 +471,31 @@ export default function PhoneMeScreen({
               </div>
             </PickerSection>
 
-            {/* ② 공유 커스텀 풀 (관리자가 추가한 것, 익명이 내 커스텀에 복사 가능) */}
+           {/* ② 공유 커스텀 풀 — 모두 바로 선택 가능 */}
             {sharedCustomPool.length > 0 && (
               <PickerSection
-                label="커스텀 프로필 선택 가능 목록"
-                description="아래 프로필을 내 커스텀으로 가져올 수 있어요"
+                label="커스텀 프로필"
                 bg="rgba(255,248,252,0.9)"
                 border="1px solid rgba(242,168,200,0.3)"
               >
                 <div style={GRID}>
                   {sharedCustomPool.map((item) => {
-                    const already = myCustomUrls.has(item.imageUrl);
+                    const key = `option:${item.id}`;
                     return (
-                      <div key={item.id} style={{
-                        ...CARD_BASE,
-                        opacity: already ? 0.6 : 1,
-                      }}>
-                        <img src={item.imageUrl} alt="" style={THUMB} />
-                        <div style={CARD_TITLE}>{item.title}</div>
-                        <button
-                          type="button"
-                          disabled={already || isPending}
-                          onClick={() => handleCloneShared(item.id)}
-                          style={{
-                            ...MINI_BTN_BASE,
-                            background: already ? "rgba(200,200,200,0.25)" : "rgba(242,168,200,0.25)",
-                            color: already ? "#aaa" : "#9c5e78",
-                            cursor: already ? "default" : "pointer",
-                          }}
-                        >
-                          {already ? "추가됨 ✓" : "내 커스텀에 추가"}
-                        </button>
-                        {isAdmin && (
-                          <MinBtn color="#ffe8ee" text="#9f6574"
-                            onClick={() => handleDeleteShared(item.id)}
-                            style={{ marginTop: 6 }}>
-                            풀에서 삭제
-                          </MinBtn>
-                        )}
-                      </div>
+                      <ProfileCard
+                        key={key}
+                        item={{ ...item, sourceType: "option" }}
+                        active={key === selectedKey}
+                        onSelect={() => setSelectedKey(key)}
+                        footer={
+                          isAdmin ? (
+                            <MinBtn color="#ffe8ee" text="#9f6574"
+                              onClick={() => handleDeleteShared(item.id)}>
+                              삭제
+                            </MinBtn>
+                          ) : null
+                        }
+                      />
                     );
                   })}
                 </div>
@@ -521,7 +514,7 @@ export default function PhoneMeScreen({
                         item={item}
                         active={key === selectedKey}
                         onSelect={() => setSelectedKey(key)}
-                        footer={
+                           footer={
                           <MinBtn color="#ffe8ee" text="#9a5f71"
                             onClick={() => handleDeleteCustom(item.id)}>
                             삭제

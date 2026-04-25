@@ -21,7 +21,7 @@ function normalizeImageUrl(url: string) {
   throw new Error("이미지 주소는 / 또는 http(s)로 시작해야 합니다.");
 }
 
-// ── 공통: 프로필 선택 저장 ──────────────────────────
+// ── 공통: 프로필 선택 저장 ─────────────────────────────────────────
 export async function selectPhoneProfile(input: {
   sourceType: "option" | "custom";
   sourceId: string;
@@ -45,7 +45,7 @@ export async function selectPhoneProfile(input: {
   return { ok: true };
 }
 
-// ── 익명/유저: 내 커스텀 프로필 직접 추가 ───────────
+// ── 익명/유저: 내 커스텀 프로필 직접 추가 ─────────────────────────
 export async function createCustomPhoneProfile(input: {
   title?: string;
   imageUrl: string;
@@ -69,7 +69,6 @@ export async function createCustomPhoneProfile(input: {
   if (error) throw new Error(error.message);
   if (!data?.id) throw new Error("커스텀 프로필 생성에 실패했습니다.");
 
-  // 추가한 프로필을 바로 선택 상태로
   await db.from("phone_profile_selected").upsert(
     {
       owner_type: actor.ownerType,
@@ -85,7 +84,7 @@ export async function createCustomPhoneProfile(input: {
   return { ok: true, id: data.id };
 }
 
-// ── 익명/유저: 내 커스텀 프로필 삭제 ────────────────
+// ── 익명/유저: 내 커스텀 프로필 삭제 ──────────────────────────────
 export async function deactivateCustomPhoneProfile(id: string) {
   const actor = await getPhoneProfileActor();
   const db = actor.ownerType === "guest" ? supabaseAdmin : supabase;
@@ -102,14 +101,13 @@ export async function deactivateCustomPhoneProfile(id: string) {
   return { ok: true };
 }
 
-// ── 익명/유저: 공유 커스텀 풀 → 내 커스텀으로 복사 ──
+// ── 익명/유저: 공유 커스텀 풀 → 내 커스텀으로 복사 ───────────────
 export async function cloneSharedProfileToCustom(input: {
   sharedOptionId: string;
 }) {
   const actor = await getPhoneProfileActor();
   const db = actor.ownerType === "guest" ? supabaseAdmin : supabase;
 
-  // 공유 풀 항목 조회
   const { data: shared, error: fetchError } = await supabase
     .from("phone_profile_options")
     .select("id, title, image_url")
@@ -121,7 +119,6 @@ export async function cloneSharedProfileToCustom(input: {
   if (fetchError) throw new Error(fetchError.message);
   if (!shared) throw new Error("공유 프로필을 찾을 수 없습니다.");
 
-  // 중복 체크 (같은 image_url이 이미 내 커스텀에 있으면 차단)
   const { data: existing } = await db
     .from("phone_profile_custom")
     .select("id")
@@ -148,7 +145,6 @@ export async function cloneSharedProfileToCustom(input: {
   if (error) throw new Error(error.message);
   if (!data?.id) throw new Error("프로필 추가에 실패했습니다.");
 
-  // 복사한 프로필을 바로 선택 상태로
   await db.from("phone_profile_selected").upsert(
     {
       owner_type: actor.ownerType,
@@ -164,7 +160,7 @@ export async function cloneSharedProfileToCustom(input: {
   return { ok: true, id: data.id };
 }
 
-// ── 관리자: 기본 프로필(is_shared_custom=false) 추가 ─
+// ── 관리자: 기본 프로필 추가 (is_shared_custom=false) ─────────────
 export async function createBasePhoneProfileOption(input: {
   title?: string;
   imageUrl: string;
@@ -187,7 +183,7 @@ export async function createBasePhoneProfileOption(input: {
   return { ok: true };
 }
 
-// ── 관리자: 기본 프로필 수정 ─────────────────────────
+// ── 관리자: 기본 프로필 수정 ───────────────────────────────────────
 export async function updateBasePhoneProfileOption(input: {
   id: string;
   title?: string;
@@ -212,7 +208,7 @@ export async function updateBasePhoneProfileOption(input: {
   return { ok: true };
 }
 
-// ── 관리자: 기본 프로필 삭제 ─────────────────────────
+// ── 관리자: 기본 프로필 삭제 ───────────────────────────────────────
 export async function deactivateBasePhoneProfileOption(id: string) {
   await requirePhoneProfileAdmin();
 
@@ -226,7 +222,7 @@ export async function deactivateBasePhoneProfileOption(id: string) {
   return { ok: true };
 }
 
-// ── 관리자: 공유 커스텀 풀(is_shared_custom=true) 추가
+// ── 관리자: 공유 커스텀 풀 추가 (is_shared_custom=true) ───────────
 export async function createSharedCustomPhoneProfile(input: {
   title?: string;
   imageUrl: string;
@@ -249,7 +245,7 @@ export async function createSharedCustomPhoneProfile(input: {
   return { ok: true };
 }
 
-// ── 관리자: 공유 커스텀 풀 항목 삭제 ─────────────────
+// ── 관리자: 공유 커스텀 풀 항목 삭제 ──────────────────────────────
 export async function deactivateSharedCustomPhoneProfile(id: string) {
   await requirePhoneProfileAdmin();
 
