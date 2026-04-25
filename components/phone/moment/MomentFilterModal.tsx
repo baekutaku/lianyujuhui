@@ -57,8 +57,18 @@ export default function MomentFilterModal({
 const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
 useEffect(() => {
-  if (!open) return;
-  setPortalTarget(document.querySelector(".phone-shell"));
+  if (!open) {
+    setPortalTarget(null);
+    return;
+  }
+
+  const target = document.querySelector(".phone-shell");
+
+  if (target instanceof HTMLElement) {
+    setPortalTarget(target);
+  } else {
+    setPortalTarget(null);
+  }
 }, [open]);
   const [author, setAuthor] = useState(selectedAuthor);
   const [categories, setCategories] = useState<string[]>(selectedCategories);
