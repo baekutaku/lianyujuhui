@@ -20,7 +20,7 @@ function normalizeImageUrl(url: string) {
   }
   throw new Error("이미지 주소는 / 또는 http(s)로 시작해야 합니다.");
 }
-
+console.log("isAdmin:", isAdmin);
 // ── 공통: 프로필 선택 저장 ─────────────────────────────────────────
 export async function selectPhoneProfile(input: {
   sourceType: "option" | "custom";
@@ -52,6 +52,23 @@ export async function createCustomPhoneProfile(input: {
 }) {
   const actor = await getPhoneProfileActor();
   const imageUrl = normalizeImageUrl(input.imageUrl);
+
+  // 관리자면 공유 풀(phone_profile_options)에 저장
+  if (actor.isAdmin) {
+    const { error } = await supabase.from("phone_profile_options").insert({
+      title: input.title?.trim() || null,
+      image_url: imageUrl,
+      sort_order: 0,
+      is_active: true,
+      is_shared_custom: true,
+      created_by_user_id: actor.user?.id ?? null,
+    });
+    if (error) throw new Error(error.message);
+    revalidatePath("/phone-items/me");
+    return { ok: true };
+  }
+
+  // 익명/일반유저는 기존대로 phone_profile_custom에 저장
   const db = actor.ownerType === "guest" ? supabaseAdmin : supabase;
 
   const { data, error } = await db
