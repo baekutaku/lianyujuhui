@@ -1441,10 +1441,10 @@
   }
 
   /* 휴대폰 화면에서는 사이트용 플로팅 메뉴 숨김 */
-  body:has(.phone-page) .mobile-fab-menu,
-  body:has(.phone-page) .scroll-to-top-btn {
-    display: none !important;
-  }
+ body:has(.phone-page):not(:has(.maker-page)) .mobile-fab-menu,
+body:has(.phone-page):not(:has(.maker-page)) .scroll-to-top-btn {
+  display: none !important;
+}
 }
 
 /* 폰 내부 콘텐츠 투명막 줄이기 */
