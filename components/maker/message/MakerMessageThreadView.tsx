@@ -119,14 +119,38 @@ function ChoiceBlock({
   );
 
   const [selectedIndex, setSelectedIndex] = useState(persistedIndex);
+  const [draftSelectedIndex, setDraftSelectedIndex] = useState(persistedIndex);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     setSelectedIndex(persistedIndex);
+    setDraftSelectedIndex(persistedIndex);
   }, [persistedIndex]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setDraftSelectedIndex(selectedIndex);
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, selectedIndex]);
 
   const selected = options[selectedIndex] ?? null;
   const selectedResult = Array.isArray(selected?.result) ? selected.result : [];
+
+  const handleConfirm = () => {
+    if (!options.length) return;
+
+    setSelectedIndex(draftSelectedIndex);
+    setIsOpen(false);
+  };
 
   return (
     <div className="thread-choice-block">
@@ -136,16 +160,21 @@ function ChoiceBlock({
             type="button"
             className="thread-choice-inline-btn"
             onClick={() => setIsOpen(true)}
-            aria-label="선택지 변경"
-            title="선택지 변경"
+            aria-label="회상 선택지"
+            title="회상 선택지"
           >
-            ↻
+            <span className="material-symbols-rounded">autorenew</span>
           </button>
+
           <div className="thread-bubble thread-choice-selected">
             {selected.label}
           </div>
+
           <Link href={myProfileHref} className="thread-mini-avatar-link">
-            <SafeAvatar src={myAvatarUrl} fallbackSrc={MAKER_DEFAULT_MY_AVATAR} />
+            <SafeAvatar
+              src={myAvatarUrl}
+              fallbackSrc={MAKER_DEFAULT_MY_AVATAR}
+            />
           </Link>
         </div>
       ) : null}
@@ -163,44 +192,74 @@ function ChoiceBlock({
       ) : null}
 
       {isOpen ? (
-        <div className="thread-choice-modal-backdrop">
-          <div className="thread-choice-modal">
-            <div className="thread-choice-modal-head">
-              <strong>회상 선택지</strong>
+        <div
+          className="moment-choice-modal-backdrop thread-choice-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="회상 선택지"
+          onClick={() => setIsOpen(false)}
+        >
+          <div
+            className="moment-choice-modal thread-choice-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="moment-choice-modal-header">
+              <h3 className="moment-choice-modal-title">회상 선택지</h3>
+
               <button
                 type="button"
-                className="thread-choice-close-btn"
+                className="moment-choice-modal-close"
                 onClick={() => setIsOpen(false)}
+                aria-label="닫기"
               >
-                닫기
+                <span className="material-symbols-rounded">close</span>
               </button>
             </div>
 
-            <div className="thread-choice-modal-list">
-              {options.map((option, index) => (
-                <button
-                  key={`${option.label}-${index}`}
-                  type="button"
-                  className={`thread-choice-modal-item ${
-                    selectedIndex === index ? "is-active" : ""
-                  }`}
-                  onClick={() => {
-                    setSelectedIndex(index);
-                    setIsOpen(false);
-                  }}
-                >
-                  <span className="thread-choice-modal-label">
-                    {option.label}
-                  </span>
-                  {selectedIndex === index ? (
-                    <span className="thread-choice-modal-badge">현재</span>
-                  ) : null}
-                </button>
-              ))}
+            <p className="moment-choice-modal-desc">
+              선택지를 바꾸면 이 대화에 표시되는 답변이 변경됩니다.
+            </p>
+
+            <div className="moment-choice-option-list thread-choice-modal-list">
+              {options.map((option, index) => {
+                const active = draftSelectedIndex === index;
+
+                return (
+                  <button
+                    key={`${option.label}-${index}`}
+                    type="button"
+                    className={`moment-choice-option thread-choice-modal-item ${
+                      active ? "active" : ""
+                    }`}
+                    onClick={() => setDraftSelectedIndex(index)}
+                  >
+                    <span className="moment-choice-option-label thread-choice-modal-label">
+                      {option.label}
+                    </span>
+
+                    {active ? (
+                      <span className="moment-choice-option-badge thread-choice-modal-badge">
+                        회상
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="thread-choice-modal-note">
-              선택지를 바꿔도 원본 기록은 바뀌지 않습니다.
+            <div className="moment-choice-modal-footer">
+              <button
+                type="button"
+                className="moment-choice-confirm"
+                onClick={handleConfirm}
+                disabled={!options.length}
+              >
+                확인 변경
+              </button>
+
+              <p className="moment-choice-modal-note">
+                회상 선택지를 바꿔도 원본 채팅 기록은 바뀌지 않습니다.
+              </p>
             </div>
           </div>
         </div>

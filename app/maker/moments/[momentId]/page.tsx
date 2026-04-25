@@ -145,8 +145,8 @@ export default async function MakerMomentDetailPage({
         title={moment.title}
         subtitle={item.authorName}
         backHref="/maker/moments"
-        rightSlot={
-  <div className="maker-top-actions">
+      rightSlot={
+  <div className="maker-top-actions maker-top-actions-soft">
     <Link
       href={`/maker/moments/${momentId}/edit`}
       className="maker-top-icon-button"

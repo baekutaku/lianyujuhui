@@ -205,15 +205,8 @@ export default function MakerMomentFeedPost({
     });
   }
 
-  return (
-    <div
-      style={{
-        padding: UI.wrapperPadding,
-        borderTop: "1px solid rgba(233, 226, 236, 0.95)",
-        borderBottom: "1px solid rgba(233, 226, 236, 0.95)",
-        background: "transparent",
-      }}
-    >
+ return (
+  <div className="maker-moment-post">
       <div
         style={{
           display: "grid",
@@ -222,7 +215,7 @@ export default function MakerMomentFeedPost({
           alignItems: "start",
         }}
       >
-        <div style={{ position: "relative", zIndex: 3 }}>
+        <div style={{ position: "relative" }}>
           {canOpenProfile ? (
             <Link
               href={profileHref}
@@ -233,7 +226,6 @@ export default function MakerMomentFeedPost({
                 borderRadius: "999px",
                 overflow: "hidden",
                 position: "relative",
-                zIndex: 3,
               }}
               aria-label={`${safeAuthorName} 프로필`}
               title={`${safeAuthorName} 프로필`}
@@ -310,15 +302,16 @@ export default function MakerMomentFeedPost({
               </div>
             </div>
 
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                flex: "0 0 auto",
-                paddingTop: 2,
-              }}
-            >
+         <div
+  className="maker-moment-post-actions"
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    flex: "0 0 auto",
+    paddingTop: 2,
+  }}
+>
               {item.choiceOptions.length ? (
                 useChoiceModal ? (
                   <MomentChoiceTrigger
@@ -344,15 +337,7 @@ export default function MakerMomentFeedPost({
                 )
               ) : null}
 
-              <span
-                style={{
-                  fontSize: 22,
-                  color: item.isFavorite ? "#e8d8df" : "#e5dce6",
-                  lineHeight: 1,
-                }}
-              >
-                ♡
-              </span>
+            
             </div>
           </div>
 
