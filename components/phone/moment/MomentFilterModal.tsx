@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+
 
 type AuthorOption = {
   key: string;
@@ -52,6 +54,12 @@ export default function MomentFilterModal({
 }: MomentFilterModalProps) {
   const router = useRouter();
 
+const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+
+useEffect(() => {
+  if (!open) return;
+  setPortalTarget(document.querySelector(".phone-shell"));
+}, [open]);
   const [author, setAuthor] = useState(selectedAuthor);
   const [categories, setCategories] = useState<string[]>(selectedCategories);
   const [reply, setReply] = useState<"all" | "replied" | "unreplied">(
@@ -68,6 +76,7 @@ export default function MomentFilterModal({
 
   if (!open) return null;
 
+  if (!portalTarget) return null;
   const sortedYears = [...availableYears].sort((a, b) => Number(b) - Number(a));
 
   const handleReset = () => {
@@ -101,13 +110,14 @@ export default function MomentFilterModal({
     cursor: "pointer",
   });
 
-  return (
-    <div
+  return createPortal(
+  <div
+    
       onClick={onClose}
       style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
+        position: "absolute",
+inset: 0,
+zIndex: 9999,
         background: "rgba(40, 34, 52, 0.36)",
         display: "flex",
         alignItems: "center",
@@ -119,6 +129,8 @@ export default function MomentFilterModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(92vw, 560px)",
+          position: "relative",
+zIndex: 1,
           maxHeight: "82vh",
           overflowY: "auto",
           borderRadius: 18,
@@ -335,5 +347,7 @@ export default function MomentFilterModal({
         </button>
       </div>
     </div>
+  ,
+  portalTarget
   );
 }

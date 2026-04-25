@@ -2705,3 +2705,23 @@
 
 
 
+
+/* 필터 모달 레이어 겹침 수정 */
+.phone-shell {
+  position: relative;
+}
+
+.phone-topbar:has(.moment-filter-trigger) {
+  overflow: visible !important;
+}
+
+.moment-card-item {
+  position: relative;
+  z-index: 0 !important;
+}
+
+.moment-card-item a,
+.moment-card-item img,
+.moment-card-item [style*="z-index"] {
+  z-index: auto !important;
+}
