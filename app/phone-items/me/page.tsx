@@ -163,6 +163,7 @@ export default async function PhoneMePage() {
             뒤로가기
           </Link>
 
+
           <PhoneMeScreen
             viewerName={guestName}
             defaultAvatarUrl={avatarUrl}

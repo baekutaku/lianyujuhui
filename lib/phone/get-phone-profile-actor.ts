@@ -18,8 +18,13 @@ export async function getPhoneProfileActor() {
   const adminEmails = parseEnvList(process.env.PHONE_PROFILE_ADMIN_EMAILS);
   const adminIds = parseEnvList(process.env.PHONE_PROFILE_ADMIN_IDS);
 
+  // admin_auth 쿠키로 로그인한 관리자 체크
+  const adminAuth = cookieStore.get("admin_auth")?.value?.trim();
+  const isCookieAdmin = adminAuth === "ok";
+
   if (user) {
     const isAdmin =
+      isCookieAdmin ||
       (user.email ? adminEmails.includes(user.email) : false) ||
       adminIds.includes(user.id);
 
@@ -37,7 +42,7 @@ export async function getPhoneProfileActor() {
   return {
     ownerType: "guest" as const,
     ownerId: guestId,
-    isAdmin: false,
+    isAdmin: isCookieAdmin,  // ← admin_auth 쿠키 있으면 관리자
     user: null,
     needsGuestCookie: !guestId,
   };

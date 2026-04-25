@@ -20,7 +20,7 @@ function normalizeImageUrl(url: string) {
   }
   throw new Error("이미지 주소는 / 또는 http(s)로 시작해야 합니다.");
 }
-console.log("isAdmin:", isAdmin);
+
 // ── 공통: 프로필 선택 저장 ─────────────────────────────────────────
 export async function selectPhoneProfile(input: {
   sourceType: "option" | "custom";
@@ -55,7 +55,7 @@ export async function createCustomPhoneProfile(input: {
 
   // 관리자면 공유 풀(phone_profile_options)에 저장
   if (actor.isAdmin) {
-    const { error } = await supabase.from("phone_profile_options").insert({
+    const { error } = await supabaseAdmin.from("phone_profile_options").insert({
       title: input.title?.trim() || null,
       image_url: imageUrl,
       sort_order: 0,
@@ -186,7 +186,7 @@ export async function createBasePhoneProfileOption(input: {
   const actor = await requirePhoneProfileAdmin();
   const imageUrl = normalizeImageUrl(input.imageUrl);
 
-  const { error } = await supabase.from("phone_profile_options").insert({
+  const { error } = await supabaseAdmin.from("phone_profile_options").insert({
     title: input.title?.trim() || null,
     image_url: imageUrl,
     sort_order: input.sortOrder ?? 0,
@@ -210,7 +210,7 @@ export async function updateBasePhoneProfileOption(input: {
   await requirePhoneProfileAdmin();
   const imageUrl = normalizeImageUrl(input.imageUrl);
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("phone_profile_options")
     .update({
       title: input.title?.trim() || null,
@@ -229,7 +229,7 @@ export async function updateBasePhoneProfileOption(input: {
 export async function deactivateBasePhoneProfileOption(id: string) {
   await requirePhoneProfileAdmin();
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("phone_profile_options")
     .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq("id", id);
@@ -248,7 +248,7 @@ export async function createSharedCustomPhoneProfile(input: {
   const actor = await requirePhoneProfileAdmin();
   const imageUrl = normalizeImageUrl(input.imageUrl);
 
-  const { error } = await supabase.from("phone_profile_options").insert({
+  const { error } = await supabaseAdmin.from("phone_profile_options").insert({
     title: input.title?.trim() || null,
     image_url: imageUrl,
     sort_order: input.sortOrder ?? 0,
@@ -266,7 +266,7 @@ export async function createSharedCustomPhoneProfile(input: {
 export async function deactivateSharedCustomPhoneProfile(id: string) {
   await requirePhoneProfileAdmin();
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("phone_profile_options")
     .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq("id", id)
