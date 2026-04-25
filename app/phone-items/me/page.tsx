@@ -9,7 +9,7 @@ import { redirect } from "next/navigation";
 import { getMomentCountByAuthorKey } from "@/lib/phone/moment-author";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
-type BaseProfileRow = {
+type ProfileOptionRow = {
   id: string;
   title: string | null;
   image_url: string;
@@ -24,12 +24,14 @@ type CustomProfileRow = {
 };
 
 const CHARACTERS = [
-  { key: "baiqi", label: "백기", avatarUrl: "/profile/baiqi.png", affinity: 51 },
-  { key: "lizeyan", label: "이택언", avatarUrl: "/profile/lizeyan.png", affinity: 43 },
+  { key: "baiqi",     label: "백기",   avatarUrl: "/profile/baiqi.png",     affinity: 51 },
+  { key: "lizeyan",   label: "이택언", avatarUrl: "/profile/lizeyan.png",   affinity: 43 },
   { key: "zhouqiluo", label: "주기락", avatarUrl: "/profile/zhouqiluo.png", affinity: 41 },
-  { key: "xumo", label: "허묵", avatarUrl: "/profile/xumo.png", affinity: 40 },
-  { key: "lingxiao", label: "연시호", avatarUrl: "/profile/lingxiao.png", affinity: 17 },
+  { key: "xumo",      label: "허묵",   avatarUrl: "/profile/xumo.png",      affinity: 40 },
+  { key: "lingxiao",  label: "연시호", avatarUrl: "/profile/lingxiao.png",  affinity: 17 },
 ] as const;
+
+const DEFAULT_AVATAR = "/profile/mc.png";
 
 export default async function PhoneMePage() {
   const actor = await getPhoneProfileActor();
@@ -46,14 +48,14 @@ export default async function PhoneMePage() {
   const profileDb = ownerType === "guest" ? supabaseAdmin : supabase;
 
   const [
-    { data: allProfileOptions, error: baseError },
+    { data: allOptions, error: optionsError },
     { data: customProfiles, error: customError },
     { data: selectedRow, error: selectedError },
     myMomentCount,
     totalMomentCount,
     ...characterMomentCounts
   ] = await Promise.all([
-    // is_shared_custom 포함해서 전체 기본 옵션 조회
+    // is_shared_custom 포함 전체 옵션 조회
     supabase
       .from("phone_profile_options")
       .select("id, title, image_url, sort_order, is_shared_custom")
@@ -61,6 +63,7 @@ export default async function PhoneMePage() {
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false }),
 
+    // 내 커스텀 프로필
     ownerId
       ? profileDb
           .from("phone_profile_custom")
@@ -71,6 +74,7 @@ export default async function PhoneMePage() {
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [], error: null } as any),
 
+    // 현재 선택된 프로필
     ownerId
       ? profileDb
           .from("phone_profile_selected")
@@ -89,73 +93,62 @@ export default async function PhoneMePage() {
       .eq("is_published", true)
       .then((res) => res.count ?? 0),
 
-    ...CHARACTERS.map((character) => getMomentCountByAuthorKey(character.key)),
+    ...CHARACTERS.map((c) => getMomentCountByAuthorKey(c.key)),
   ]);
 
-  if (baseError) throw new Error(baseError.message);
-  if (customError) throw new Error(customError.message);
+  if (optionsError) throw new Error(optionsError.message);
+  if (customError)  throw new Error(customError.message);
   if (selectedError) throw new Error(selectedError.message);
 
-  const characters = CHARACTERS.map((character, index) => ({
-    ...character,
-    moments: Number(characterMomentCounts[index] ?? 0),
-  }));
+  const rows = (allOptions as ProfileOptionRow[] | null) ?? [];
 
-  const rows = (allProfileOptions as BaseProfileRow[] | null) ?? [];
-
-  // is_shared_custom=false → 기본 프로필 (기존 역할)
+  // is_shared_custom=false → 기본 프로필
   const baseProfileOptions = rows
-    .filter((item) => !item.is_shared_custom)
-    .map((item) => ({
-      id: item.id,
-      title: item.title ?? "",
-      imageUrl: item.image_url,
+    .filter((r) => !r.is_shared_custom)
+    .map((r) => ({
+      id: r.id,
+      title: r.title ?? "",
+      imageUrl: r.image_url,
       sourceType: "option" as const,
-      sortOrder: item.sort_order,
+      sortOrder: r.sort_order,
     }));
 
   // is_shared_custom=true → 관리자 공유 커스텀 풀
   const sharedCustomPool = rows
-    .filter((item) => item.is_shared_custom)
-    .map((item) => ({
-      id: item.id,
-      title: item.title ?? "",
-      imageUrl: item.image_url,
-      sortOrder: item.sort_order,
+    .filter((r) => r.is_shared_custom)
+    .map((r) => ({
+      id: r.id,
+      title: r.title ?? "",
+      imageUrl: r.image_url,
+      sortOrder: r.sort_order,
     }));
 
-  const customProfileOptions =
-    ((customProfiles as CustomProfileRow[] | null) ?? []).map((item) => ({
-      id: item.id,
-      title: item.title ?? "",
-      imageUrl: item.image_url,
+  // 내 커스텀
+  const customProfileOptions = ((customProfiles as CustomProfileRow[] | null) ?? []).map(
+    (r) => ({
+      id: r.id,
+      title: r.title ?? "",
+      imageUrl: r.image_url,
       sourceType: "custom" as const,
-    })) ?? [];
+    })
+  );
+
+  const characters = CHARACTERS.map((c, i) => ({
+    ...c,
+    moments: Number(characterMomentCounts[i] ?? 0),
+  }));
 
   const guestName = cookieStore.get("phone_guest_name")?.value?.trim() || "유연";
 
-  let avatarUrl = "/profile/mc.png";
-
+  // 현재 아바타 결정
+  let avatarUrl = DEFAULT_AVATAR;
   if (selectedRow?.source_type === "option") {
-    const selectedOption = baseProfileOptions.find(
-      (item) => item.id === selectedRow.source_id
-    );
-    if (selectedOption?.imageUrl) {
-      avatarUrl = selectedOption.imageUrl;
-    }
+    const found = baseProfileOptions.find((o) => o.id === selectedRow.source_id);
+    if (found?.imageUrl) avatarUrl = found.imageUrl;
   } else if (selectedRow?.source_type === "custom") {
-    const selectedCustom = customProfileOptions.find(
-      (item) => item.id === selectedRow.source_id
-    );
-    if (selectedCustom?.imageUrl) {
-      avatarUrl = selectedCustom.imageUrl;
-    }
+    const found = customProfileOptions.find((o) => o.id === selectedRow.source_id);
+    if (found?.imageUrl) avatarUrl = found.imageUrl;
   }
-
-  const viewerProfile = {
-    displayName: guestName,
-    avatarUrl,
-  };
 
   return (
     <main className="phone-page">
@@ -171,12 +164,13 @@ export default async function PhoneMePage() {
           </Link>
 
           <PhoneMeScreen
-            viewerName={viewerProfile.displayName}
-            defaultAvatarUrl={viewerProfile.avatarUrl}
-            characters={characters}
+            viewerName={guestName}
+            defaultAvatarUrl={avatarUrl}
+            baseDefaultAvatarUrl={DEFAULT_AVATAR}
             baseProfileOptions={baseProfileOptions}
             customProfileOptions={customProfileOptions}
             sharedCustomPool={sharedCustomPool}
+            characters={characters}
             myMomentCount={myMomentCount}
             totalMomentCount={totalMomentCount ?? 0}
             initialSelectedSourceType={selectedRow?.source_type ?? null}
