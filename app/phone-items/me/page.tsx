@@ -14,6 +14,7 @@ type BaseProfileRow = {
   title: string | null;
   image_url: string;
   sort_order: number;
+  is_shared_custom: boolean;
 };
 
 type CustomProfileRow = {
@@ -45,16 +46,17 @@ export default async function PhoneMePage() {
   const profileDb = ownerType === "guest" ? supabaseAdmin : supabase;
 
   const [
-    { data: baseProfiles, error: baseError },
+    { data: allProfileOptions, error: baseError },
     { data: customProfiles, error: customError },
     { data: selectedRow, error: selectedError },
     myMomentCount,
     totalMomentCount,
     ...characterMomentCounts
   ] = await Promise.all([
+    // is_shared_custom 포함해서 전체 기본 옵션 조회
     supabase
       .from("phone_profile_options")
-      .select("id, title, image_url, sort_order")
+      .select("id, title, image_url, sort_order, is_shared_custom")
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false }),
@@ -99,14 +101,28 @@ export default async function PhoneMePage() {
     moments: Number(characterMomentCounts[index] ?? 0),
   }));
 
-  const baseProfileOptions =
-    ((baseProfiles as BaseProfileRow[] | null) ?? []).map((item) => ({
+  const rows = (allProfileOptions as BaseProfileRow[] | null) ?? [];
+
+  // is_shared_custom=false → 기본 프로필 (기존 역할)
+  const baseProfileOptions = rows
+    .filter((item) => !item.is_shared_custom)
+    .map((item) => ({
       id: item.id,
       title: item.title ?? "",
       imageUrl: item.image_url,
       sourceType: "option" as const,
       sortOrder: item.sort_order,
-    })) ?? [];
+    }));
+
+  // is_shared_custom=true → 관리자 공유 커스텀 풀
+  const sharedCustomPool = rows
+    .filter((item) => item.is_shared_custom)
+    .map((item) => ({
+      id: item.id,
+      title: item.title ?? "",
+      imageUrl: item.image_url,
+      sortOrder: item.sort_order,
+    }));
 
   const customProfileOptions =
     ((customProfiles as CustomProfileRow[] | null) ?? []).map((item) => ({
@@ -141,33 +157,34 @@ export default async function PhoneMePage() {
     avatarUrl,
   };
 
- return (
-  <main className="phone-page">
-    <PhoneProfileShell tabbar={<PhoneTabNav currentPath="/phone-items/me" />}>
-      <div className="phone-me-page phone-me-root">
-        <Link
-          href="/phone-items"
-          className="phone-me-back-button phone-me-back-button-inside"
-          aria-label="뒤로가기"
-          title="뒤로가기"
-        >
-          뒤로가기
-        </Link>
+  return (
+    <main className="phone-page">
+      <PhoneProfileShell tabbar={<PhoneTabNav currentPath="/phone-items/me" />}>
+        <div className="phone-me-page phone-me-root">
+          <Link
+            href="/phone-items"
+            className="phone-me-back-button phone-me-back-button-inside"
+            aria-label="뒤로가기"
+            title="뒤로가기"
+          >
+            뒤로가기
+          </Link>
 
-        <PhoneMeScreen
-          viewerName={viewerProfile.displayName}
-          defaultAvatarUrl={viewerProfile.avatarUrl}
-          characters={characters}
-          baseProfileOptions={baseProfileOptions}
-          customProfileOptions={customProfileOptions}
-          myMomentCount={myMomentCount}
-          totalMomentCount={totalMomentCount ?? 0}
-          initialSelectedSourceType={selectedRow?.source_type ?? null}
-          initialSelectedSourceId={selectedRow?.source_id ?? null}
-          isAdmin={actor.isAdmin}
-        />
-      </div>
-    </PhoneProfileShell>
-  </main>
-);
+          <PhoneMeScreen
+            viewerName={viewerProfile.displayName}
+            defaultAvatarUrl={viewerProfile.avatarUrl}
+            characters={characters}
+            baseProfileOptions={baseProfileOptions}
+            customProfileOptions={customProfileOptions}
+            sharedCustomPool={sharedCustomPool}
+            myMomentCount={myMomentCount}
+            totalMomentCount={totalMomentCount ?? 0}
+            initialSelectedSourceType={selectedRow?.source_type ?? null}
+            initialSelectedSourceId={selectedRow?.source_id ?? null}
+            isAdmin={actor.isAdmin}
+          />
+        </div>
+      </PhoneProfileShell>
+    </main>
+  );
 }
