@@ -407,9 +407,10 @@ export async function createCard(formData: FormData) {
     const summary = String(formData.get("summary") || "").trim();
     const cardCategory = String(formData.get("cardCategory") || "other").trim();
     const tagLabels = parseTagLabelsFromForm(formData);
-    const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
-const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
-const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
+   const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
+    const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
+    const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
 
     const serverKey = String(formData.get("serverKey") || "kr").trim();
     const characterKey = String(formData.get("characterKey") || "baiqi").trim();
@@ -500,6 +501,14 @@ await syncRelationsBySlugs({
   childType: "event",
   relationType: "card_event",
   slugs: linkedEventSlugs,
+});
+
+await syncRelationsBySlugs({
+  parentType: "card",
+  parentId: insertedCard.id,
+  childType: "card",
+  relationType: "card_card",
+  slugs: linkedCardSlugs,
 });
 
     if (thumbnailAfterUrl) {
@@ -1365,6 +1374,7 @@ export async function updateCard(formData: FormData) {
     const summary = String(formData.get("summary") || "").trim();
     const cardCategory = String(formData.get("cardCategory") || "other").trim();
     const tagLabels = parseTagLabelsFromForm(formData);
+    const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
 
     if (!cardId) throw new Error("cardId가 없습니다.");
 
@@ -1386,8 +1396,17 @@ export async function updateCard(formData: FormData) {
 
     if (error) throw new Error(error.message);
 
-    phase = "sync-tags";
+ phase = "sync-tags";
     await syncCardTags(cardId, tagLabels);
+
+    phase = "sync-card-relations";
+    await syncRelationsBySlugs({
+      parentType: "card",
+      parentId: cardId,
+      childType: "card",
+      relationType: "card_card",
+      slugs: linkedCardSlugs,
+    });
 
     phase = "thumb-after";
     // 진화 후 썸네일 처리
@@ -2353,6 +2372,7 @@ export async function deleteStoryBundle(formData: FormData) {
 export async function createEventBundle(formData: FormData) {
   let createdEventId: string | null = null;
   let targetSlug = "";
+  let duplicateEventSlug = "";
   const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
@@ -2373,9 +2393,10 @@ export async function createEventBundle(formData: FormData) {
     const youtubeUrl = String(formData.get("youtubeUrl") || "").trim();
     const thumbnailUrl = String(formData.get("thumbnailUrl") || "").trim();
 
-    const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
+const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
     const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
     const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+    const linkedRelatedEventSlugs = parseSlugLines(formData.get("linkedRelatedEventSlugs"));
 
     const tagLabels = parseTagLabelsFromForm(formData);
     const meta = await resolveStoryMetaFromForm(formData);
@@ -2405,14 +2426,10 @@ export async function createEventBundle(formData: FormData) {
       .eq("content_id", contentId)
       .maybeSingle();
 
-    if (existingEvent) {
-      redirect(
-        `/admin/events/${encodeURIComponent(existingEvent.slug)}/edit?error=${encodeURIComponent(
-          "이미 등록된 이벤트입니다."
-        )}`
-      );
-    }
-
+   if (existingEvent) {
+  duplicateEventSlug = existingEvent.slug;
+  throw new Error("__DUPLICATE_EVENT__");
+}
     const { data: server, error: serverError } = await supabase
       .from("servers")
       .select("id")
@@ -2540,12 +2557,20 @@ export async function createEventBundle(formData: FormData) {
       slugs: linkedStorySlugs,
     });
 
-    await syncIncomingRelationsBySlugs({
+await syncIncomingRelationsBySlugs({
       childType: "event",
       childId: insertedEvent.id,
       parentType: "phone_item",
       relationType: "phone_event",
       slugs: linkedPhoneItemSlugs,
+    });
+
+    await syncRelationsBySlugs({
+      parentType: "event",
+      parentId: insertedEvent.id,
+      childType: "event",
+      relationType: "event_event",
+      slugs: linkedRelatedEventSlugs,
     });
 
     revalidatePath("/admin/events");
@@ -2566,14 +2591,18 @@ export async function createEventBundle(formData: FormData) {
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
 
+    if (message === "__DUPLICATE_EVENT__" && duplicateEventSlug) {
+      redirect(
+        `/admin/events/${encodeURIComponent(
+          duplicateEventSlug
+        )}/edit?error=${encodeURIComponent("이미 등록된 이벤트입니다.")}`
+      );
+    }
+
     redirect(`/admin/events/new?error=${encodeURIComponent(message)}`);
   }
 
-  if (submitIntent === "view") {
-    redirect(`/events/${encodeURIComponent(targetSlug)}`);
-  }
-
-  redirect(`/admin/events/${encodeURIComponent(targetSlug)}/edit?saved=1`);
+  redirect(`/events/${encodeURIComponent(targetSlug)}`);
 }
 
 // export async function updateEventBundle(formData: FormData) {

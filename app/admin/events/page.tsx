@@ -31,7 +31,7 @@ export default async function AdminEventsPage() {
         </Link>
 
         <Link
-          href="/events"
+           href="/stories?tab=event"
           className="nav-link"
           style={{ display: "inline-flex", alignItems: "center" }}
         >

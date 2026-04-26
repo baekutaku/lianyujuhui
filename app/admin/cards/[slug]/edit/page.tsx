@@ -146,7 +146,7 @@ export default async function EditCardPage({
       .join(", ");
   }
 
-  const { data: storyRelations } = await supabase
+   const { data: storyRelations } = await supabase
     .from("item_relations")
     .select("child_id, sort_order")
     .eq("parent_type", "card")
@@ -173,18 +173,30 @@ export default async function EditCardPage({
     .eq("relation_type", "card_event")
     .order("sort_order", { ascending: true });
 
+  const { data: cardRelations } = await supabase
+    .from("item_relations")
+    .select("child_id, sort_order")
+    .eq("parent_type", "card")
+    .eq("parent_id", card.id)
+    .eq("child_type", "card")
+    .eq("relation_type", "card_card")
+    .order("sort_order", { ascending: true });
+
   const storyIds = (storyRelations ?? []).map((item) => item.child_id);
   const phoneIds = (phoneRelations ?? []).map((item) => item.child_id);
   const eventIds = (eventRelations ?? []).map((item) => item.child_id);
+  const cardIds = (cardRelations ?? []).map((item) => item.child_id);
 
   const [
     { data: characters },
     { data: linkedStories },
     { data: linkedPhoneItems },
     { data: linkedEvents },
+    { data: linkedCards },
     { data: allStories },
     { data: allPhoneItems },
     { data: allEvents },
+    { data: allCards },
   ] = await Promise.all([
     supabase.from("characters").select("id, key"),
 
@@ -209,6 +221,13 @@ export default async function EditCardPage({
           .in("id", eventIds)
       : Promise.resolve({ data: [] as any[] }),
 
+    cardIds.length > 0
+      ? supabase
+          .from("cards")
+          .select("id, slug, title, rarity, primary_character_id")
+          .in("id", cardIds)
+      : Promise.resolve({ data: [] as any[] }),
+
     supabase
       .from("stories")
       .select("slug, title, subtype, primary_character_id")
@@ -225,6 +244,13 @@ export default async function EditCardPage({
       .from("events")
       .select("slug, title, subtype, primary_character_id")
       .eq("is_published", true)
+      .order("created_at", { ascending: false }),
+
+    supabase
+      .from("cards")
+      .select("slug, title, rarity, primary_character_id")
+      .eq("is_published", true)
+      .neq("id", card.id)
       .order("created_at", { ascending: false }),
   ]);
 
@@ -263,13 +289,27 @@ export default async function EditCardPage({
       category: item.content_json?.historyCategory ?? null,
     }));
 
-  const initialEvents: RelationCandidate[] = (eventRelations ?? [])
+ const initialEvents: RelationCandidate[] = (eventRelations ?? [])
     .map((item) => linkedEventMap.get(item.child_id))
     .filter(Boolean)
     .map((item: any) => ({
       slug: item.slug,
       title: item.title,
       subtype: item.subtype,
+      characterKey: characterMap.get(item.primary_character_id) ?? null,
+    }));
+
+  const linkedCardMap = new Map(
+    (linkedCards ?? []).map((item) => [item.id, item])
+  );
+
+  const initialLinkedCards: RelationCandidate[] = (cardRelations ?? [])
+    .map((item) => linkedCardMap.get(item.child_id))
+    .filter(Boolean)
+    .map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.rarity,
       characterKey: characterMap.get(item.primary_character_id) ?? null,
     }));
 
@@ -290,11 +330,19 @@ export default async function EditCardPage({
       category: item.content_json?.historyCategory ?? null,
     })) ?? [];
 
-  const eventCandidates: RelationCandidate[] =
+ const eventCandidates: RelationCandidate[] =
     (allEvents ?? []).map((item: any) => ({
       slug: item.slug,
       title: item.title,
       subtype: item.subtype,
+      characterKey: characterMap.get(item.primary_character_id) ?? null,
+    })) ?? [];
+
+  const cardCandidates: RelationCandidate[] =
+    (allCards ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.rarity,
       characterKey: characterMap.get(item.primary_character_id) ?? null,
     })) ?? [];
 
@@ -483,7 +531,7 @@ export default async function EditCardPage({
           ]}
         />
 
-        <RelationPicker
+      <RelationPicker
           label="연결 이벤트"
           name="linkedEventSlugs"
           candidates={eventCandidates}
@@ -491,7 +539,24 @@ export default async function EditCardPage({
           characterOptions={[...CHARACTER_OPTIONS]}
         />
 
-
+        <RelationPicker
+          label="연결 카드"
+          name="linkedCardSlugs"
+          candidates={cardCandidates}
+          initialSelected={initialLinkedCards}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          subtypeOptions={[
+            { value: "r", label: "R" },
+            { value: "sr", label: "SR" },
+            { value: "er", label: "ER" },
+            { value: "ser", label: "SER" },
+            { value: "ssr", label: "SSR" },
+            { value: "sp", label: "SP" },
+            { value: "ur", label: "UR" },
+            { value: "nh", label: "NH" },
+            { value: "n", label: "N" },
+          ]}
+        />
 
         <div className="admin-subpanel">
           <StoryFormEnhancer storageKey={`card-draft:${card.slug}`} />

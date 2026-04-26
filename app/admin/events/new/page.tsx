@@ -81,6 +81,7 @@ export default async function NewEventPage({
     { data: cards },
     { data: stories },
     { data: phoneItems },
+    { data: events },
     { data: characters },
   ] = await Promise.all([
     supabase
@@ -99,14 +100,60 @@ export default async function NewEventPage({
       .order("release_year", { ascending: false }),
 
     supabase
+      .from("events")
+      .select("id, title, slug, subtype, primary_character_id")
+      .order("release_year", { ascending: false }),
+
+    supabase
       .from("characters")
       .select("id, key, name_ko")
       .order("sort_order", { ascending: true }),
   ]);
 
-  const characterKeyMap = new Map(
+   const characterKeyMap = new Map(
     (characters ?? []).map((item: any) => [item.id, item.key])
   );
+
+  // 태그 조회
+  const allIds = Array.from(new Set([
+    ...(cards ?? []).map((item: any) => item.id),
+    ...(stories ?? []).map((item: any) => item.id),
+    ...(phoneItems ?? []).map((item: any) => item.id),
+    ...(events ?? []).map((item: any) => item.id),
+  ].filter(Boolean)));
+
+  let itemTagsMap = new Map<string, string[]>();
+
+  if (allIds.length > 0) {
+   const { data: itemTagRows } = await supabase
+  .from("item_tags")
+  .select("item_id, tag_id, item_type, sort_order")
+  .in("item_id", allIds)
+  .in("item_type", ["card", "story", "phone_item", "event"])
+  .order("sort_order", { ascending: true });
+
+    const tagIds = Array.from(new Set((itemTagRows ?? []).map((row: any) => row.tag_id)));
+
+    if (tagIds.length > 0) {
+      const { data: tagRows } = await supabase
+        .from("tags")
+        .select("id, label, name, slug")
+        .in("id", tagIds);
+
+      const tagLabelMap = new Map(
+        (tagRows ?? []).map((row: any) => [row.id, row.label ?? row.name ?? row.slug])
+      );
+
+      itemTagsMap = (itemTagRows ?? []).reduce((map: Map<string, string[]>, row: any) => {
+        const label = tagLabelMap.get(row.tag_id);
+        if (!label) return map;
+        const prev = map.get(row.item_id) ?? [];
+        prev.push(label);
+        map.set(row.item_id, prev);
+        return map;
+      }, new Map<string, string[]>());
+    }
+  }
 
   const cardCandidates: RelationCandidate[] =
     (cards ?? []).map((item: any) => ({
@@ -114,6 +161,7 @@ export default async function NewEventPage({
       title: item.title,
       characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
       category: item.card_category ?? null,
+      tags: itemTagsMap.get(item.id) ?? [],
     })) ?? [];
 
   const storyCandidates: RelationCandidate[] =
@@ -122,9 +170,10 @@ export default async function NewEventPage({
       title: item.title,
       subtype: item.subtype ?? null,
       characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+      tags: itemTagsMap.get(item.id) ?? [],
     })) ?? [];
 
-  const phoneCandidates: RelationCandidate[] =
+   const phoneCandidates: RelationCandidate[] =
     (phoneItems ?? []).map((item: any) => ({
       slug: item.slug,
       title: item.title,
@@ -134,6 +183,16 @@ export default async function NewEventPage({
         item.content_json?.historyCategory ??
         item.content_json?.momentCategory ??
         null,
+      tags: itemTagsMap.get(item.id) ?? [],
+    })) ?? [];
+
+  const eventCandidates: RelationCandidate[] =
+    (events ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype ?? null,
+      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+      tags: itemTagsMap.get(item.id) ?? [],
     })) ?? [];
 
   return (
@@ -273,13 +332,21 @@ export default async function NewEventPage({
           subtypeOptions={[...STORY_SUBTYPE_OPTIONS]}
         />
 
-        <RelationPicker
+          <RelationPicker
           label="연결 휴대폰"
           name="linkedPhoneItemSlugs"
           candidates={phoneCandidates}
           characterOptions={[...CHARACTER_OPTIONS]}
           categoryOptions={[...PHONE_CATEGORY_OPTIONS]}
           subtypeOptions={[...PHONE_SUBTYPE_OPTIONS]}
+        />
+
+        <RelationPicker
+          label="연결 이벤트"
+          name="linkedRelatedEventSlugs"
+          candidates={eventCandidates}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          subtypeOptions={[...EVENT_SUBTYPE_OPTIONS]}
         />
 
         <div className="admin-subpanel">

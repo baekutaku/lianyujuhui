@@ -76,38 +76,95 @@ export default async function NewCardPage({
     { data: allStories },
     { data: allPhoneItems },
     { data: allEvents },
+    { data: allCards },
   ] = await Promise.all([
     supabase.from("characters").select("id, key"),
-
     supabase
       .from("stories")
-      .select("slug, title, subtype, primary_character_id")
+      .select("id, slug, title, subtype, primary_character_id")
       .eq("is_published", true)
       .order("created_at", { ascending: false }),
 
     supabase
       .from("phone_items")
-      .select("slug, title, subtype, content_json")
+      .select("id, slug, title, subtype, content_json")
       .eq("is_published", true)
       .order("created_at", { ascending: false }),
 
     supabase
       .from("events")
-      .select("slug, title, subtype, primary_character_id")
+      .select("id, slug, title, subtype, primary_character_id")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false }),
+
+    supabase
+      .from("cards")
+      .select("id, slug, title, rarity, primary_character_id")
       .eq("is_published", true)
       .order("created_at", { ascending: false }),
   ]);
-
-  const characterMap = new Map(
+ const characterMap = new Map(
     (characters ?? []).map((item: any) => [item.id, item.key])
   );
 
-  const storyCandidates: RelationCandidate[] =
+  // 태그 조회
+  const allItemIds = [
+    ...(allStories ?? []).map((item: any) => item.id ?? item.slug),
+    ...(allPhoneItems ?? []).map((item: any) => item.id ?? item.slug),
+    ...(allEvents ?? []).map((item: any) => item.id ?? item.slug),
+    ...(allCards ?? []).map((item: any) => item.id ?? item.slug),
+  ].filter(Boolean);
+
+  let itemTagsMap = new Map<string, string[]>();
+
+  if (allItemIds.length > 0) {
+ 
+
+    const allIds = Array.from(new Set([
+      ...(allStories ?? []).map((item: any) => item.id).filter(Boolean),
+      ...(allPhoneItems ?? []).map((item: any) => item.id).filter(Boolean),
+      ...(allEvents ?? []).map((item: any) => item.id).filter(Boolean),
+      ...(allCards ?? []).map((item: any) => item.id).filter(Boolean),
+    ]));
+
+    if (allIds.length > 0) {
+      const { data: itemTagRows } = await supabase
+        .from("item_tags")
+        .select("item_id, tag_id, sort_order")
+        .in("item_id", allIds)
+        .order("sort_order", { ascending: true });
+
+      const tagIds = Array.from(new Set((itemTagRows ?? []).map((row: any) => row.tag_id)));
+
+      if (tagIds.length > 0) {
+        const { data: tagRows } = await supabase
+          .from("tags")
+          .select("id, label, name, slug")
+          .in("id", tagIds);
+
+        const tagLabelMap = new Map(
+          (tagRows ?? []).map((row: any) => [row.id, row.label ?? row.name ?? row.slug])
+        );
+
+        itemTagsMap = (itemTagRows ?? []).reduce((map: Map<string, string[]>, row: any) => {
+          const label = tagLabelMap.get(row.tag_id);
+          if (!label) return map;
+          const prev = map.get(row.item_id) ?? [];
+          prev.push(label);
+          map.set(row.item_id, prev);
+          return map;
+        }, new Map<string, string[]>());
+      }
+    }
+  }
+
+ const storyCandidates: RelationCandidate[] =
     (allStories ?? []).map((item: any) => ({
       slug: item.slug,
       title: item.title,
       subtype: item.subtype,
       characterKey: characterMap.get(item.primary_character_id) ?? null,
+      tags: itemTagsMap.get(item.id) ?? [],
     })) ?? [];
 
   const phoneCandidates: RelationCandidate[] =
@@ -117,6 +174,7 @@ export default async function NewCardPage({
       subtype: item.subtype,
       characterKey: item.content_json?.characterKey ?? null,
       category: item.content_json?.historyCategory ?? null,
+      tags: itemTagsMap.get(item.id) ?? [],
     })) ?? [];
 
   const eventCandidates: RelationCandidate[] =
@@ -125,8 +183,17 @@ export default async function NewCardPage({
       title: item.title,
       subtype: item.subtype,
       characterKey: characterMap.get(item.primary_character_id) ?? null,
+      tags: itemTagsMap.get(item.id) ?? [],
     })) ?? [];
 
+  const cardCandidates: RelationCandidate[] =
+    (allCards ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.rarity,
+      characterKey: characterMap.get(item.primary_character_id) ?? null,
+      tags: itemTagsMap.get(item.id) ?? [],
+    })) ?? [];
   return (
     <main>
       <header className="page-header">
@@ -310,6 +377,24 @@ export default async function NewCardPage({
           name="linkedEventSlugs"
           candidates={eventCandidates}
           characterOptions={[...CHARACTER_OPTIONS]}
+        />
+
+        <RelationPicker
+          label="연결 카드"
+          name="linkedCardSlugs"
+          candidates={cardCandidates}
+          characterOptions={[...CHARACTER_OPTIONS]}
+          subtypeOptions={[
+            { value: "r", label: "R" },
+            { value: "sr", label: "SR" },
+            { value: "er", label: "ER" },
+            { value: "ser", label: "SER" },
+            { value: "ssr", label: "SSR" },
+            { value: "sp", label: "SP" },
+            { value: "ur", label: "UR" },
+            { value: "nh", label: "NH" },
+            { value: "n", label: "N" },
+          ]}
         />
 
         <div className="admin-subpanel">

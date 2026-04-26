@@ -199,35 +199,89 @@ export default async function EditEventPage({
   const characterKeyMap = new Map(
     (characters ?? []).map((item: any) => [item.id, item.key])
   );
+  const relationSourceIds = [
+  ...(cards ?? []).map((item: any) => item.id),
+  ...(stories ?? []).map((item: any) => item.id),
+  ...(phoneItems ?? []).map((item: any) => item.id),
+];
 
-  const cardCandidates: RelationCandidate[] =
-    (cards ?? []).map((item: any) => ({
-      slug: item.slug,
-      title: item.title,
-      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
-      category: item.card_category ?? null,
-    })) ?? [];
+let itemTagsMap = new Map<string, string[]>();
 
-  const storyCandidates: RelationCandidate[] =
-    (stories ?? []).map((item: any) => ({
-      slug: item.slug,
-      title: item.title,
-      subtype: item.subtype ?? null,
-      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
-    })) ?? [];
+if (relationSourceIds.length > 0) {
+  const { data: relationItemTagRows } = await supabase
+    .from("item_tags")
+    .select("item_id, tag_id, item_type, sort_order")
+    .in("item_id", relationSourceIds)
+    .in("item_type", ["card", "story", "phone_item"])
+    .order("sort_order", { ascending: true });
+
+  const relationTagIds = Array.from(
+    new Set((relationItemTagRows ?? []).map((row: any) => row.tag_id))
+  );
+
+  if (relationTagIds.length > 0) {
+    const { data: relationTagRows } = await supabase
+      .from("tags")
+      .select("id, label, name, slug")
+      .in("id", relationTagIds);
+
+    const relationTagLabelMap = new Map(
+      (relationTagRows ?? []).map((row: any) => [
+        row.id,
+        row.label ?? row.name ?? row.slug,
+      ])
+    );
+
+    itemTagsMap = (relationItemTagRows ?? []).reduce(
+      (map: Map<string, string[]>, row: any) => {
+        const label = relationTagLabelMap.get(row.tag_id);
+        if (!label) return map;
+
+        const prev = map.get(row.item_id) ?? [];
+        prev.push(label);
+        map.set(row.item_id, prev);
+
+        return map;
+      },
+      new Map<string, string[]>()
+    );
+  }
+}
+
+const cardCandidates: RelationCandidate[] =
+  (cards ?? []).map((item: any) => ({
+    slug: item.slug,
+    title: item.title,
+    characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    category: item.card_category ?? null,
+    tags: itemTagsMap.get(item.id) ?? [],
+  })) ?? [];
+
+
+
+const storyCandidates: RelationCandidate[] =
+  (stories ?? []).map((item: any) => ({
+    slug: item.slug,
+    title: item.title,
+    subtype: item.subtype ?? null,
+    characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    tags: itemTagsMap.get(item.id) ?? [],
+  })) ?? [];
 
   const phoneCandidates: RelationCandidate[] =
-    (phoneItems ?? []).map((item: any) => ({
-      slug: item.slug,
-      title: item.title,
-      subtype: item.subtype ?? null,
-      characterKey: item.content_json?.characterKey ?? null,
-      category:
-        item.content_json?.historyCategory ??
-        item.content_json?.momentCategory ??
-        null,
-    })) ?? [];
+  (phoneItems ?? []).map((item: any) => ({
+    slug: item.slug,
+    title: item.title,
+    subtype: item.subtype ?? null,
+    characterKey: item.content_json?.characterKey ?? null,
+    category:
+      item.content_json?.historyCategory ??
+      item.content_json?.momentCategory ??
+      null,
+    tags: itemTagsMap.get(item.id) ?? [],
+  })) ?? [];
 
+  
   const cardIdToCandidate = new Map(
     (cards ?? []).map((item: any) => [
       item.id,
