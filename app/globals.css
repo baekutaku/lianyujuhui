@@ -17,6 +17,8 @@
   font-style: normal;
 }
 
+
+
 .material-symbols-rounded {
   font-family: "Material Symbols Rounded";
   font-weight: normal;
@@ -9199,3 +9201,166 @@ a {
     grid-template-rows: minmax(0, 1fr) 72px;
   }
 }
+
+/* =========================================================
+   FINAL MOOD RESTORE
+   첫 번째 배포 화면 느낌 복구: 핑크/라벤더 베이스 + 아주 약한 백기 블루
+========================================================= */
+
+:root {
+  --bg-main: #fff3f9;
+  --bg-soft: #fff8fc;
+  --bg-panel: rgba(255, 255, 255, 0.58);
+  --bg-panel-strong: rgba(255, 255, 255, 0.74);
+
+  --line-soft: rgba(231, 210, 226, 0.46);
+  --line-strong: rgba(218, 196, 218, 0.62);
+
+  --sky-100: #f7fbff;
+  --sky-200: #eef7ff;
+  --sky-300: #dceef9;
+  --sky-400: #c9deef;
+  --sky-500: #abcde8;
+
+  --text-main: #4d4652;
+  --text-sub: #746f7d;
+  --text-soft: #aaa2af;
+
+  --shadow-soft: 0 14px 36px rgba(136, 116, 145, 0.08);
+  --shadow-card: 0 16px 36px rgba(132, 116, 148, 0.10);
+}
+
+/* 전체 바탕: 첫 번째 이미지처럼 왼쪽 핑크, 오른쪽 라벤더/블루 */
+/* 전체 바탕: 분홍기 더 연하게 */
+body {
+  color: var(--text-main) !important;
+  background:
+    radial-gradient(circle at 0% 8%, rgba(255, 218, 235, 0.36), transparent 38%),
+    radial-gradient(circle at 100% 8%, rgba(224, 220, 255, 0.42), transparent 34%),
+    radial-gradient(circle at 78% 60%, rgba(225, 242, 255, 0.28), transparent 36%),
+    linear-gradient(135deg, #fff8fc 0%, #fbf7ff 50%, #f1f9ff 100%) !important;
+}
+/* 전체 사이트 큰 틀 */
+.site-shell,
+.memory-shell {
+  background: transparent !important;
+}
+
+/* 왼쪽 사이드바: 첫 번째처럼 분홍기 있는 유리판 */
+.sidebar-inner {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 224, 238, 0.48), transparent 42%),
+    radial-gradient(circle at 100% 14%, rgba(234, 243, 255, 0.28), transparent 38%),
+    rgba(255, 255, 255, 0.50) !important;
+  border: 1px solid rgba(255, 255, 255, 0.68) !important;
+  box-shadow:
+    0 18px 44px rgba(129, 112, 145, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+}
+
+
+/* 중앙 큰 박스: 너무 파랗게 빠지는 것 방지 */
+.content-inner {
+  background:
+    radial-gradient(circle at 6% 0%, rgba(255, 232, 244, 0.44), transparent 38%),
+    radial-gradient(circle at 100% 10%, rgba(229, 240, 255, 0.34), transparent 36%),
+    rgba(255, 255, 255, 0.48) !important;
+  border: 1px solid rgba(255, 255, 255, 0.68) !important;
+  box-shadow:
+    0 18px 50px rgba(128, 124, 150, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.68) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+/* 홈 히어로: 첫 번째 화면처럼 부드러운 흰 카드 */
+.home-hero {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 226, 239, 0.44), transparent 36%),
+    radial-gradient(circle at 100% 8%, rgba(226, 240, 255, 0.42), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(255, 250, 254, 0.70) 54%, rgba(248, 252, 255, 0.74)) !important;
+  border: 1px solid rgba(222, 226, 238, 0.62) !important;
+  box-shadow:
+    0 24px 54px rgba(133, 126, 158, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
+}
+
+/* 제목/문구가 너무 검거나 파랗게 뜨는 것 완화 */
+.home-hero-title,
+.brand-title,
+.archive-record-title,
+.nav-link,
+.page-title {
+  color: #4d4652 !important;
+}
+
+.home-hero-desc,
+.brand-desc,
+.archive-record-text,
+.page-desc {
+  color: #746f7d !important;
+}
+
+.brand-sub,
+.archive-record-label,
+.page-eyebrow {
+  color: #aaa2af !important;
+}
+
+/* KR/CN/Focus 칩: 백기 블루는 여기만 약하게 */
+
+
+
+/* 보조 버튼: 흰색 + 약한 블루 */
+
+/* 안내 박스 */
+
+
+/* 아래 바로가기 카드가 너무 차갑게 보이는 것 완화 */
+.home-shortcut-item,
+.home-carousel-card,
+.home-widget-panel,
+.archive-card,
+.quick-card,
+.detail-panel,
+.form-panel,
+.link-card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 250, 254, 0.62)) !important;
+  border-color: rgba(228, 210, 226, 0.54) !important;
+  box-shadow: 0 14px 32px rgba(132, 124, 150, 0.08) !important;
+}
+
+/* 메인스토리 바: 첫 번째처럼 핑크-라벤더 */
+.home-mixed-titlebar {
+  background:
+    linear-gradient(90deg, rgba(226, 205, 248, 0.92) 0%, rgba(247, 216, 226, 0.88) 48%, rgba(238, 226, 246, 0.90) 100%) !important;
+  color: #7d7483 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.56) !important;
+}
+
+/* 캐러셀 화살표/더보기 */
+.home-carousel-arrow {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-color: rgba(205, 218, 232, 0.72) !important;
+  color: #6f7f91 !important;
+}
+
+.home-mixed-more {
+  color: #718aa0 !important;
+}
+
+.archive-sidebar,
+.home-sidebar,
+.sidebar-panel,
+.sidebar-shell {
+  background: rgba(255, 255, 255, 0.86) !important;
+  border: 1px solid rgba(245, 240, 246, 0.95) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 8px 24px rgba(205, 186, 210, 0.06) !important;
+  backdrop-filter: blur(10px);
+}
+

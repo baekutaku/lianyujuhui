@@ -12,6 +12,7 @@ import "./styles/layout.css";
 import "./styles/home.css";
 import "./styles/story-cards.css";
 import "./styles/phone.css";
+import "./styles/theme-final.css";
 
 export const metadata: Metadata = {
   title: "연모고 동창회 / Baiqi Archive",
