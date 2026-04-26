@@ -4,18 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import { buildCardKeys, buildStoryKeys } from "@/lib/utils/admin-keys";
+import { isAdmin } from "@/lib/utils/admin-auth";
 import {
   createPhoneItemAction,
   updatePhoneItemAction,
   deletePhoneItemAction,
 } from "@/lib/admin/phone-items/actions";
-import { isAdmin } from "@/lib/utils/admin-auth";
-
 import {
-  parseMessageBulk,
-  parseMomentBulk,
-} from "@/lib/admin/phoneBulkParsers";
-import { createPasswordRecord, normalizeStoryVisibility } from "@/lib/utils/content-visibility";
+  createPasswordRecord,
+  normalizeStoryVisibility,
+} from "@/lib/utils/content-visibility";
 
 function slugify(input: string) {
   return (
@@ -3632,4 +3630,125 @@ async function getPublicAnonymousMessages() {
   }
 
   return data ?? [];
+}
+
+export async function createSiteUpdate(formData: FormData) {
+  const admin = await isAdmin();
+
+  if (!admin) {
+    redirect("/admin/login");
+  }
+
+  const title = String(formData.get("title") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+  const category = String(formData.get("category") ?? "update").trim();
+  const targetArea = String(formData.get("targetArea") ?? "all").trim();
+  const publishedAt = String(formData.get("publishedAt") ?? "").trim();
+  const isPublished = String(formData.get("isPublished") ?? "true") === "true";
+  const isPinned = String(formData.get("isPinned") ?? "false") === "true";
+
+  if (!title || !body) {
+    redirect(
+      `/admin/updates?error=${encodeURIComponent("제목과 본문은 필수입니다.")}`
+    );
+  }
+
+  const { error } = await supabase.from("site_updates").insert({
+    title,
+    body,
+    category,
+    target_area: targetArea,
+    is_published: isPublished,
+    is_pinned: isPinned,
+    published_at: publishedAt
+      ? new Date(publishedAt).toISOString()
+      : new Date().toISOString(),
+  });
+
+  if (error) {
+    redirect(`/admin/updates?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/updates");
+
+  redirect("/admin/updates?saved=1");
+}
+
+export async function updateSiteUpdate(formData: FormData) {
+  const admin = await isAdmin();
+
+  if (!admin) {
+    redirect("/admin/login");
+  }
+
+  const updateId = String(formData.get("updateId") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+  const category = String(formData.get("category") ?? "update").trim();
+  const targetArea = String(formData.get("targetArea") ?? "all").trim();
+  const publishedAt = String(formData.get("publishedAt") ?? "").trim();
+  const isPublished = String(formData.get("isPublished") ?? "true") === "true";
+  const isPinned = String(formData.get("isPinned") ?? "false") === "true";
+
+  if (!updateId || !title || !body) {
+    redirect(
+      `/admin/updates?error=${encodeURIComponent("수정할 업데이트 정보가 부족합니다.")}`
+    );
+  }
+
+  const { error } = await supabase
+    .from("site_updates")
+    .update({
+      title,
+      body,
+      category,
+      target_area: targetArea,
+      is_published: isPublished,
+      is_pinned: isPinned,
+      published_at: publishedAt
+        ? new Date(publishedAt).toISOString()
+        : new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", updateId);
+
+  if (error) {
+    redirect(`/admin/updates?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/updates");
+
+  redirect("/admin/updates?saved=1");
+}
+
+export async function deleteSiteUpdate(formData: FormData) {
+  const admin = await isAdmin();
+
+  if (!admin) {
+    redirect("/admin/login");
+  }
+
+  const updateId = String(formData.get("updateId") ?? "").trim();
+
+  if (!updateId) {
+    redirect(
+      `/admin/updates?error=${encodeURIComponent("삭제할 업데이트 정보가 없습니다.")}`
+    );
+  }
+
+  const { error } = await supabase
+    .from("site_updates")
+    .delete()
+    .eq("id", updateId);
+
+  if (error) {
+    redirect(`/admin/updates?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/updates");
+
+  redirect("/admin/updates?saved=1");
 }

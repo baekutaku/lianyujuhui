@@ -1,5 +1,8 @@
 import Link from "next/link";
-
+import { supabase } from "@/lib/supabase/server";
+import HomeMixedBody from "@/components/home/HomeMixedBody";
+import HomeGuideButton from "@/components/home/HomeGuideButton";
+import HomeUpdateButton from "@/components/home/HomeUpdateButton";
 export default function AdminPage() {
   return (
     <main>

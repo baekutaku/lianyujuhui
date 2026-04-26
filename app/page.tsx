@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { supabase } from "@/lib/supabase/server";
 import HomeMixedBody from "@/components/home/HomeMixedBody";
 import HomeGuideButton from "@/components/home/HomeGuideButton";
+import HomeUpdateButton from "@/components/home/HomeUpdateButton";
 
 const heroImages = [
   "https://lianyujuhui.ivyro.net/data/file/pic/3553024586_ojVXpgCP_4d95c7745a8dc657d729f07a2e87839e4bd16757.jpg",
@@ -51,7 +53,16 @@ const shortcutItems = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { data: siteUpdates } = await supabase
+    .from("site_updates")
+    .select("id, title, body, category, target_area, is_pinned, published_at")
+    .eq("is_published", true)
+    .order("is_pinned", { ascending: false })
+    .order("published_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(30);
+
   return (
     <main className="home-page">
       <section className="home-hero">
@@ -66,11 +77,9 @@ export default function HomePage() {
     <h1 className="home-hero-title">연모고 동창회</h1>
     <p className="home-hero-desc">백기유연 CP 백업공간</p>
 
-   <div className="home-hero-actions">
+<div className="home-hero-actions">
   <HomeGuideButton />
-  <Link href="/cards" className="hero-secondary-button">
-    카드 보기
-  </Link>
+  <HomeUpdateButton updates={siteUpdates ?? []} />
 </div>
 
     <div className="home-status-note">

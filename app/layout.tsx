@@ -74,12 +74,16 @@ export default async function SiteLayout({
 
                   {admin ? (
                     <nav className="sidebar-nav sidebar-admin-nav">
+                      <Link href="/admin/updates" className="nav-link">
+  업데이트
+</Link>
                       <Link href="/characters" className="nav-link">
-                        캐릭터 허브
+                        캐릭터
                       </Link>
                       <Link href="/admin" className="nav-link">
                         관리자
                       </Link>
+                      
                     </nav>
                   ) : null}
 

@@ -1179,3 +1179,219 @@ html body input[type="number"],
 html body input[type="date"] {
   border: 1px solid rgba(194, 211, 229, 0.78) !important;
 }
+
+
+/* =========================================================
+   HOME UPDATE MODAL
+========================================================= */
+
+.home-update-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(218, 237, 252, 0.95);
+  color: #55718b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.home-update-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(35, 38, 50, 0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.home-update-modal {
+  width: min(100%, 640px);
+  max-height: min(82vh, 760px);
+  overflow: hidden;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(225, 240, 255, 0.52), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 252, 255, 0.96));
+  box-shadow:
+    0 28px 64px rgba(65, 78, 105, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.home-update-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px 26px 18px;
+  border-bottom: 1px solid rgba(214, 226, 238, 0.72);
+}
+
+.home-update-eyebrow {
+  margin: 0 0 5px;
+  color: #9aa8b8;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.home-update-title {
+  margin: 0;
+  color: #3f4658;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.home-update-sub {
+  margin: 6px 0 0;
+  color: #7a8798;
+  font-size: 13px;
+}
+
+.home-update-close {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(205, 218, 232, 0.82);
+  background: rgba(255, 255, 255, 0.9);
+  color: #7d8796;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.home-update-body {
+  max-height: calc(min(82vh, 760px) - 96px);
+  overflow-y: auto;
+  padding: 18px 22px 24px;
+}
+
+.home-update-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+
+.home-update-tab {
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(205, 218, 232, 0.82);
+  background: rgba(255, 255, 255, 0.82);
+  color: #6f7e90;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.home-update-tab.is-active {
+  background: rgba(218, 237, 252, 0.95);
+  border-color: rgba(177, 205, 229, 0.9);
+  color: #55718b;
+}
+
+.home-update-list {
+  display: grid;
+  gap: 12px;
+}
+
+.home-update-item {
+  padding: 16px 17px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow:
+    0 12px 26px rgba(103, 122, 151, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.home-update-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.home-update-badge {
+  min-height: 21px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(239, 248, 255, 0.95);
+  border: 1px solid rgba(184, 211, 232, 0.62);
+  color: #587891;
+  font-size: 10px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+}
+
+.home-update-badge.is-pinned {
+  background: rgba(255, 239, 247, 0.96);
+  border-color: rgba(237, 157, 194, 0.48);
+  color: #a45a82;
+}
+
+.home-update-badge.is-target {
+  background: rgba(247, 249, 252, 0.96);
+  border-color: rgba(207, 216, 228, 0.72);
+  color: #747f90;
+}
+
+.home-update-date {
+  color: #9aa6b7;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.home-update-item-title {
+  margin: 0;
+  color: #444b5e;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.home-update-item-body {
+  margin: 12px 0 0;
+  color: #596679;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+
+.home-update-empty {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  color: #8f9baa;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .home-update-backdrop {
+    padding: 14px;
+  }
+
+  .home-update-modal {
+    border-radius: 22px;
+  }
+
+  .home-update-head {
+    padding: 20px 18px 15px;
+  }
+
+  .home-update-body {
+    padding: 16px 16px 20px;
+  }
+
+  .home-update-title {
+    font-size: 21px;
+  }
+}
