@@ -7621,9 +7621,9 @@ a {
   inset: 0;
   z-index: 3000;
   display: grid;
-  place-items: center;
+
   padding: 24px;
-  background: rgba(20, 24, 34, 0.38);
+
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }

@@ -451,7 +451,7 @@ export default async function HomeMixedBody() {
 
       <aside className="home-classic-side">
 
-        <section className="home-widget-panel">
+        {/* <section className="home-widget-panel">
           <p className="home-widget-eyebrow">RECENT 업데이트 예정</p>
 
           <div className="home-widget-list">
@@ -462,7 +462,7 @@ export default async function HomeMixedBody() {
             <Link href="/cards">카드 연동 보완</Link>
   
           </div>
-        </section>
+        </section> */}
         {/* <section className="home-widget-panel">
           <p className="home-widget-eyebrow">NOTICE</p>
 
