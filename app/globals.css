@@ -9364,3 +9364,38 @@ body {
   backdrop-filter: blur(10px);
 }
 
+
+/* =========================================================
+   HOME MODAL COMMON FIX
+   이용안내 / 업데이트 공통
+========================================================= */
+
+.home-modal-backdrop-top,
+.home-guide-backdrop.home-modal-backdrop-top {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  z-index: 2147483000 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  padding: 24px !important;
+  overflow: auto !important;
+
+  background: rgba(238, 244, 250, 0.72) !important;
+  backdrop-filter: blur(10px) saturate(0.9) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(0.9) !important;
+}
+
+.home-modal-panel-top,
+.home-guide-modal.home-modal-panel-top,
+.home-update-modal.home-modal-panel-top {
+  position: relative !important;
+  z-index: 2147483001 !important;
+  margin: auto !important;
+  max-height: calc(100dvh - 48px) !important;
+  overflow: auto !important;
+}
