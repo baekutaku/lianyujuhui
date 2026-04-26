@@ -90,16 +90,24 @@ export default function StoriesFilterModal({
               {defaultValues.sub && defaultValues.sub !== "all" ? (
                 <input type="hidden" name="sub" value={defaultValues.sub} />
               ) : null}
-              {defaultValues.tag ? (
-                <input type="hidden" name="tag" value={defaultValues.tag} />
-              ) : null}
+               {/* tag는 위 입력 필드로 대체 */}
 
-              <label className="form-field form-field-full">
+            <label className="form-field form-field-full">
                 <span>검색</span>
                 <input
                   name="q"
                   defaultValue={defaultValues.q ?? ""}
                   placeholder="제목 / 스토리 내용 검색"
+                />
+              </label>
+
+              <label className="form-field form-field-full">
+                <span>해시태그</span>
+                <input
+                  name="tag"
+                  defaultValue={defaultValues.tag ?? ""}
+                  placeholder="예: 생일, 키스, 크리스마스"
+                  autoComplete="off"
                 />
               </label>
 

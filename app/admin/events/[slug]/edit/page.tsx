@@ -212,12 +212,16 @@ export default async function EditEventPage({
 let itemTagsMap = new Map<string, string[]>();
 
 if (relationSourceIds.length > 0) {
-  const { data: relationItemTagRows } = await supabase
-    .from("item_tags")
-    .select("item_id, tag_id, item_type, sort_order")
-    .in("item_id", relationSourceIds)
-    .in("item_type", ["card", "story", "phone_item"])
-    .order("sort_order", { ascending: true });
+const CHUNK_SIZE = 100;
+  const relationItemTagRows: any[] = [];
+  for (let i = 0; i < relationSourceIds.length; i += CHUNK_SIZE) {
+    const { data } = await supabase
+      .from("item_tags")
+      .select("item_id, tag_id, sort_order")
+      .in("item_id", relationSourceIds.slice(i, i + CHUNK_SIZE))
+      .order("sort_order", { ascending: true });
+    if (data) relationItemTagRows.push(...data);
+  }
 
   const relationTagIds = Array.from(
     new Set((relationItemTagRows ?? []).map((row: any) => row.tag_id))

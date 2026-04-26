@@ -228,35 +228,81 @@ export default async function EditCardPage({
           .in("id", cardIds)
       : Promise.resolve({ data: [] as any[] }),
 
-    supabase
+   supabase
       .from("stories")
-      .select("slug, title, subtype, primary_character_id")
+      .select("id, slug, title, subtype, primary_character_id")
       .eq("is_published", true)
       .order("created_at", { ascending: false }),
 
     supabase
       .from("phone_items")
-      .select("slug, title, subtype, content_json")
+      .select("id, slug, title, subtype, content_json")
       .eq("is_published", true)
       .order("created_at", { ascending: false }),
 
     supabase
       .from("events")
-      .select("slug, title, subtype, primary_character_id")
+      .select("id, slug, title, subtype, primary_character_id")
       .eq("is_published", true)
       .order("created_at", { ascending: false }),
 
     supabase
       .from("cards")
-      .select("slug, title, rarity, primary_character_id")
+      .select("id, slug, title, rarity, primary_character_id")
       .eq("is_published", true)
       .neq("id", card.id)
       .order("created_at", { ascending: false }),
   ]);
 
-  const characterMap = new Map(
+ const characterMap = new Map(
     (characters ?? []).map((item: any) => [item.id, item.key])
   );
+
+  // 태그 조회
+  const allIds = Array.from(new Set([
+    ...(allStories ?? []).map((item: any) => item.id),
+    ...(allPhoneItems ?? []).map((item: any) => item.id),
+    ...(allEvents ?? []).map((item: any) => item.id),
+    ...(allCards ?? []).map((item: any) => item.id),
+  ].filter(Boolean)));
+
+  let itemTagsMap = new Map<string, string[]>();
+
+  if (allIds.length > 0) {
+ const CHUNK_SIZE = 100;
+    const itemTagChunks2: any[] = [];
+    for (let i = 0; i < allIds.length; i += CHUNK_SIZE) {
+      const chunk = allIds.slice(i, i + CHUNK_SIZE);
+      const { data } = await supabase
+        .from("item_tags")
+        .select("item_id, tag_id, sort_order")
+        .in("item_id", chunk)
+        .order("sort_order", { ascending: true });
+      if (data) itemTagChunks2.push(...data);
+    }
+    const itemTagRows2 = itemTagChunks2;
+    const tagIds2 = Array.from(new Set((itemTagRows2 ?? []).map((row: any) => row.tag_id)));
+
+    if (tagIds2.length > 0) {
+      const { data: tagRows2 } = await supabase
+        .from("tags")
+        .select("id, label, name, slug")
+        .in("id", tagIds2);
+
+      const tagLabelMap = new Map(
+        (tagRows2 ?? []).map((row: any) => [row.id, row.label ?? row.name ?? row.slug])
+      );
+
+      itemTagsMap = (itemTagRows2 ?? []).reduce((map: Map<string, string[]>, row: any) => {
+        const label = tagLabelMap.get(row.tag_id);
+        if (!label) return map;
+        const prev = map.get(row.item_id) ?? [];
+        prev.push(label);
+        map.set(row.item_id, prev);
+        return map;
+      }, new Map<string, string[]>());
+    }
+  }
 
   const linkedStoryMap = new Map(
     (linkedStories ?? []).map((item) => [item.id, item])
@@ -313,12 +359,13 @@ export default async function EditCardPage({
       characterKey: characterMap.get(item.primary_character_id) ?? null,
     }));
 
-  const storyCandidates: RelationCandidate[] =
+const storyCandidates: RelationCandidate[] =
     (allStories ?? []).map((item: any) => ({
       slug: item.slug,
       title: item.title,
       subtype: item.subtype,
       characterKey: characterMap.get(item.primary_character_id) ?? null,
+      tags: itemTagsMap.get(item.id) ?? [],
     })) ?? [];
 
   const phoneCandidates: RelationCandidate[] =
@@ -328,14 +375,16 @@ export default async function EditCardPage({
       subtype: item.subtype,
       characterKey: item.content_json?.characterKey ?? null,
       category: item.content_json?.historyCategory ?? null,
+      tags: itemTagsMap.get(item.id) ?? [],
     })) ?? [];
 
- const eventCandidates: RelationCandidate[] =
+  const eventCandidates: RelationCandidate[] =
     (allEvents ?? []).map((item: any) => ({
       slug: item.slug,
       title: item.title,
       subtype: item.subtype,
       characterKey: characterMap.get(item.primary_character_id) ?? null,
+      tags: itemTagsMap.get(item.id) ?? [],
     })) ?? [];
 
   const cardCandidates: RelationCandidate[] =
@@ -344,6 +393,7 @@ export default async function EditCardPage({
       title: item.title,
       subtype: item.rarity,
       characterKey: characterMap.get(item.primary_character_id) ?? null,
+      tags: itemTagsMap.get(item.id) ?? [],
     })) ?? [];
 
   const thumbnailAfterUrl = thumbAfterMedia?.url ?? "";

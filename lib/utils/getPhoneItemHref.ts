@@ -23,8 +23,10 @@ export function getPhoneItemHref(item: PhoneItemHrefInput) {
     return `/phone-items/messages/${characterKey}/${encodeURIComponent(slug)}`;
   }
 
-  if (item.subtype === "call" || item.subtype === "video_call") {
-    return "/phone-items/calls";
+ if (item.subtype === "call" || item.subtype === "video_call") {
+    const characterKey = String(json.characterKey || "").trim() || "baiqi";
+    if (!slug) return "/phone-items/calls";
+    return `/phone-items/calls/${characterKey}/${encodeURIComponent(slug)}`;
   }
 
   if (item.subtype === "article") {

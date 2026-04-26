@@ -60,6 +60,25 @@ export default async function EditPhoneItemPage({ params }: PageProps) {
           cover_image: item.content_json?.coverImage ?? "",
          youtube_url_cn: item.content_json?.youtubeUrlCn ?? item.embed_url ?? "",
           youtube_url_kr: item.content_json?.youtubeUrlKr ?? "",
+          tag_labels: await (async () => {
+            const { data: tagRows } = await supabase
+              .from("item_tags")
+              .select("tag_id, sort_order")
+              .eq("item_type", "phone_item")
+              .eq("item_id", item.id)
+              .order("sort_order", { ascending: true });
+
+            if (!tagRows || tagRows.length === 0) return "";
+
+            const tagIds = tagRows.map((r: any) => r.tag_id);
+            const { data: tags } = await supabase
+              .from("tags")
+              .select("id, label, name, slug")
+              .in("id", tagIds);
+
+            const tagMap = new Map((tags ?? []).map((t: any) => [t.id, t.label ?? t.name ?? t.slug]));
+            return tagRows.map((r: any) => tagMap.get(r.tag_id)).filter(Boolean).join(", ");
+          })(),
 
           preview: item.content_json?.preview ?? "",
           icon_url: item.content_json?.iconUrl ?? "",

@@ -92,6 +92,7 @@ type PhoneItemFormProps = {
 
     call_translation_html?: string;
     call_memo_html?: string;
+    tag_labels?: string;
 
     moment_title?: string;
     moment_slug?: string;
@@ -1773,6 +1774,21 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
     </div>
   </section>
 ) : null}
+
+ <div className="form-grid">
+        <label className="form-field form-field-full">
+          <span>해시태그</span>
+          <input
+            name="tag_labels"
+            defaultValue={initialValues?.tag_labels ?? ""}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            placeholder="예: 생일, 카드스토리, 키스 (쉼표로 구분)"
+          />
+        </label>
+      </div>
 
       <button type="submit" className="primary-button">
         {submitLabel}

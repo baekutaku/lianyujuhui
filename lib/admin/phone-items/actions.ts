@@ -9,6 +9,94 @@ import {
 } from "@/lib/admin/phoneBulkParsers";
 import { CALL_HISTORY_CATEGORY_LABEL_MAP } from "@/lib/phone/call-history";
 
+function slugifyTag(input: string) {
+  return (
+    input
+      .normalize("NFC")
+      .toLowerCase()
+      .replace(/[^a-z0-9가-힣\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || "tag"
+  );
+}
+
+function parseTagLabels(raw: string): string[] {
+  return Array.from(
+    new Set(
+      raw
+        .replace(/\s+#/g, "\n#")
+        .split(/[,\n]/)
+        .map((item) => item.trim().replace(/^#+/, ""))
+        .filter(Boolean)
+    )
+  );
+}
+
+async function syncPhoneItemTags(phoneItemId: string, labels: string[]) {
+  const normalizedTags = Array.from(
+    new Map(
+      labels
+        .map((label) => label.trim())
+        .filter(Boolean)
+        .map((label) => {
+          const slug = slugifyTag(label);
+          return [slug, { slug, name: label, label, key: slug, kind: "phone_item" as const }] as const;
+        })
+    ).values()
+  );
+
+  await supabase
+    .from("item_tags")
+    .delete()
+    .eq("item_type", "phone_item")
+    .eq("item_id", phoneItemId);
+
+  if (normalizedTags.length === 0) return;
+
+  const keys = normalizedTags.map((t) => t.key);
+  const names = normalizedTags.map((t) => t.name);
+
+  const [{ data: byKey }, { data: byName }] = await Promise.all([
+    supabase.from("tags").select("id, key, name").in("key", keys),
+    supabase.from("tags").select("id, key, name").in("name", names),
+  ]);
+
+  const tagIdByKey = new Map<string, string>();
+  const tagIdByName = new Map<string, string>();
+
+  for (const row of [...(byKey ?? []), ...(byName ?? [])]) {
+    if (row.key) tagIdByKey.set(row.key, row.id);
+    if (row.name) tagIdByName.set(row.name.toLowerCase(), row.id);
+  }
+
+  const missing = normalizedTags.filter(
+    (t) => !tagIdByKey.has(t.key) && !tagIdByName.has(t.name.toLowerCase())
+  );
+
+  if (missing.length > 0) {
+    const { data: inserted } = await supabase
+      .from("tags")
+      .insert(missing)
+      .select("id, key, name");
+
+    for (const row of inserted ?? []) {
+      if (row.key) tagIdByKey.set(row.key, row.id);
+      if (row.name) tagIdByName.set(row.name.toLowerCase(), row.id);
+    }
+  }
+
+  const rows = normalizedTags.flatMap((t, index) => {
+    const tagId = tagIdByKey.get(t.key) ?? tagIdByName.get(t.name.toLowerCase());
+    if (!tagId) return [];
+    return [{ item_type: "phone_item", item_id: phoneItemId, tag_id: tagId, sort_order: index }];
+  });
+
+  if (rows.length > 0) {
+    await supabase.from("item_tags").insert(rows);
+  }
+}
+
 function slugify(input: string) {
   return (
     String(input || "")
@@ -1141,6 +1229,11 @@ export async function createPhoneItemAction(formData: FormData) {
       throw new Error("지원하지 않는 subtype입니다.");
     }
 
+    const tagLabelsRaw = String(formData.get("tag_labels") || "").trim();
+    if (tagLabelsRaw && createdItem) {
+      await syncPhoneItemTags(createdItem.id, parseTagLabels(tagLabelsRaw));
+    }
+
     revalidatePhoneItemPaths(createdItem.slug, createdItem.id);
   } catch (error) {
     const message =
@@ -1216,6 +1309,9 @@ export async function updatePhoneItemAction(formData: FormData) {
     } else {
       throw new Error("지원하지 않는 subtype입니다.");
     }
+
+   const tagLabelsRaw = String(formData.get("tag_labels") || "").trim();
+    await syncPhoneItemTags(phoneItemId, parseTagLabels(tagLabelsRaw));
 
     revalidatePhoneItemPaths(rawSlug, phoneItemId);
   } catch (error) {

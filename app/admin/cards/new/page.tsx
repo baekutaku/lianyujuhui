@@ -128,11 +128,16 @@ export default async function NewCardPage({
     ]));
 
     if (allIds.length > 0) {
-      const { data: itemTagRows } = await supabase
-        .from("item_tags")
-        .select("item_id, tag_id, sort_order")
-        .in("item_id", allIds)
-        .order("sort_order", { ascending: true });
+     const CHUNK_SIZE = 100;
+      const itemTagRows: any[] = [];
+      for (let i = 0; i < allIds.length; i += CHUNK_SIZE) {
+        const { data } = await supabase
+          .from("item_tags")
+          .select("item_id, tag_id, sort_order")
+          .in("item_id", allIds.slice(i, i + CHUNK_SIZE))
+          .order("sort_order", { ascending: true });
+        if (data) itemTagRows.push(...data);
+      }
 
       const tagIds = Array.from(new Set((itemTagRows ?? []).map((row: any) => row.tag_id)));
 

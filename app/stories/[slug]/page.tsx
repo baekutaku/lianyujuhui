@@ -647,6 +647,32 @@ const prevStoryHref = prevStory ? buildStoryNavHref(prevStory.slug) : null;
 const nextStoryHref = nextStory ? buildStoryNavHref(nextStory.slug) : null;
 
 
+// 스토리 태그 조회
+  const { data: storyTagRows } = await supabase
+    .from("item_tags")
+    .select("tag_id, sort_order")
+    .eq("item_type", "story")
+    .eq("item_id", story.id)
+    .order("sort_order", { ascending: true });
+
+  let storyTagLabels: string[] = [];
+
+  if (storyTagRows && storyTagRows.length > 0) {
+    const storyTagIds = storyTagRows.map((r) => r.tag_id);
+    const { data: storyTagData } = await supabase
+      .from("tags")
+      .select("id, label, name, slug")
+      .in("id", storyTagIds);
+
+    const storyTagMap = new Map(
+      (storyTagData ?? []).map((t) => [t.id, t.label ?? t.name ?? t.slug])
+    );
+
+    storyTagLabels = storyTagRows
+      .map((r) => storyTagMap.get(r.tag_id))
+      .filter(Boolean) as string[];
+  }
+
   const { data: translations, error: translationError } = await supabase
     .from("translations")
     .select(
@@ -803,16 +829,27 @@ const hasConnections =
 
       <h1 className="story-page-title">{story.title}</h1>
 
-      <div className="meta-row story-top-meta">
+       <div className="meta-row story-top-meta">
         <span className="meta-pill">유형: {story.subtype ?? "미분류"}</span>
         <span className="meta-pill">연도: {story.release_year ?? "미정"}</span>
         <span className="meta-pill">
           정렬: {SORT_LABEL_MAP[sort] ?? "최신순"}
         </span>
+        {storyTagLabels.map((tag) => (
+          <Link
+            key={tag}
+            href={`/stories?tag=${encodeURIComponent(tag)}`}
+            className="meta-pill"
+            style={{ textDecoration: "none" }}
+          >
+            #{tag}
+          </Link>
+        ))}
         {!story.is_published && admin ? (
           <span className="meta-pill">비공개 초안</span>
         ) : null}
       </div>
+
 
       <div className="story-top-actions">
         <Link

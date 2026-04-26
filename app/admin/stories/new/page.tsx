@@ -114,13 +114,19 @@ const relationSourceIds = [
 let itemTagsMap = new Map<string, string[]>();
 
 if (relationSourceIds.length > 0) {
-  const { data: itemTagRows } = await supabase
-    .from("item_tags")
-    .select("item_id, tag_id, item_type, sort_order")
-    .in("item_id", relationSourceIds)
-    .in("item_type", ["story", "card", "phone_item", "event"])
-    .order("sort_order", { ascending: true });
-
+// 청크 단위로 나눠서 쿼리 (URL 길이 제한 우회)
+  const CHUNK_SIZE = 100;
+  const itemTagChunks: any[] = [];
+  for (let i = 0; i < relationSourceIds.length; i += CHUNK_SIZE) {
+    const chunk = relationSourceIds.slice(i, i + CHUNK_SIZE);
+    const { data } = await supabase
+      .from("item_tags")
+      .select("item_id, tag_id, sort_order")
+      .in("item_id", chunk)
+      .order("sort_order", { ascending: true });
+    if (data) itemTagChunks.push(...data);
+  }
+  const itemTagRows = itemTagChunks;
   const tagIds = Array.from(new Set((itemTagRows ?? []).map((row: any) => row.tag_id)));
 
   if (tagIds.length > 0) {
@@ -191,6 +197,10 @@ const eventCandidates: RelationCandidate[] =
     characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
     tags: itemTagsMap.get(item.id) ?? [],
   })) ?? [];
+// 임시 디버그
+  console.log("[DEBUG] relationSourceIds count:", relationSourceIds.length);
+  console.log("[DEBUG] itemTagsMap size:", itemTagsMap.size);
+  console.log("[DEBUG] storyCandidates sample:", storyCandidates.slice(0, 3).map(c => ({ title: c.title, tags: c.tags })));
   return (
     <main>
       <header className="page-header">

@@ -250,13 +250,18 @@ export default async function EditStoryPage({
 let itemTagsMap = new Map<string, string[]>();
 
 if (relationSourceIds.length > 0) {
-  const { data: itemTagRows } = await supabase
-    .from("item_tags")
-    .select("item_id, tag_id, item_type, sort_order")
-    .in("item_id", relationSourceIds)
-    .in("item_type", ["story", "card", "phone_item", "event"])
-    .order("sort_order", { ascending: true });
-
+const CHUNK_SIZE = 100;
+  const itemTagChunks: any[] = [];
+  for (let i = 0; i < relationSourceIds.length; i += CHUNK_SIZE) {
+    const chunk = relationSourceIds.slice(i, i + CHUNK_SIZE);
+    const { data } = await supabase
+      .from("item_tags")
+      .select("item_id, tag_id, sort_order")
+      .in("item_id", chunk)
+      .order("sort_order", { ascending: true });
+    if (data) itemTagChunks.push(...data);
+  }
+  const itemTagRows = itemTagChunks;
   const tagIds = Array.from(
     new Set((itemTagRows ?? []).map((row: any) => row.tag_id))
   );
