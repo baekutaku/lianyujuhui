@@ -371,3 +371,707 @@ html body .home-page .home-shortcut-list {
     padding-top: 2px !important;
   }
 }
+
+/* =========================================================
+   STORY PAGE CLEAR FIX
+   스토리 목록/상세 페이지 뿌연 유리막 줄이기
+========================================================= */
+
+/* 스토리 페이지 전체 큰 패널: 흰막 줄이고 푸른기만 아주 약하게 */
+html body .content-inner.memory-content:has(.story-archive-shell),
+html body .content-inner.memory-content:has(.story-main-grid),
+html body .content-inner.memory-content:has(.story-topbar-layout) {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(221, 237, 250, 0.28), transparent 38%),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.56) 0%,
+      rgba(248, 252, 255, 0.44) 46%,
+      rgba(238, 247, 254, 0.38) 100%
+    ) !important;
+
+  border-color: rgba(194, 214, 232, 0.58) !important;
+
+  box-shadow:
+    0 18px 42px rgba(126, 149, 178, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62) !important;
+
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* 상단 제목 박스 */
+html body .story-topbar-main-panel,
+html body .story-topbar,
+html body .card-detail-topbar {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.76),
+      rgba(250, 253, 255, 0.58)
+    ) !important;
+  border-color: rgba(200, 218, 235, 0.58) !important;
+  box-shadow: 0 12px 30px rgba(126, 149, 178, 0.055) !important;
+}
+
+/* 스토리 상세 좌우 패널 */
+html body .story-media-panel,
+html body .story-translation-panel {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.72),
+      rgba(251, 253, 255, 0.52)
+    ) !important;
+  border-color: rgba(200, 218, 235, 0.5) !important;
+  box-shadow: 0 12px 30px rgba(126, 149, 178, 0.055) !important;
+}
+
+/* 오른쪽 번역 패널이 빈칸처럼 너무 허옇게 보이는 것 완화 */
+html body .story-translation-panel {
+  backdrop-filter: blur(2px) !important;
+  -webkit-backdrop-filter: blur(2px) !important;
+}
+
+/* 영상/이미지 박스는 선명하게 */
+html body .story-media-box,
+html body .media-embed-wrap,
+html body .story-detail-image {
+  background: #000 !important;
+  box-shadow: 0 16px 34px rgba(45, 54, 70, 0.16) !important;
+}
+
+/* 스토리 목록 카드도 과한 흰막 제거 */
+html body .story-archive-link,
+html body .story-thumb-link {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.74),
+      rgba(250, 253, 255, 0.56)
+    ) !important;
+  border-color: rgba(200, 218, 235, 0.54) !important;
+  box-shadow: 0 10px 24px rgba(126, 149, 178, 0.055) !important;
+}
+
+/* 스토리 목록/상세 텍스트는 조금 더 또렷하게 */
+html body .story-page-title,
+html body .story-archive-title,
+html body .story-thumb-title {
+  color: #3f4658 !important;
+}
+
+html body .story-archive-summary,
+html body .story-archive-date,
+html body .story-top-meta,
+html body .translation-scroll-panel,
+html body .translation-body {
+  color: #5f6b7d !important;
+}
+
+/* KR/CN 스위치가 너무 흐려 보이는 것 방지 */
+html body .story-language-switcher {
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-color: rgba(184, 204, 224, 0.62) !important;
+  box-shadow: 0 8px 18px rgba(126, 149, 178, 0.08) !important;
+}
+
+html body .story-language-button.is-active {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(208, 224, 244, 0.95),
+      rgba(235, 225, 246, 0.92)
+    ) !important;
+  color: #52657a !important;
+}
+
+/* =========================================================
+   PANEL DEPTH RESTORE FINAL
+   원래 느낌처럼 테두리선보다 그림자로 패널을 또렷하게
+========================================================= */
+
+/* 큰 메인 컨텐츠 박스 */
+html body .content-inner.memory-content {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(222, 238, 251, 0.34), transparent 38%),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.72) 0%,
+      rgba(250, 253, 255, 0.62) 48%,
+      rgba(242, 250, 255, 0.58) 100%
+    ) !important;
+
+  border-color: rgba(255, 255, 255, 0.72) !important;
+
+  box-shadow:
+    0 26px 64px rgba(118, 136, 164, 0.13),
+    0 8px 24px rgba(118, 136, 164, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86) !important;
+
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* 홈 히어로, 카드/스토리 상세 상단 제목 박스 */
+html body .home-page .home-hero,
+html body .story-topbar,
+html body .story-topbar-main-panel,
+html body .card-detail-topbar,
+html body .detail-panel {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(250, 253, 255, 0.78) 100%
+    ) !important;
+
+  border-color: rgba(255, 255, 255, 0.78) !important;
+
+  box-shadow:
+    0 22px 46px rgba(103, 122, 151, 0.13),
+    0 6px 18px rgba(103, 122, 151, 0.065),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+/* 카드 상세 왼쪽/오른쪽 큰 패널 */
+html body .card-detail-media-panel,
+html body .card-detail-links-panel,
+html body .story-media-panel,
+html body .story-translation-panel {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.86) 0%,
+      rgba(249, 253, 255, 0.72) 100%
+    ) !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.72) !important;
+
+  box-shadow:
+    0 20px 42px rgba(103, 122, 151, 0.12),
+    0 5px 16px rgba(103, 122, 151, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86) !important;
+}
+
+/* 카드 상세 오른쪽 안쪽 박스들: 점선 느낌 죽이고 부드러운 카드로 */
+html body .card-detail-side-block,
+html body .related-card,
+html body .link-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.86),
+      rgba(250, 253, 255, 0.72)
+    ) !important;
+
+  border: 1px solid rgba(210, 225, 238, 0.42) !important;
+
+  box-shadow:
+    0 12px 28px rgba(103, 122, 151, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+}
+
+/* 스토리/카드 목록 카드도 흐릿하지 않게 */
+html body .story-archive-link,
+html body .story-thumb-link,
+html body .archive-card,
+html body .quick-card,
+html body .home-carousel-card,
+html body .home-widget-panel {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.88),
+      rgba(250, 253, 255, 0.74)
+    ) !important;
+
+  border-color: rgba(255, 255, 255, 0.72) !important;
+
+  box-shadow:
+    0 16px 34px rgba(103, 122, 151, 0.105),
+    0 4px 14px rgba(103, 122, 151, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.84) !important;
+}
+
+/* 영상/이미지 영역은 뿌옇게 덮지 말고 확실히 분리 */
+html body .story-media-box,
+html body .media-embed-wrap,
+html body .card-detail-media-frame {
+  background: rgba(20, 24, 32, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.72) !important;
+
+  box-shadow:
+    0 18px 38px rgba(45, 54, 70, 0.18),
+    0 5px 16px rgba(45, 54, 70, 0.08) !important;
+}
+
+/* 제목/본문도 안개 낀 느낌 줄이기 */
+html body .story-page-title,
+html body .story-archive-title,
+html body .card-detail-topbar .story-page-title,
+html body .detail-title,
+html body .page-title {
+  color: #3f4658 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) !important;
+}
+
+html body .story-archive-summary,
+html body .story-archive-date,
+html body .detail-text,
+html body .card-related-title,
+html body .card-related-kicker {
+  color: #5f6d7e !important;
+}
+
+/* 상단 메타 pill은 너무 떠 보이지 않게 */
+html body .meta-pill,
+html body .story-archive-badge,
+html body .card-tag-link {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(250, 254, 255, 0.96),
+      rgba(239, 248, 255, 0.84)
+    ) !important;
+
+  border-color: rgba(177, 204, 226, 0.58) !important;
+
+  box-shadow:
+    0 4px 10px rgba(103, 122, 151, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+
+  color: #57758f !important;
+}
+
+/* =========================================================
+   VIDEO BORDER REMOVE
+   스토리 영상 영역 테두리 제거
+========================================================= */
+
+html body .story-media-box,
+html body .media-embed-wrap {
+  border: 0 !important;
+  box-shadow:
+    0 18px 38px rgba(45, 54, 70, 0.18),
+    0 5px 16px rgba(45, 54, 70, 0.08) !important;
+}
+
+/* iframe 자체에도 선이 생기는 경우 방지 */
+html body .story-media-box iframe,
+html body .media-embed-wrap iframe {
+  border: 0 !important;
+  outline: 0 !important;
+}
+
+/* 영상 모서리만 유지 */
+html body .story-media-box,
+html body .media-embed-wrap,
+html body .media-embed-wrap iframe {
+  border-radius: 24px !important;
+  overflow: hidden !important;
+}
+
+/* =========================================================
+   STORY / DETAIL PANEL DEPTH LIKE CARD CATEGORY
+   색 말고 구분감/입체감 복구
+========================================================= */
+
+/* 큰 컨텐츠 배경은 너무 뿌옇지 않게 */
+html body .content-inner.memory-content {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(225, 239, 252, 0.42), transparent 38%),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.78) 0%,
+      rgba(250, 253, 255, 0.68) 48%,
+      rgba(244, 250, 255, 0.62) 100%
+    ) !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.78) !important;
+
+  box-shadow:
+    0 26px 64px rgba(110, 128, 156, 0.14),
+    0 8px 22px rgba(110, 128, 156, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+
+  backdrop-filter: blur(7px) !important;
+  -webkit-backdrop-filter: blur(7px) !important;
+}
+
+/* 스토리 상세 상단 제목 박스 */
+html body .story-topbar,
+html body .story-topbar-main-panel,
+html body .card-detail-topbar,
+html body .detail-panel {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.94) 0%,
+      rgba(249, 253, 255, 0.82) 100%
+    ) !important;
+
+  border: 0 !important;
+
+  box-shadow:
+    0 22px 44px rgba(98, 118, 145, 0.13),
+    0 6px 16px rgba(98, 118, 145, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+/* 스토리 상세 좌우 패널: 카드 페이지처럼 확실히 떠 보이게 */
+html body .story-media-panel,
+html body .story-translation-panel,
+html body .card-detail-media-panel,
+html body .card-detail-links-panel {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.92) 0%,
+      rgba(249, 253, 255, 0.78) 100%
+    ) !important;
+
+  border: 0 !important;
+  border-radius: 28px !important;
+
+  box-shadow:
+    0 24px 48px rgba(98, 118, 145, 0.135),
+    0 7px 18px rgba(98, 118, 145, 0.065),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+}
+
+/* 오른쪽 안쪽 박스도 흐릿한 점선 박스 말고 약한 카드처럼 */
+html body .card-detail-side-block,
+html body .related-card,
+html body .link-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.92),
+      rgba(250, 253, 255, 0.78)
+    ) !important;
+
+  border: 0 !important;
+  border-radius: 20px !important;
+
+  box-shadow:
+    0 12px 26px rgba(98, 118, 145, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+/* 영상 자체에는 테두리 넣지 않음 */
+html body .story-media-box,
+html body .media-embed-wrap,
+html body .media-embed-wrap iframe {
+  border: 0 !important;
+  outline: 0 !important;
+}
+
+/* 영상 박스는 그림자만 남김 */
+html body .story-media-box,
+html body .media-embed-wrap {
+  box-shadow:
+    0 18px 38px rgba(45, 54, 70, 0.18),
+    0 5px 16px rgba(45, 54, 70, 0.08) !important;
+}
+
+/* 카드 상세 이미지 프레임은 필요하면 구분감만 */
+html body .card-detail-media-frame {
+  border: 0 !important;
+  box-shadow:
+    0 18px 38px rgba(45, 54, 70, 0.16),
+    0 5px 16px rgba(45, 54, 70, 0.07) !important;
+}
+
+/* 목록 카드류도 카드 카테고리처럼 선명하게 */
+html body .story-archive-link,
+html body .story-thumb-link,
+html body .archive-card,
+html body .quick-card,
+html body .home-widget-panel {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.91),
+      rgba(250, 253, 255, 0.78)
+    ) !important;
+
+  border: 0 !important;
+
+  box-shadow:
+    0 18px 36px rgba(98, 118, 145, 0.115),
+    0 5px 14px rgba(98, 118, 145, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+}
+
+/* 제목/본문은 흐린 회색 말고 카드 페이지 정도로 */
+html body .page-title,
+html body .story-page-title,
+html body .story-archive-title,
+html body .detail-title {
+  color: #3f4658 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65) !important;
+}
+
+html body .page-desc,
+html body .story-archive-summary,
+html body .story-archive-date,
+html body .detail-text,
+html body .translation-body,
+html body .translation-scroll-panel {
+  color: #5f6d7e !important;
+}
+
+/* pill은 선명하되 너무 테두리 느낌 안 나게 */
+html body .meta-pill,
+html body .story-archive-badge,
+html body .card-tag-link {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(252, 254, 255, 0.98),
+      rgba(239, 248, 255, 0.88)
+    ) !important;
+
+  border: 1px solid rgba(178, 205, 228, 0.46) !important;
+
+  box-shadow:
+    0 4px 10px rgba(98, 118, 145, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+
+  color: #57758f !important;
+}
+
+/* =========================================================
+   CARD DETAIL TOPBAR FINAL
+   - 카드 상세 상단을 스샷처럼 흰 박스 + 은은한 그림자로 고정
+   - 그라데이션 제거
+   - 속성 pill 색 분리
+========================================================= */
+
+/* 카드 상세 상단 전체 박스 */
+html body .card-detail-topbar.detail-panel,
+html body section.card-detail-topbar {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 300px !important;
+  gap: 14px !important;
+  align-items: start !important;
+
+  padding: 16px 18px !important;
+  border-radius: 24px !important;
+
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(228, 233, 241, 0.76) !important;
+
+  box-shadow:
+    0 18px 40px rgba(105, 122, 150, 0.105),
+    0 5px 14px rgba(105, 122, 150, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96) !important;
+
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 상단 왼쪽 영역 */
+html body .card-detail-topbar .story-topbar-main {
+  min-width: 0 !important;
+  padding: 0 !important;
+}
+
+/* Archive / Cards */
+html body .card-detail-topbar .page-eyebrow {
+  margin: 0 0 8px !important;
+  color: #a9a7b4 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+/* 카드 제목 */
+html body .card-detail-topbar .story-page-title {
+  margin: 0 0 8px !important;
+  color: #3f4658 !important;
+  font-size: 20px !important;
+  line-height: 1.25 !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.035em !important;
+  text-shadow: none !important;
+}
+
+/* 메타 pill 줄 */
+html body .card-detail-topbar .story-top-meta {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin: 0 0 10px !important;
+}
+
+/* 기본 pill: 그라데이션 제거 */
+html body .card-detail-topbar .story-top-meta .meta-pill {
+  min-height: 27px !important;
+  padding: 0 9px !important;
+  border-radius: 999px !important;
+
+  background: rgba(247, 252, 255, 0.94) !important;
+  border: 1px solid rgba(184, 211, 232, 0.62) !important;
+
+  color: #587891 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+
+  box-shadow:
+    0 3px 8px rgba(105, 122, 150, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+/* 속성: 친화력 */
+html body .card-detail-topbar .story-top-meta .meta-pill.stat-affinity {
+  background: rgba(232, 249, 239, 0.96) !important;
+  border-color: rgba(139, 211, 169, 0.58) !important;
+  color: #4e8d66 !important;
+}
+
+/* 속성: 결단력 */
+html body .card-detail-topbar .story-top-meta .meta-pill.stat-decisiveness {
+  background: rgba(232, 245, 255, 0.96) !important;
+  border-color: rgba(116, 185, 242, 0.58) !important;
+  color: #3d78a9 !important;
+}
+
+/* 속성: 창의력 */
+html body .card-detail-topbar .story-top-meta .meta-pill.stat-creativity {
+  background: rgba(255, 246, 232, 0.96) !important;
+  border-color: rgba(239, 188, 119, 0.58) !important;
+  color: #9b6a2f !important;
+}
+
+/* 속성: 추진력 */
+html body .card-detail-topbar .story-top-meta .meta-pill.stat-drive {
+  background: rgba(255, 239, 247, 0.96) !important;
+  border-color: rgba(237, 157, 194, 0.58) !important;
+  color: #a45a82 !important;
+}
+
+/* 버튼 줄 */
+html body .card-detail-topbar .story-top-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin: 0 !important;
+}
+
+/* 기본 버튼 */
+html body .card-detail-topbar .story-action-button {
+  min-height: 32px !important;
+  padding: 0 11px !important;
+  border-radius: 999px !important;
+
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(209, 224, 237, 0.68) !important;
+
+  color: #43576a !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  text-decoration: none !important;
+
+  box-shadow:
+    0 5px 12px rgba(105, 122, 150, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
+}
+
+/* 관리자 수정 같은 메인 버튼 */
+html body .card-detail-topbar .story-action-button:not(.story-action-muted):not(.story-action-danger) {
+  background: rgba(202, 226, 242, 0.9) !important;
+  border-color: rgba(167, 204, 229, 0.76) !important;
+  color: #3f6c89 !important;
+}
+
+/* 삭제 버튼 */
+html body .card-detail-topbar .story-action-danger {
+  background: rgba(255, 235, 240, 0.94) !important;
+  border-color: rgba(231, 174, 188, 0.62) !important;
+  color: #a65a6a !important;
+}
+
+/* 오른쪽 해시태그/요약 영역 */
+html body .card-detail-topbar .card-detail-top-side {
+  min-width: 0 !important;
+  display: grid !important;
+  gap: 8px !important;
+  align-content: start !important;
+}
+
+/* 오른쪽 작은 박스 */
+html body .card-detail-topbar .card-detail-top-side .story-side-block {
+  min-width: 0 !important;
+  padding: 10px 11px !important;
+  border-radius: 16px !important;
+
+  background: rgba(250, 248, 252, 0.88) !important;
+  border: 1px solid rgba(223, 216, 229, 0.82) !important;
+
+  box-shadow:
+    0 5px 12px rgba(105, 122, 150, 0.035),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
+}
+
+/* 오른쪽 박스 제목 */
+html body .card-detail-topbar .card-detail-top-side .story-side-title {
+  margin: 0 0 7px !important;
+  color: #4b5060 !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+}
+
+/* 해시태그 줄 */
+html body .card-detail-topbar .card-detail-tags {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+}
+
+/* 해시태그 pill */
+html body .card-detail-topbar .card-tag-link {
+  min-height: 24px !important;
+  padding: 0 8px !important;
+  border-radius: 999px !important;
+
+  background: rgba(255, 255, 255, 0.86) !important;
+  border: 1px solid rgba(218, 224, 234, 0.8) !important;
+
+  color: #7a8090 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+
+  box-shadow: none !important;
+}
+
+/* 요약 텍스트 */
+html body .card-detail-topbar .card-detail-top-side .detail-text,
+html body .card-detail-topbar .card-detail-top-side .rich-content,
+html body .card-detail-topbar .card-detail-top-side .rich-content p {
+  margin: 0 !important;
+  color: #747b8d !important;
+  font-size: 12px !important;
+  line-height: 1.55 !important;
+}
+
+/* 아래 카드 이미지/연결 패널과 상단 사이 간격 */
+html body .story-topbar + .card-detail-main-grid,
+html body .card-detail-topbar + .card-detail-main-grid {
+  margin-top: 30px !important;
+}
+
+/* 모바일/좁은 화면 */
+@media (max-width: 1100px) {
+  html body .card-detail-topbar.detail-panel,
+  html body section.card-detail-topbar {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body .card-detail-topbar .story-page-title {
+    font-size: 18px !important;
+  }
+}
