@@ -928,17 +928,18 @@ html body .card-detail-topbar .story-top-meta .meta-pill {
 
 /* 속성: 친화력 */
 html body .card-detail-topbar .story-top-meta .meta-pill.stat-affinity {
-  background: rgba(232, 249, 239, 0.96) !important;
-  border-color: rgba(139, 211, 169, 0.58) !important;
-  color: #4e8d66 !important;
+  background: rgba(255, 239, 247, 0.96) !important;
+  border-color: rgba(237, 157, 194, 0.58) !important;
+  color: #a45a82 !important;
 }
-
 /* 속성: 결단력 */
 html body .card-detail-topbar .story-top-meta .meta-pill.stat-decisiveness {
   background: rgba(232, 245, 255, 0.96) !important;
   border-color: rgba(116, 185, 242, 0.58) !important;
   color: #3d78a9 !important;
 }
+
+
 
 /* 속성: 창의력 */
 html body .card-detail-topbar .story-top-meta .meta-pill.stat-creativity {
@@ -948,11 +949,13 @@ html body .card-detail-topbar .story-top-meta .meta-pill.stat-creativity {
 }
 
 /* 속성: 추진력 */
+
 html body .card-detail-topbar .story-top-meta .meta-pill.stat-drive {
-  background: rgba(255, 239, 247, 0.96) !important;
-  border-color: rgba(237, 157, 194, 0.58) !important;
-  color: #a45a82 !important;
+  background: rgba(232, 249, 239, 0.96) !important;
+  border-color: rgba(139, 211, 169, 0.58) !important;
+  color: #4e8d66 !important;
 }
+
 
 /* 버튼 줄 */
 html body .card-detail-topbar .story-top-actions {
