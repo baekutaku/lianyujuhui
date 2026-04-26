@@ -290,10 +290,18 @@ export default async function NewEventPage({
             />
           </label>
 
-          <label className="form-field form-field-full">
-            <span>유튜브 URL</span>
+         <label className="form-field form-field-full">
+            <span>CN 유튜브 URL</span>
             <input
-              name="youtubeUrl"
+              name="youtubeUrlCn"
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>KR 유튜브 URL</span>
+            <input
+              name="youtubeUrlKr"
               placeholder="https://www.youtube.com/watch?v=..."
             />
           </label>

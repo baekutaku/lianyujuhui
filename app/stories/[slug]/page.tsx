@@ -367,6 +367,19 @@ const selectedCharacterKeys = Array.from(
   )
 );
 
+// tab이 없으면 현재 스토리의 subtype에서 자동 감지
+function inferTabFromSubtype(subtype: string | null): string {
+  if (!subtype) return "all";
+  if (subtype === "main_story" || subtype === "behind_story") return "main";
+  if (subtype === "card_story") return "card";
+  if (subtype === "asmr") return "asmr";
+  if (subtype === "side_story") return "side";
+  if (subtype === "xiyue_story") return "xiyue";
+  if (subtype === "myhome_story") return "myhome";
+  if (subtype === "company_project") return "company";
+  return "all";
+}
+
 const activeTab = getActiveTab(tab);
 
   const { data: story, error: storyError } = await supabase
@@ -380,22 +393,26 @@ const activeTab = getActiveTab(tab);
   if (storyError) {
     console.error("[stories/[slug]] story fetch error:", storyError);
   }
-  const storiesListHref = buildStoriesHref({
-  tab: activeTab.key,
-  sub: sub !== "all" ? sub : undefined,
-  tag: selectedTag || undefined,
-  q,
-  years: selectedYears,
-  characters: rawSelectedCharacterKeys,
-  scope,
-  sort,
-  page: currentPage,
-});
 
   if (!story) {
     notFound();
   }
 
+  // tab 파라미터 없이 접근한 경우 subtype으로 자동 감지
+  const effectiveTab = tab || inferTabFromSubtype(story.subtype);
+  const effectiveActiveTab = getActiveTab(effectiveTab);
+
+  const storiesListHref = buildStoriesHref({
+    tab: effectiveActiveTab.key,
+    sub: sub !== "all" ? sub : undefined,
+    tag: selectedTag || undefined,
+    q,
+    years: selectedYears,
+    characters: rawSelectedCharacterKeys,
+    scope,
+    sort,
+    page: currentPage,
+  });
    if (story.visibility === "private" && !admin) {
     notFound();
   }
@@ -439,8 +456,8 @@ if (!admin) {
   navQuery = navQuery.neq("visibility", "private");
 }
 
-if (activeTab.subtypes.length > 0) {
-  navQuery = navQuery.in("subtype", [...activeTab.subtypes]);
+if (effectiveActiveTab.subtypes.length > 0) {
+  navQuery = navQuery.in("subtype", [...effectiveActiveTab.subtypes]);
 }
 
 if (selectedYears.length > 0) {
@@ -453,7 +470,7 @@ if (selectedYears.length > 0) {
 const { data: rawStoriesForNav } = await navQuery;
 let navStories = (rawStoriesForNav ?? []) as StoryNavCard[];
 
-if (activeTab.key === "main") {
+if (effectiveActiveTab.key === "main") {
   if (sub === "part1") {
     navStories = navStories.filter(
       (item) => item.subtype === "main_story" && item.part_no === 1
@@ -840,7 +857,7 @@ const hasConnections =
         {admin ? (
           <>
             <Link
-              href={`/admin/stories/${encodeURIComponent(story.slug)}/edit`}
+              href={`/admin/stories/${encodeURIComponent(story.slug)}/edit${effectiveTab && effectiveTab !== "main" ? `?tab=${effectiveTab}${sub && sub !== "all" ? `&sub=${sub}` : ""}` : ""}`}
               className="story-action-button"
             >
               관리자 수정

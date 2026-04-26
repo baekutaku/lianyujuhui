@@ -64,8 +64,10 @@ export default async function CallDetailPage({ params }: PageProps) {
     DEFAULT_AVATAR_MAP[resolvedCharacterKey] ||
     "/profile/baiqi.png";
 
-  const translationHtml = item.content_json?.translationHtml ?? "";
+ const translationHtml = item.content_json?.translationHtml ?? "";
   const memoHtml = item.content_json?.memoHtml ?? "";
+  const youtubeUrlCn = item.content_json?.youtubeUrlCn ?? item.embed_url ?? "";
+  const youtubeUrlKr = item.content_json?.youtubeUrlKr ?? "";
 
   return (
     <main className="phone-page">
@@ -75,7 +77,8 @@ export default async function CallDetailPage({ params }: PageProps) {
             characterName={resolvedCharacterName}
             title={item.title}
             coverImage={resolvedCover}
-            youtubeEmbedUrl={item.embed_url ?? ""}
+            youtubeEmbedUrl={youtubeUrlCn}
+            youtubeEmbedUrlKr={youtubeUrlKr}
             body={item.content_json?.body ?? ""}
           />
         </PhoneShell>

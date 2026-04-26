@@ -476,7 +476,11 @@ export default async function CardDetailPage({
     .filter((rel) => rel.child_type === "event")
     .map((rel) => rel.child_id);
 
-  const [{ data: stories }, { data: phoneItems }, { data: events }] =
+  const relatedCardIds = (relations ?? [])
+    .filter((rel) => rel.child_type === "card")
+    .map((rel) => rel.child_id);
+
+  const [{ data: stories }, { data: phoneItems }, { data: events }, { data: relatedCards }] =
     await Promise.all([
       storyIds.length > 0
         ? supabase
@@ -485,16 +489,22 @@ export default async function CardDetailPage({
             .in("id", storyIds)
         : Promise.resolve({ data: [] as any[] }),
       phoneIds.length > 0
-  ? supabase
-      .from("phone_items")
-      .select("id, title, slug, subtype, content_json")
-      .in("id", phoneIds)
-  : Promise.resolve({ data: [] as any[] }),
+        ? supabase
+            .from("phone_items")
+            .select("id, title, slug, subtype, content_json")
+            .in("id", phoneIds)
+        : Promise.resolve({ data: [] as any[] }),
       eventIds.length > 0
         ? supabase
             .from("events")
             .select("id, title, slug, subtype")
             .in("id", eventIds)
+        : Promise.resolve({ data: [] as any[] }),
+      relatedCardIds.length > 0
+        ? supabase
+            .from("cards")
+            .select("id, title, slug, rarity")
+            .in("id", relatedCardIds)
         : Promise.resolve({ data: [] as any[] }),
     ]);
 
@@ -670,6 +680,28 @@ export default async function CardDetailPage({
                 <div className="card-related-empty">
                   연결된 휴대폰 콘텐츠가 없습니다.
                 </div>
+              )}
+            </section>
+
+            <section className="card-detail-side-block">
+              <h2 className="detail-section-title">연결 카드</h2>
+              {(relatedCards?.length ?? 0) > 0 ? (
+                <div className="card-related-list">
+                  {relatedCards!.map((relCard: any) => (
+                    <Link
+                      key={relCard.id}
+                      href={`/cards/${relCard.slug}`}
+                      className="card-related-link"
+                    >
+                      <span className="card-related-kicker">
+                        {getRarityLabel(relCard.rarity)}
+                      </span>
+                      <strong className="card-related-title">{relCard.title}</strong>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="card-related-empty">연결된 카드가 없습니다.</div>
               )}
             </section>
 

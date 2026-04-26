@@ -62,7 +62,8 @@ async function updateCallPhoneItem(params: {
   const characterName = String(params.formData.get("character_name") || "").trim();
   const avatarUrl = String(params.formData.get("avatar_url") || "").trim();
   const coverImage = String(params.formData.get("cover_image") || "").trim();
-  const youtubeUrl = String(params.formData.get("youtube_url") || "").trim();
+   const youtubeUrlCn = String(params.formData.get("youtube_url_cn") || "").trim();
+  const youtubeUrlKr = String(params.formData.get("youtube_url_kr") || "").trim();
   const body = String(params.formData.get("body") || "").trim();
   const levelRaw = String(params.formData.get("level") || "").trim();
   const level = levelRaw ? Number(levelRaw) : null;
@@ -75,7 +76,7 @@ async function updateCallPhoneItem(params: {
       subtype: params.subtype,
       summary: params.summary || body.slice(0, 60),
       is_published: params.isPublished,
-      embed_url: toEmbedUrl(youtubeUrl) || null,
+      embed_url: toEmbedUrl(youtubeUrlCn) || toEmbedUrl(youtubeUrlKr) || null,
       content_json: {
         characterKey,
         characterName,
@@ -83,6 +84,8 @@ async function updateCallPhoneItem(params: {
         level,
         coverImage,
         body,
+        youtubeUrlCn: toEmbedUrl(youtubeUrlCn) || null,
+        youtubeUrlKr: toEmbedUrl(youtubeUrlKr) || null,
       },
     })
     .eq("id", params.phoneItemId);

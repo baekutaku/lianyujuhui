@@ -37,6 +37,8 @@ type PhoneItemFormProps = {
     avatar_url?: string;
     cover_image?: string;
     youtube_url?: string;
+    youtube_url_cn?: string;
+    youtube_url_kr?: string;
 
     preview?: string;
     icon_url?: string;
@@ -324,7 +326,9 @@ export default function PhoneItemForm({
 
   avatar_url: initialValues?.avatar_url ?? "",
   cover_image: initialValues?.cover_image ?? "",
-  youtube_url: initialValues?.youtube_url ?? "",
+   youtube_url: initialValues?.youtube_url ?? "",
+  youtube_url_cn: initialValues?.youtube_url_cn ?? "",
+  youtube_url_kr: initialValues?.youtube_url_kr ?? "",
 
   preview: initialValues?.preview ?? "",
   icon_url: initialValues?.icon_url ?? "",
@@ -1493,12 +1497,21 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
             ) : null}
           </label>
 
-          <label className="form-field form-field-full">
-            <span>유튜브 링크</span>
+<label className="form-field form-field-full">
+            <span>유튜브 링크 (CN)</span>
             <input
-              name="youtube_url"
-              defaultValue={values.youtube_url}
-              placeholder="일반 유튜브 링크 넣어도 저장 시 embed로 변환"
+              name="youtube_url_cn"
+              defaultValue={values.youtube_url_cn}
+              placeholder="중국 서버 유튜브 링크"
+            />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>유튜브 링크 (KR)</span>
+            <input
+              name="youtube_url_kr"
+              defaultValue={values.youtube_url_kr}
+              placeholder="한국 서버 유튜브 링크"
             />
           </label>
 

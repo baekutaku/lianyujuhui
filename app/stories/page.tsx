@@ -1216,7 +1216,7 @@ const eventIds = events.map((event) => event.id);
                 return (
              <li key={event.id} className="story-archive-item">
   <div className="story-archive-card-shell">
-    <Link href={`/events/${event.slug}`} className="story-archive-link">
+    <Link href={`/events/${event.slug}${sub && sub !== "all" ? `?sub=${sub}` : ""}`} className="story-archive-link">
       <div className="story-archive-media">
         {thumb ? (
           <img
@@ -1558,7 +1558,7 @@ const eventIds = events.map((event) => event.id);
     {admin ? (
       <div className="story-archive-admin-mini">
         <Link
-          href="/admin/stories/new"
+           href={`/admin/stories/new${activeTab.key ? `?tab=${activeTab.key}${sub && sub !== "all" ? `&sub=${sub}` : ""}` : ""}`}
           className="story-archive-mini-btn story-archive-mini-btn-primary"
         >
           + 새 스토리

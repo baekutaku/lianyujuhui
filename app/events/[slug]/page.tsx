@@ -6,6 +6,7 @@ import { unlockProtectedEvent } from "@/app/events/[slug]/actions";
 import { hasEventAccess } from "@/lib/utils/event-access";
 import { deleteEventBundle } from "@/app/admin/actions";
 import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
+import StoryMediaSwitcher from "@/components/story/StoryMediaSwitcher";
 
 type EventPageProps = {
   params: Promise<{
@@ -13,9 +14,9 @@ type EventPageProps = {
   }>;
   searchParams?: Promise<{
     passwordError?: string;
+    sub?: string;
   }>;
 };
-
 function looksLikeHtml(value: string) {
   return /<\/?[a-z][\s\S]*>/i.test(value);
 }
@@ -101,6 +102,21 @@ export default async function EventDetailPage({
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const admin = await isAdmin();
 
+   const sub = resolvedSearchParams.sub ?? "";
+
+  // sub → DB subtype 매핑
+  const SUB_TO_SUBTYPE: Record<string, string> = {
+    birthday_character: "birthday_baiqi",
+    birthday_mc: "birthday_mc",
+    anniversary: "anniversary_event",
+    festival: "game_event",
+    seasonal: "seasonal_event",
+    collab: "collaboration_event",
+    return: "return_event",
+  };
+
+  const subtypeFilter = SUB_TO_SUBTYPE[sub] ?? "";
+
   const { data: event, error: eventError } = await supabase
     .from("events")
     .select(
@@ -140,6 +156,29 @@ export default async function EventDetailPage({
     }
   }
 
+// 이전/다음 이벤트 목록 조회
+  // subtype 파라미터가 있으면 해당 subtype만, 없으면 전체
+  let navEventQuery = supabase
+    .from("events")
+    .select("id, slug, title, start_date, release_year, created_at")
+    .eq("is_published", true)
+    .neq("visibility", "private")
+    .order("start_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (subtypeFilter) {
+    navEventQuery = navEventQuery.eq("subtype", subtypeFilter);
+  }
+
+  const { data: allSameTypeEvents } = await navEventQuery;
+  const navEvents = allSameTypeEvents ?? [];
+  const currentEventIndex = navEvents.findIndex((e) => e.id === event.id);
+  const prevEvent = currentEventIndex > 0 ? navEvents[currentEventIndex - 1] : null;
+  const nextEvent =
+    currentEventIndex >= 0 && currentEventIndex < navEvents.length - 1
+      ? navEvents[currentEventIndex + 1]
+      : null;
+
   const { data: translations, error: translationError } = await supabase
     .from("translations")
     .select("id, title, body, translation_type, is_primary, is_published, created_at")
@@ -160,7 +199,7 @@ export default async function EventDetailPage({
     .order("is_primary", { ascending: false })
     .order("sort_order", { ascending: true });
 
-  const primaryMedia = media?.[0] ?? null;
+   // StoryMediaSwitcher가 media 배열을 직접 처리
 
   const { data: relations, error: relationsError } = await supabase
     .from("item_relations")
@@ -264,7 +303,7 @@ export default async function EventDetailPage({
               ) : null}
             </div>
 
-            <div className="story-top-actions">
+                 <div className="story-top-actions">
               <Link
                 href="/stories?tab=event"
                 className="story-action-button story-action-muted"
@@ -272,6 +311,37 @@ export default async function EventDetailPage({
                 목록으로
               </Link>
 
+               {prevEvent ? (
+                <Link
+                    href={`/events/${prevEvent.slug}${sub ? `?sub=${sub}` : ""}`}
+                  className="story-action-button story-action-muted"
+                >
+                  ← 이전 이벤트
+                </Link>
+              ) : (
+                <span
+                  className="story-action-button story-action-muted"
+                  style={{ opacity: 0.45 }}
+                >
+                  ← 이전 이벤트
+                </span>
+              )}
+
+              {nextEvent ? (
+                <Link
+                   href={`/events/${nextEvent.slug}${sub ? `?sub=${sub}` : ""}`}
+                  className="story-action-button story-action-muted"
+                >
+                  다음 이벤트 →
+                </Link>
+              ) : (
+                <span
+                  className="story-action-button story-action-muted"
+                  style={{ opacity: 0.45 }}
+                >
+                  다음 이벤트 →
+                </span>
+              )}
               {admin ? (
                 <>
                   <Link
@@ -426,30 +496,7 @@ export default async function EventDetailPage({
 
       <section className="story-main-grid">
         <div className="detail-panel story-media-panel">
-          <div className="story-media-box">
-            {primaryMedia ? (
-              primaryMedia.media_type === "youtube" && primaryMedia.youtube_video_id ? (
-                <div className="media-embed-wrap">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${primaryMedia.youtube_video_id}`}
-                    title={primaryMedia.title || event.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              ) : primaryMedia.media_type === "image" ? (
-                <img
-                  src={primaryMedia.url}
-                  alt={primaryMedia.title || event.title}
-                  className="story-detail-image"
-                />
-              ) : (
-                <div className="empty-box">지원되지 않는 미디어 형식입니다.</div>
-              )
-            ) : (
-              <div className="empty-box">등록된 영상/이미지가 없습니다.</div>
-            )}
-          </div>
+          <StoryMediaSwitcher storyTitle={event.title} media={media ?? []} />
         </div>
 
         <div className="detail-panel story-translation-panel">

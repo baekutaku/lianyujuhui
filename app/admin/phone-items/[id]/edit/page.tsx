@@ -58,7 +58,8 @@ export default async function EditPhoneItemPage({ params }: PageProps) {
             item.content_json?.editorEntries ?? item.content_json?.entries ?? []
           ),
           cover_image: item.content_json?.coverImage ?? "",
-          youtube_url: item.embed_url ?? "",
+         youtube_url_cn: item.content_json?.youtubeUrlCn ?? item.embed_url ?? "",
+          youtube_url_kr: item.content_json?.youtubeUrlKr ?? "",
 
           preview: item.content_json?.preview ?? "",
           icon_url: item.content_json?.iconUrl ?? "",

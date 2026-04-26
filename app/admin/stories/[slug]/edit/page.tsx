@@ -59,7 +59,7 @@ type EditStoryPageProps = {
   params: Promise<{
     slug: string;
   }>;
-  searchParams?: Promise<{ error?: string; saved?: string }>;
+  searchParams?: Promise<{ error?: string; saved?: string; tab?: string; sub?: string }>;
 };
 
 function safeDecode(value: string) {
@@ -98,6 +98,8 @@ export default async function EditStoryPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const error = resolvedSearchParams?.error ?? "";
   const saved = resolvedSearchParams?.saved === "1";
+  const returnTab = resolvedSearchParams?.tab ?? "";
+  const returnSub = resolvedSearchParams?.sub ?? "";
 
   const { data: story, error: storyError } = await supabase
     .from("stories")
@@ -437,6 +439,8 @@ const initialStories = Array.from(
       ) : null}
 
       <form action={updateStoryBundle} className="form-panel">
+        {returnTab ? <input type="hidden" name="returnTab" value={returnTab} /> : null}
+        {returnSub ? <input type="hidden" name="returnSub" value={returnSub} /> : null}
        <input type="hidden" name="storyId" value={story.id} />
 <input type="hidden" name="originalSlug" value={story.slug} />
         <input type="hidden" name="translationCnId" value={translationCn?.id ?? ""} />

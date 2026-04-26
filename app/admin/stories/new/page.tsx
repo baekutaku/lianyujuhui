@@ -63,10 +63,12 @@ function safeDecode(value: string) {
 export default async function NewStoryPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ error?: string }>;
+  searchParams?: Promise<{ error?: string; tab?: string; sub?: string }>;
 }) {
   const params = searchParams ? await searchParams : undefined;
   const error = params?.error ?? "";
+  const returnTab = params?.tab ?? "";
+  const returnSub = params?.sub ?? "";
 
 const [
   { data: characters },
@@ -215,8 +217,10 @@ const eventCandidates: RelationCandidate[] =
         </p>
       ) : null}
 
-      <form action={createStoryBundle} className="form-panel">
-<div className="form-grid">
+       <form action={createStoryBundle} className="form-panel">
+        {returnTab ? <input type="hidden" name="returnTab" value={returnTab} /> : null}
+        {returnSub ? <input type="hidden" name="returnSub" value={returnSub} /> : null}
+        <div className="form-grid">
   <label className="form-field form-field-full">
     <span>제목</span>
     <input name="title" required />

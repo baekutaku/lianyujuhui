@@ -114,7 +114,7 @@ export default async function EditEventPage({
     { data: phoneItems },
     { data: characters },
     { data: itemTagRows },
-    { data: youtubeMedia },
+      { data: youtubeMediaRows },
     { data: serverRow },
   ] = await Promise.all([
     supabase
@@ -160,11 +160,10 @@ export default async function EditEventPage({
 
     supabase
       .from("media_assets")
-      .select("id, url")
+      .select("id, url, usage_type")
       .eq("parent_type", "event")
       .eq("parent_id", event.id)
-      .eq("media_type", "youtube")
-      .maybeSingle(),
+      .eq("media_type", "youtube"),
 
     event.server_id
       ? supabase
@@ -174,6 +173,11 @@ export default async function EditEventPage({
           .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
   ]);
+
+  const youtubeMediaCn = (youtubeMediaRows ?? []).find((m: any) => m.usage_type === "pv_cn")
+    ?? (youtubeMediaRows ?? []).find((m: any) => m.usage_type === "pv")
+    ?? null;
+  const youtubeMediaKr = (youtubeMediaRows ?? []).find((m: any) => m.usage_type === "pv_kr") ?? null;
 
   const tagIds = Array.from(
     new Set((itemTagRows ?? []).map((row: any) => row.tag_id))
@@ -462,11 +466,20 @@ const storyCandidates: RelationCandidate[] =
             />
           </label>
 
-          <label className="form-field form-field-full">
-            <span>유튜브 URL</span>
+ <label className="form-field form-field-full">
+            <span>CN 유튜브 URL</span>
             <input
-              name="youtubeUrl"
-              defaultValue={youtubeMedia?.url ?? ""}
+              name="youtubeUrlCn"
+              defaultValue={youtubeMediaCn?.url ?? ""}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>KR 유튜브 URL</span>
+            <input
+              name="youtubeUrlKr"
+              defaultValue={youtubeMediaKr?.url ?? ""}
               placeholder="https://www.youtube.com/watch?v=..."
             />
           </label>
