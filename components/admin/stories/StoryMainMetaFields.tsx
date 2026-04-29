@@ -43,6 +43,7 @@ export default function StoryMainMetaFields({
             <option value="">선택 안 함</option>
             <option value="1">1부</option>
             <option value="2">2부</option>
+             <option value="3">3부</option>
           </select>
         </label>
 
