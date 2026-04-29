@@ -2755,3 +2755,160 @@
     font-size: 10.5px !important;
   }
 }
+
+/* =========================================================
+   CALL DETAIL FINAL
+   PC: 통화 + 오른쪽 번역 스크롤 + 하단 작업 기록
+   MOBILE: 통화 아래로 번역/작업 기록 표시, 페이지 스크롤
+========================================================= */
+
+@media (min-width: 1025px) {
+  .phone-call-detail-page .call-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(360px, 470px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+    width: 100%;
+  }
+
+  .phone-call-detail-page .call-detail-side {
+    height: min(840px, calc(100dvh - 48px));
+    min-height: 0;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 14px;
+    overflow: hidden;
+  }
+
+  .phone-call-detail-page .call-detail-translation {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .phone-call-detail-page .call-detail-translation .call-detail-rich-title {
+    flex: 0 0 auto;
+  }
+
+  .phone-call-detail-page .call-detail-translation .call-detail-rich-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 6px;
+  }
+
+  .phone-call-detail-page .call-detail-memo {
+    max-height: 210px;
+    overflow: hidden;
+  }
+
+  .phone-call-detail-page .call-detail-memo-body {
+    max-height: 130px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 6px;
+  }
+}
+
+/* 모바일/태블릿: 전화 UI 아래로 번역/작업 기록이 이어지게 */
+@media (max-width: 1024px) {
+  .phone-call-detail-page {
+    display: block !important;
+    width: 100% !important;
+    min-height: 100dvh !important;
+    height: auto !important;
+    padding: 0 0 28px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+
+    /* 스크롤바 안 보이게 */
+    scrollbar-width: none !important;
+  }
+
+  .phone-call-detail-page::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .phone-call-detail-page .call-detail-layout {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .phone-call-detail-page .phone-shell {
+    flex: 0 0 auto !important;
+  }
+
+  .phone-call-detail-page .call-detail-side {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 470px !important;
+    margin: 0 auto !important;
+    padding: 0 12px 28px !important;
+    box-sizing: border-box !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .phone-call-detail-page .call-detail-rich {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .phone-call-detail-page .call-detail-rich-body,
+  .phone-call-detail-page .call-detail-memo-body {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-right: 0 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .phone-call-detail-page .call-detail-side {
+    max-width: 100vw !important;
+    padding: 0 12px 28px !important;
+  }
+
+  .phone-call-detail-page .call-detail-rich {
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.76);
+    border: 1px solid rgba(226, 214, 224, 0.82);
+    box-shadow: 0 10px 24px rgba(120, 100, 120, 0.08);
+  }
+}
+
+/* PC 내부 스크롤바도 거의 안 보이게 */
+.phone-call-detail-page .call-detail-translation .call-detail-rich-body,
+.phone-call-detail-page .call-detail-memo-body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 165, 185, 0.12) transparent;
+}
+
+.phone-call-detail-page .call-detail-translation .call-detail-rich-body::-webkit-scrollbar,
+.phone-call-detail-page .call-detail-memo-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.phone-call-detail-page .call-detail-translation .call-detail-rich-body::-webkit-scrollbar-track,
+.phone-call-detail-page .call-detail-memo-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.phone-call-detail-page .call-detail-translation .call-detail-rich-body::-webkit-scrollbar-thumb,
+.phone-call-detail-page .call-detail-memo-body::-webkit-scrollbar-thumb {
+  background: rgba(150, 165, 185, 0.12);
+  border-radius: 999px;
+}

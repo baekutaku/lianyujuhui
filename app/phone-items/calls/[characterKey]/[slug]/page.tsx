@@ -69,44 +69,44 @@ export default async function CallDetailPage({ params }: PageProps) {
   const youtubeUrlCn = item.content_json?.youtubeUrlCn ?? item.embed_url ?? "";
   const youtubeUrlKr = item.content_json?.youtubeUrlKr ?? "";
 
-  return (
-    <main className="phone-page">
-      <div className="call-detail-layout">
-        <PhoneShell>
-          <CallDetail
-            characterName={resolvedCharacterName}
-            title={item.title}
-            coverImage={resolvedCover}
-            youtubeEmbedUrl={youtubeUrlCn}
-            youtubeEmbedUrlKr={youtubeUrlKr}
-            body={item.content_json?.body ?? ""}
-          />
-        </PhoneShell>
+return (
+  <main className="phone-page phone-call-detail-page">
+    <div className="call-detail-layout">
+      <PhoneShell>
+        <CallDetail
+          characterName={resolvedCharacterName}
+          title={item.title}
+          coverImage={resolvedCover}
+          youtubeEmbedUrl={youtubeUrlCn}
+          youtubeEmbedUrlKr={youtubeUrlKr}
+          body={item.content_json?.body ?? ""}
+        />
+      </PhoneShell>
 
-        {(translationHtml || memoHtml) ? (
-          <aside className="call-detail-side">
-            {translationHtml ? (
-              <section className="call-detail-rich">
-                <div className="call-detail-rich-title">번역</div>
-                <div
-                  className="call-detail-rich-body"
-                  dangerouslySetInnerHTML={{ __html: translationHtml }}
-                />
-              </section>
-            ) : null}
+      {translationHtml || memoHtml ? (
+        <aside className="call-detail-side">
+          {translationHtml ? (
+            <section className="call-detail-rich call-detail-translation">
+              <div className="call-detail-rich-title">번역</div>
+              <div
+                className="call-detail-rich-body"
+                dangerouslySetInnerHTML={{ __html: translationHtml }}
+              />
+            </section>
+          ) : null}
 
-            {memoHtml ? (
-              <section className="call-detail-rich">
-                <div className="call-detail-rich-title">메모</div>
-                <div
-                  className="call-detail-rich-body"
-                  dangerouslySetInnerHTML={{ __html: memoHtml }}
-                />
-              </section>
-            ) : null}
-          </aside>
-        ) : null}
-      </div>
-    </main>
-  );
+          {memoHtml ? (
+            <section className="call-detail-rich call-detail-memo">
+              <div className="call-detail-rich-title">작업 기록</div>
+              <div
+                className="call-detail-rich-body call-detail-memo-body"
+                dangerouslySetInnerHTML={{ __html: memoHtml }}
+              />
+            </section>
+          ) : null}
+        </aside>
+      ) : null}
+    </div>
+  </main>
+);
 }
