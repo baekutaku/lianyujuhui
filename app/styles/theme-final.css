@@ -1396,3 +1396,15 @@ html body input[type="date"] {
   }
 }
 
+
+
+
+.story-side-block {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 11px;
+  border-radius: 16px;
+  background: rgba(248, 245, 251, 0.92);
+  border: 1px solid rgba(222, 213, 228, 0.7);
+}

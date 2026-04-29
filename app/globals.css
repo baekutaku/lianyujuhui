@@ -1543,8 +1543,8 @@ a {
 .story-side-block {
   display: grid;
   gap: 8px;
+  overflow: visible;
 }
-
 .story-side-title {
   margin: 0;
   font-size: 12px;
@@ -5695,7 +5695,6 @@ a {
   border-radius: 16px;
   background: rgba(248, 245, 251, 0.92);
   border: 1px solid rgba(222, 213, 228, 0.7);
-  overflow: hidden;
 }
 
 .story-side-head {

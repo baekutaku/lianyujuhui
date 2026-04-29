@@ -10,6 +10,7 @@ import { hasStoryAccess } from "@/lib/utils/story-access";
 import StoryTranslationSwitcher from "@/components/story/StoryTranslationSwitcher";
 import StoryMediaSwitcher from "@/components/story/StoryMediaSwitcher";
 import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
+import StorySideBlock from "@/components/story/StorySideBlock";
 
 type SearchParamValue = string | string[] | undefined;
 
@@ -925,123 +926,37 @@ const hasConnections =
   <aside className="story-topbar-side">
 
 
-    {relatedCards.length > 0 ? (
-      <details className="story-side-block story-side-disclosure">
-        <summary className="story-side-summary">
-          <div className="story-side-title-row">
-            <h2 className="story-side-title">연결된 카드</h2>
-            <span className="story-side-count">{relatedCards.length}</span>
-          </div>
-          <span className="story-side-toggle" aria-hidden="true">
-            ▾
-          </span>
-        </summary>
-
-        <div className="story-side-content">
-          <div className="story-side-links">
-            {relatedCards.map((card) => (
-              <Link
-                key={card.id}
-                href={`/cards/${card.slug}`}
-                className="story-side-chip"
-                title={card.title}
-              >
-                {card.title}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </details>
-    ) : null}
-
-
-
-    {relatedPhoneItems.length > 0 ? (
-      <details className="story-side-block story-side-disclosure">
-        <summary className="story-side-summary">
-          <div className="story-side-title-row">
-            <h2 className="story-side-title">연결된 휴대폰</h2>
-            <span className="story-side-count">{relatedPhoneItems.length}</span>
-          </div>
-          <span className="story-side-toggle" aria-hidden="true">
-            ▾
-          </span>
-        </summary>
-
-        <div className="story-side-content">
-          <div className="story-side-links">
-            {relatedPhoneItems.map((item) => (
-  <Link
-    key={item.id}
-    href={getPhoneItemHref(item)}
-    className="story-side-chip"
-    title={item.title}
-  >
-    {item.title}
-  </Link>
-))}
-          </div>
-        </div>
-      </details>
-    ) : null}
-
-    {relatedStories.length > 0 ? (
-  <details className="story-side-block story-side-disclosure">
-    <summary className="story-side-summary">
-      <div className="story-side-title-row">
-        <h2 className="story-side-title">연결된 스토리</h2>
-        <span className="story-side-count">{relatedStories.length}</span>
-      </div>
-      <span className="story-side-toggle" aria-hidden="true">
-        ▾
-      </span>
-    </summary>
-
-    <div className="story-side-content">
-      <div className="story-side-links">
-        {relatedStories.map((item) => (
-          <Link
-            key={item.id}
-            href={`/stories/${item.slug}`}
-            className="story-side-chip"
-            title={item.title}
-          >
-            {item.title}
+  {relatedCards.length > 0 ? (
+      <StorySideBlock title="연결된 카드" count={relatedCards.length}>
+        {relatedCards.map((card) => (
+          <Link key={card.id} href={`/cards/${card.slug}`} className="story-side-chip" title={card.title}>
+            {card.title}
           </Link>
         ))}
-      </div>
-    </div>
-  </details>
+      </StorySideBlock>
+    ) : null}
+
+
+
+{relatedStories.length > 0 ? (
+<StorySideBlock title="연결된 스토리" count={relatedStories.length}>
+    {relatedStories.map((item) => (
+      <Link key={item.id} href={`/stories/${item.slug}`} className="story-side-chip" title={item.title} style={{ flexShrink: 0, whiteSpace: "nowrap" }}>
+        {item.title}
+      </Link>
+    ))}
+  </StorySideBlock>
 ) : null}
 
-    {relatedEvents.length > 0 ? (
-      <details className="story-side-block story-side-disclosure">
-        <summary className="story-side-summary">
-          <div className="story-side-title-row">
-            <h2 className="story-side-title">연결된 이벤트</h2>
-            <span className="story-side-count">{relatedEvents.length}</span>
-          </div>
-          <span className="story-side-toggle" aria-hidden="true">
-            ▾
-          </span>
-        </summary>
-
-        <div className="story-side-content">
-          <div className="story-side-links">
-            {relatedEvents.map((event) => (
-              <Link
-                key={event.id}
-                href={`/events/${event.slug}`}
-                className="story-side-chip"
-                title={event.title}
-              >
-                {event.title}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </details>
-    ) : null}
+   {relatedEvents.length > 0 ? (
+      <StorySideBlock title="연결된 이벤트" count={relatedEvents.length}>
+        {relatedEvents.map((event) => (
+          <Link key={event.id} href={`/events/${event.slug}`} className="story-side-chip" title={event.title}>
+            {event.title}
+          </Link>
+        ))}
+      </StorySideBlock>
+) : null}
   </aside>
 ) : null}
 </section>
