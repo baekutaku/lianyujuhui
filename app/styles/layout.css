@@ -9,7 +9,7 @@
 
 .site-shell {
   min-height: 100vh;
-  width: min(100%, 1360px);
+width: min(100%, 1600px);
   margin: 0 auto;
   padding: 0 18px;
 }

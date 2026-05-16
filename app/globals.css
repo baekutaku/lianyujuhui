@@ -780,10 +780,10 @@ a {
     line-height: 1.2;
   }
 
-  .story-main-grid {
+  /* .story-main-grid {
     grid-template-columns: 1fr;
     gap: 16px;
-  }
+  } */
 
   /* 여기 핵심: 모바일에선 안쪽 패널 느낌을 줄임 */
   .story-media-panel,
@@ -793,7 +793,16 @@ a {
     border: 0;
     box-shadow: none;
     background: transparent;
+
   }
+.detail-panel.story-translation-panel,
+  .detail-panel.story-media-panel {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+  
 
   .story-media-box,
   .translation-scroll-panel {
@@ -846,8 +855,15 @@ a {
     border-radius: 16px;
     box-shadow: none;
   }
-}
 
+  .detail-panel.story-translation-panel,
+  .detail-panel.story-media-panel {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+}
 
 
 .card-thumb-link {
@@ -1562,7 +1578,7 @@ a {
 
 .story-main-grid {
   display: grid;
-  grid-template-columns: minmax(320px, 500px) minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 560px) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
   margin-bottom: 24px;

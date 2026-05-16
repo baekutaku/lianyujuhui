@@ -1261,9 +1261,72 @@ export async function updateCard(formData: FormData) {
     });
 
     phase = "thumb-after";
+    if (thumbnailAfterUrl) {
+      const { data: existingThumbAfter } = await supabase
+        .from("media_assets")
+        .select("id")
+        .eq("parent_type", "card")
+        .eq("parent_id", cardId)
+        .eq("usage_type", "thumbnail")
+        .eq("title", "evolution_after")
+        .maybeSingle();
+
+      if (existingThumbAfter) {
+        const { error: thumbAfterUpdateError } = await supabase
+          .from("media_assets")
+          .update({ url: thumbnailAfterUrl })
+          .eq("id", existingThumbAfter.id);
+        if (thumbAfterUpdateError) throw new Error(thumbAfterUpdateError.message);
+      } else {
+        const { error: thumbAfterInsertError } = await supabase
+          .from("media_assets")
+          .insert({
+            parent_type: "card",
+            parent_id: cardId,
+            media_type: "image",
+            usage_type: "thumbnail",
+            url: thumbnailAfterUrl,
+            title: "evolution_after",
+            is_primary: false,
+            sort_order: 10,
+          });
+        if (thumbAfterInsertError) throw new Error(thumbAfterInsertError.message);
+      }
+    }
 
     phase = "cover-after";
-    // 진화 후 커버 처리
+    if (coverAfterUrl) {
+      const { data: existingCoverAfter } = await supabase
+        .from("media_assets")
+        .select("id")
+        .eq("parent_type", "card")
+        .eq("parent_id", cardId)
+        .eq("usage_type", "cover")
+        .eq("title", "evolution_after")
+        .maybeSingle();
+
+      if (existingCoverAfter) {
+        const { error: coverAfterUpdateError } = await supabase
+          .from("media_assets")
+          .update({ url: coverAfterUrl })
+          .eq("id", existingCoverAfter.id);
+        if (coverAfterUpdateError) throw new Error(coverAfterUpdateError.message);
+      } else {
+        const { error: coverAfterInsertError } = await supabase
+          .from("media_assets")
+          .insert({
+            parent_type: "card",
+            parent_id: cardId,
+            media_type: "image",
+            usage_type: "cover",
+            url: coverAfterUrl,
+            title: "evolution_after",
+            is_primary: false,
+            sort_order: 11,
+          });
+        if (coverAfterInsertError) throw new Error(coverAfterInsertError.message);
+      }
+    }
 
     phase = "revalidate";
     // revalidatePath("/admin/cards");
