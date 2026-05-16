@@ -458,11 +458,19 @@ export default async function CardDetailPage({
       .filter(Boolean) as string[];
   }
 
-  const { data: relations } = await supabase
+const { data: relations } = await supabase
     .from("item_relations")
     .select("parent_type, parent_id, child_type, child_id, relation_type")
     .eq("parent_type", "card")
     .eq("parent_id", card.id);
+
+  // 역방향: 다른 카드가 이 카드를 child로 연결한 경우
+  const { data: reverseCardRelations } = await supabase
+    .from("item_relations")
+    .select("parent_id")
+    .eq("child_type", "card")
+    .eq("child_id", card.id)
+    .eq("relation_type", "card_card");
 
   const storyIds = (relations ?? [])
     .filter((rel) => rel.child_type === "story")
@@ -476,9 +484,13 @@ export default async function CardDetailPage({
     .filter((rel) => rel.child_type === "event")
     .map((rel) => rel.child_id);
 
-  const relatedCardIds = (relations ?? [])
-    .filter((rel) => rel.child_type === "card")
-    .map((rel) => rel.child_id);
+  const relatedCardIds = Array.from(new Set([
+    ...(relations ?? [])
+      .filter((rel) => rel.child_type === "card")
+      .map((rel) => rel.child_id),
+    ...(reverseCardRelations ?? [])
+      .map((rel) => rel.parent_id),
+  ])).filter((id) => id !== card.id);
 
   const [{ data: stories }, { data: phoneItems }, { data: events }, { data: relatedCards }] =
     await Promise.all([
