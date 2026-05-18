@@ -4,6 +4,8 @@ import { isAdmin } from "@/lib/utils/admin-auth";
 import StoriesFilterModal from "@/components/story/StoriesFilterModal";
 import StoryCategoryCompactTabs from "@/components/story/StoryCategoryCompactTabs";
 
+export const revalidate = 60; // 60초 캐시
+
 
 type SearchParamValue = string | string[] | undefined;
 

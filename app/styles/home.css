@@ -412,10 +412,10 @@
 
 .home-mixed-thumb {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: 12px;
-  background: #0d0d12;
+  background: transparent;
 }
 
 .home-mixed-thumb img {
@@ -428,7 +428,7 @@
 .home-mixed-thumb-fallback {
   width: 100%;
   height: 100%;
-  background: #0d0d12;
+  background: transparent;
 }
 
 .home-mixed-body {

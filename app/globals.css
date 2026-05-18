@@ -1423,7 +1423,7 @@ a {
 
 .story-thumb-link {
   display: block;
-  border-radius: 24px;
+  border-radius: 14px;
   overflow: hidden;
   border: 1px solid var(--line-soft);
   background: var(--bg-panel-strong);
@@ -1438,7 +1438,7 @@ a {
 
 .story-thumb-media {
   width: 100%;
-  aspect-ratio: 16 / 8;
+  aspect-ratio: 16 / 9;
   background: rgba(230, 240, 248, 0.8);
   overflow: hidden;
 }
@@ -1462,7 +1462,7 @@ a {
 }
 
 .story-thumb-body {
-  padding: 16px;
+  padding: 10px 12px 12px
 }
 
 .story-thumb-title {
@@ -1857,7 +1857,7 @@ a {
 .story-thumb-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 22px;
+  gap: 14px;
   list-style: none;
   padding: 0;
   margin: 0;
@@ -1870,7 +1870,7 @@ a {
 .story-thumb-link {
   display: block;
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: 14px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.72);
   box-shadow: var(--shadow-card);
@@ -1885,7 +1885,7 @@ a {
 
 .story-thumb-media {
   width: 100%;
-  aspect-ratio: 16 / 8;
+  aspect-ratio: 16 / 9;
   background: rgba(230, 240, 248, 0.8);
   overflow: hidden;
 }
@@ -1909,9 +1909,9 @@ a {
 }
 
 .story-thumb-body {
-  padding: 16px 16px 18px;
+  padding: 10px 12px 12px;
   display: grid;
-  gap: 10px;
+  gap: 5px;
 }
 
 .story-thumb-title {
@@ -4199,7 +4199,7 @@ a {
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 18px;
   padding: 16px;
-  border-radius: 24px;
+  border-radius: 14px;
   border: 1px solid var(--line-soft);
   background: rgba(255, 255, 255, 0.78);
   box-shadow: var(--shadow-card);
