@@ -3794,3 +3794,29 @@
   .home-archive-section-stack { gap: 18px; }
   .home-utility-grid { grid-template-columns: 1fr; gap: 12px; }
 }
+/* Mobile home full-bleed width fix
+   Keeps the game-style home flush to the viewport on phones,
+   regardless of the parent content wrapper padding. */
+
+@media (max-width: 768px) {
+  .home-page-game {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding-bottom: 76px;
+    overflow-x: clip;
+  }
+
+  .game-home,
+  .game-home-stage {
+    width: 100vw;
+    max-width: 100vw;
+  }
+}
+
+html,
+body {
+  overflow-x: hidden;
+}
+
