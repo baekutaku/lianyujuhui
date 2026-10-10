@@ -12390,3 +12390,2084 @@ body {
     font-size: 10px;
   }
 }
+
+/* =========================================================
+   STORY FIGMA UNTANGLE V1 · 2026-10-11
+   Stories = stories only.
+   Events = separate archive shortcut.
+========================================================= */
+
+/* ---------- list page / Figma-like header ---------- */
+.stories-archive-page .page-header {
+  margin-bottom: 18px !important;
+  padding-bottom: 16px !important;
+  border-bottom: 1px solid rgba(220, 209, 228, 0.48);
+}
+
+.stories-archive-page .page-eyebrow {
+  color: rgba(190, 105, 145, 0.68) !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.15em !important;
+}
+
+.stories-archive-page .page-title {
+  margin-top: 8px !important;
+  color: #4d3b50 !important;
+  font-family: "KoPubWorldBatang", "GowunBatang", serif !important;
+  font-size: clamp(34px, 3.4vw, 48px) !important;
+  font-weight: 500 !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.045em !important;
+}
+
+.stories-archive-page .page-desc {
+  margin-top: 8px !important;
+  color: rgba(110, 93, 117, 0.64) !important;
+  font-size: 12px !important;
+}
+
+/* categories */
+.story-category-compact {
+  margin-top: 18px !important;
+}
+
+.story-category-row {
+  gap: 7px !important;
+}
+
+.story-category-chip,
+.archive-subchip {
+  min-height: 31px !important;
+  padding: 0 11px !important;
+  border: 1px solid rgba(220, 208, 227, 0.52) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.44) !important;
+  color: rgba(112, 95, 120, 0.72) !important;
+  box-shadow: none !important;
+  font-size: 10px !important;
+}
+
+.story-category-chip.is-active,
+.archive-subchip.is-active {
+  border-color: rgba(219, 153, 188, 0.42) !important;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(243, 210, 230, 0.70),
+      rgba(225, 220, 246, 0.64)
+    ) !important;
+  color: rgba(89, 64, 96, 0.90) !important;
+}
+
+.story-event-archive-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 31px;
+  margin-top: 8px;
+  padding: 0 11px;
+  border: 1px dashed rgba(197, 176, 211, 0.56);
+  border-radius: 999px;
+  background: rgba(250, 248, 253, 0.40);
+  color: rgba(118, 91, 129, 0.72);
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.story-event-archive-link:hover {
+  background: rgba(255, 255, 255, 0.64);
+  color: rgba(93, 68, 103, 0.92);
+}
+
+/* ---------- search / filter ---------- */
+.story-toolbar-form {
+  margin-top: 18px !important;
+}
+
+.story-toolbar-top {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 46px 88px !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+
+.story-toolbar-search {
+  min-height: 48px !important;
+  border: 1px solid rgba(205, 194, 216, 0.48) !important;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.58) !important;
+  color: rgba(64, 54, 72, 0.86) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58) !important;
+}
+
+.stories-filter-trigger {
+  width: 46px !important;
+  height: 46px !important;
+  border: 1px solid rgba(205, 194, 216, 0.48) !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.58) !important;
+  color: rgba(94, 77, 106, 0.72) !important;
+  box-shadow: none !important;
+}
+
+.story-toolbar-submit {
+  min-height: 46px !important;
+  border: 1px solid rgba(186, 202, 226, 0.28) !important;
+  border-radius: 15px !important;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(192, 221, 241, 0.80),
+      rgba(213, 226, 245, 0.78)
+    ) !important;
+  color: rgba(62, 83, 103, 0.88) !important;
+  box-shadow: none !important;
+}
+
+/* filter modal gets the same frosted design as cards */
+.stories-filter-modal-root {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 5000 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 24px !important;
+}
+
+.stories-filter-backdrop {
+  position: absolute !important;
+  inset: 0 !important;
+  background: rgba(52, 48, 62, 0.22) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.stories-filter-modal {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  z-index: 1 !important;
+  width: min(620px, calc(100vw - 48px)) !important;
+  max-height: min(84dvh, 760px) !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  border: 1px solid rgba(222, 211, 228, 0.56) !important;
+  border-radius: 26px !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 252, 254, 0.94),
+      rgba(247, 248, 255, 0.92)
+    ) !important;
+  box-shadow: 0 28px 70px rgba(53, 43, 65, 0.18) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.stories-filter-modal-head {
+  padding: 21px 22px 16px !important;
+  border-bottom: 1px solid rgba(224, 214, 231, 0.44) !important;
+}
+
+.stories-filter-form {
+  max-height: calc(min(84dvh, 760px) - 88px);
+  overflow-y: auto;
+  padding: 18px 22px 22px !important;
+}
+
+.stories-filter-check {
+  border-color: rgba(214, 202, 224, 0.48) !important;
+  background: rgba(255, 255, 255, 0.48) !important;
+}
+
+/* ---------- list content: remove notice sidebar ---------- */
+.story-archive-shell {
+  display: block !important;
+}
+
+.story-archive-main {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.story-archive-sidebar {
+  display: none !important;
+}
+
+.story-archive-intro {
+  margin: 0 0 14px !important;
+  padding: 10px 0 14px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(220, 210, 227, 0.46) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.story-archive-intro-title {
+  color: #56465b !important;
+  font-size: 22px !important;
+  font-weight: 650 !important;
+}
+
+.story-archive-intro-desc {
+  color: rgba(122, 105, 130, 0.64) !important;
+  font-size: 11px !important;
+}
+
+/* ---------- Figma reference: 2-column horizontal story cards ---------- */
+.story-archive-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 14px !important;
+}
+
+.story-archive-item {
+  min-width: 0 !important;
+}
+
+.story-archive-card-shell {
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(224, 214, 230, 0.58) !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.62),
+      rgba(247, 247, 253, 0.50)
+    ) !important;
+  box-shadow: 0 9px 25px rgba(87, 69, 99, 0.055) !important;
+}
+
+.story-archive-link {
+  display: grid !important;
+  grid-template-columns: 142px minmax(0, 1fr) !important;
+  height: 100%;
+  min-height: 158px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.story-archive-media {
+  min-height: 158px !important;
+  height: 100% !important;
+  aspect-ratio: auto !important;
+  border-radius: 17px 0 0 17px !important;
+  overflow: hidden !important;
+}
+
+.story-archive-image {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.story-archive-body {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  padding: 17px 18px !important;
+}
+
+.story-archive-meta-row {
+  gap: 6px !important;
+  margin-bottom: 8px !important;
+}
+
+.story-archive-badge {
+  border-color: rgba(186, 205, 222, 0.42) !important;
+  background: rgba(240, 248, 253, 0.56) !important;
+  color: rgba(77, 109, 134, 0.74) !important;
+  font-size: 9px !important;
+}
+
+.story-archive-date {
+  color: rgba(139, 121, 146, 0.60) !important;
+  font-size: 9px !important;
+}
+
+.story-archive-title {
+  margin: 0 !important;
+  color: #514356 !important;
+  font-family: "KoPubWorldBatang", "GowunBatang", serif !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.story-archive-summary {
+  margin-top: 7px !important;
+  color: rgba(121, 105, 128, 0.66) !important;
+  font-size: 10.5px !important;
+  line-height: 1.55 !important;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.story-archive-tags-inline {
+  padding: 0 18px 13px !important;
+}
+
+/* =========================================================
+   DETAIL / Figma reference
+========================================================= */
+
+.story-detail-figma-page .story-topbar-layout {
+  display: block !important;
+}
+
+.story-detail-figma-page .story-topbar-main-panel {
+  padding: 18px 20px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(220, 209, 227, 0.48) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.story-detail-figma-page .story-topbar-side {
+  display: none !important;
+}
+
+.story-detail-figma-page .story-page-title {
+  color: #4d3d52 !important;
+  font-family: "KoPubWorldBatang", "GowunBatang", serif !important;
+  font-size: clamp(28px, 3vw, 42px) !important;
+  font-weight: 550 !important;
+  line-height: 1.16 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.story-detail-figma-page .story-top-meta {
+  margin-top: 13px !important;
+  gap: 7px !important;
+}
+
+.story-detail-figma-page .story-top-actions {
+  margin-top: 14px !important;
+  gap: 7px !important;
+}
+
+.story-detail-figma-page .story-main-grid {
+  display: grid !important;
+  grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr) !important;
+  gap: 18px !important;
+  align-items: stretch !important;
+  margin-top: 18px !important;
+}
+
+.story-detail-figma-page .story-media-panel,
+.story-detail-figma-page .story-translation-panel {
+  min-width: 0 !important;
+  border: 1px solid rgba(222, 212, 229, 0.54) !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.56) !important;
+  box-shadow: 0 12px 30px rgba(91, 72, 103, 0.055) !important;
+}
+
+/* ---------- related content moved below reader ---------- */
+.story-related-figma {
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid rgba(222, 211, 228, 0.52);
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.58),
+      rgba(244, 242, 251, 0.46)
+    );
+  box-shadow: 0 10px 28px rgba(86, 67, 98, 0.05);
+}
+
+.story-related-figma-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.story-related-figma-head p {
+  margin: 0 0 3px;
+  color: rgba(166, 134, 174, 0.64);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.story-related-figma-head h2 {
+  margin: 0;
+  color: rgba(80, 64, 86, 0.88);
+  font-size: 15px;
+}
+
+.story-related-figma-total {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 25px;
+  height: 25px;
+  border-radius: 999px;
+  background: rgba(227, 213, 238, 0.46);
+  color: rgba(112, 90, 121, 0.72);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.story-related-figma-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 13px;
+}
+
+.story-related-figma-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 29px;
+  padding: 0 10px;
+  border: 1px solid rgba(219, 207, 226, 0.46);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.44);
+  color: rgba(119, 101, 127, 0.66);
+  font: inherit;
+  font-size: 9.5px;
+  cursor: pointer;
+}
+
+.story-related-figma-tab.is-active {
+  border-color: rgba(217, 157, 190, 0.38);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(244, 213, 231, 0.64),
+      rgba(227, 221, 246, 0.62)
+    );
+  color: rgba(91, 66, 99, 0.88);
+}
+
+.story-related-figma-tab.is-empty:not(.is-active) {
+  opacity: 0.48;
+}
+
+.story-related-figma-tab span {
+  opacity: 0.58;
+  font-size: 8px;
+}
+
+.story-related-figma-body {
+  margin-top: 11px;
+}
+
+.story-related-figma-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.story-related-figma-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 10px 12px;
+  border: 1px solid rgba(225, 215, 231, 0.44);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.52);
+  color: rgba(79, 65, 85, 0.82);
+  font-size: 10.5px;
+}
+
+.story-related-figma-link span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.story-related-figma-empty {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid rgba(225, 215, 231, 0.30);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.34);
+  color: rgba(142, 125, 149, 0.58);
+  font-size: 10px;
+}
+
+@media (max-width: 980px) {
+  .story-archive-list {
+    grid-template-columns: 1fr !important;
+  }
+
+  .story-related-figma-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .stories-archive-page .page-title {
+    font-size: 31px !important;
+  }
+
+  .story-toolbar-top {
+    grid-template-columns: minmax(0, 1fr) 42px !important;
+  }
+
+  .story-toolbar-submit {
+    grid-column: 1 / -1;
+    width: 100% !important;
+  }
+
+  .story-category-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scrollbar-width: none;
+  }
+
+  .story-category-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .story-category-chip {
+    flex: 0 0 auto;
+  }
+
+  .stories-filter-modal-root {
+    place-items: end stretch !important;
+    padding: 0 !important;
+  }
+
+  .stories-filter-modal {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 88dvh !important;
+    border-radius: 26px 26px 0 0 !important;
+    border-bottom: 0 !important;
+  }
+
+  .stories-filter-form {
+    max-height: calc(88dvh - 84px) !important;
+  }
+
+  .story-archive-link {
+    grid-template-columns: 108px minmax(0, 1fr) !important;
+    min-height: 132px;
+  }
+
+  .story-archive-media {
+    min-height: 132px !important;
+  }
+
+  .story-archive-body {
+    padding: 13px 13px !important;
+  }
+
+  .story-archive-title {
+    font-size: 15px !important;
+  }
+
+  .story-archive-summary {
+    -webkit-line-clamp: 2;
+    font-size: 10px !important;
+  }
+
+  .story-detail-figma-page .story-topbar-main-panel {
+    padding: 8px 2px 14px !important;
+  }
+
+  .story-detail-figma-page .story-page-title {
+    font-size: 27px !important;
+  }
+
+  .story-detail-figma-page .story-main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .story-related-figma {
+    padding: 15px;
+    border-radius: 18px;
+  }
+
+  .story-related-figma-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .story-related-figma-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .story-related-figma-tab {
+    flex: 0 0 auto;
+  }
+
+  .story-related-figma-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   STORY EVENT HUB RESTORE · 2026-10-11
+   Event remains inside Story archive as a first-class tab,
+   while its canonical data/detail stays in /events.
+========================================================= */
+
+.story-event-hub-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 9px;
+  color: rgba(128, 108, 136, 0.62);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.story-event-hub-note::before {
+  content: "↗";
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(231, 218, 240, 0.44);
+  color: rgba(113, 87, 124, 0.74);
+  font-size: 9px;
+}
+
+/* Event cards should feel like part of the story archive,
+   but still read as hub records rather than normal story chapters. */
+.story-archive-card-shell.is-event {
+  border-color: rgba(222, 198, 216, 0.54) !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 253, 254, 0.66),
+      rgba(249, 243, 249, 0.52)
+    ) !important;
+}
+
+.story-archive-card-shell.is-event .story-archive-badge {
+  border-color: rgba(225, 177, 202, 0.38) !important;
+  background: rgba(249, 226, 239, 0.44) !important;
+  color: rgba(157, 88, 123, 0.76) !important;
+}
+
+.story-event-hub-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  color: rgba(150, 119, 156, 0.62);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 768px) {
+  .story-event-hub-note {
+    font-size: 9px;
+  }
+}
+
+/* =========================================================
+   STORY ARCHIVE UNIFY + LARGE/COMPACT VIEW · 2026-10-11
+========================================================= */
+
+/* ---------- whole header: story/event use the same rhythm ---------- */
+.stories-archive-page .page-header,
+main:has(.story-archive-shell) > .page-header {
+  margin: 0 0 18px !important;
+  padding: 0 0 18px !important;
+  border-bottom: 1px solid rgba(221, 211, 228, 0.44) !important;
+}
+
+.stories-archive-page .page-eyebrow,
+main:has(.story-archive-shell) > .page-header .page-eyebrow {
+  margin: 0 0 8px !important;
+}
+
+.stories-archive-page .page-title,
+main:has(.story-archive-shell) > .page-header .page-title {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.08 !important;
+}
+
+.stories-archive-page .page-desc,
+main:has(.story-archive-shell) > .page-header .page-desc {
+  margin: 9px 0 0 !important;
+}
+
+/* ---------- category tabs ---------- */
+.story-category-compact {
+  margin-top: 18px !important;
+}
+
+.story-category-row {
+  gap: 7px !important;
+}
+
+/* ---------- unified search row ---------- */
+.story-toolbar-form {
+  margin: 18px 0 0 !important;
+}
+
+.story-toolbar-top {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 44px 88px !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.story-toolbar-search {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 16px !important;
+  border: 1px solid rgba(205, 194, 216, 0.48) !important;
+  border-radius: 16px !important;
+  outline: 0 !important;
+  background: rgba(255, 255, 255, 0.48) !important;
+  color: rgba(72, 61, 79, 0.86) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55) !important;
+  font-size: 12px !important;
+}
+
+.story-toolbar-search::placeholder {
+  color: rgba(125, 110, 133, 0.52) !important;
+}
+
+.stories-filter-trigger {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  margin: 0 !important;
+  border: 1px solid rgba(207, 196, 216, 0.48) !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.54) !important;
+  color: rgba(101, 83, 110, 0.70) !important;
+  box-shadow: none !important;
+}
+
+.story-toolbar-submit {
+  width: 88px !important;
+  min-height: 44px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 15px !important;
+  box-shadow: none !important;
+  font-size: 11px !important;
+}
+
+/* Don't show "등장 범위 전체" as if a real filter is active. */
+.story-active-filters:empty {
+  display: none !important;
+}
+
+/* ---------- current category block: identical for story and event ---------- */
+.story-archive-intro {
+  margin: 0 0 16px !important;
+  padding: 15px 0 16px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(221, 211, 228, 0.46) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.archive-subchip-row {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 7px !important;
+  margin: 0 0 16px !important;
+  padding: 0 !important;
+}
+
+.story-archive-intro-top {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 18px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.story-archive-intro-top > div:first-child {
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.story-archive-intro-label {
+  margin: 0 0 4px !important;
+  padding: 0 !important;
+  color: rgba(142, 123, 149, 0.58) !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+}
+
+.story-archive-intro-title {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: rgba(78, 65, 84, 0.90) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.story-archive-intro-right {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.story-archive-admin-mini {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 6px !important;
+}
+
+.story-archive-mini-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 30px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  border: 1px solid rgba(207, 195, 216, 0.52) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.50) !important;
+  color: rgba(94, 79, 102, 0.78) !important;
+  box-shadow: none !important;
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+.story-archive-mini-btn-primary {
+  border-color: rgba(185, 205, 224, 0.42) !important;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(194, 222, 241, 0.72),
+      rgba(213, 228, 246, 0.70)
+    ) !important;
+  color: rgba(63, 88, 107, 0.88) !important;
+}
+
+.story-archive-intro-right > .meta-pill {
+  min-height: 30px !important;
+  margin: 0 !important;
+  padding: 0 9px !important;
+  font-size: 9px !important;
+}
+
+.story-archive-intro-desc {
+  margin: 9px 0 0 !important;
+  padding: 0 !important;
+  color: rgba(126, 109, 134, 0.58) !important;
+  font-size: 10px !important;
+  line-height: 1.55 !important;
+}
+
+/* ---------- view switch ---------- */
+.story-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  padding: 3px;
+  border: 1px solid rgba(210, 199, 220, 0.50);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+}
+
+.story-view-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(127, 108, 135, 0.62);
+  font: inherit;
+  font-size: 8.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.story-view-toggle-button .material-symbols-rounded {
+  font-size: 14px !important;
+}
+
+.story-view-toggle-button.is-active {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(241, 214, 231, 0.72),
+      rgba(225, 222, 245, 0.70)
+    );
+  color: rgba(91, 69, 99, 0.88);
+}
+
+/* ---------- LARGE = current information-rich cards ---------- */
+html:not(.story-archive-compact) .story-archive-list {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+}
+
+html:not(.story-archive-compact) .story-archive-card-shell {
+  height: 100% !important;
+}
+
+/* ---------- COMPACT = thumbnail-only archive ---------- */
+html.story-archive-compact .story-archive-list {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  align-items: start !important;
+}
+
+html.story-archive-compact .story-archive-item {
+  min-width: 0 !important;
+}
+
+html.story-archive-compact .story-archive-card-shell {
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html.story-archive-compact .story-archive-link {
+  display: block !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+html.story-archive-compact .story-archive-media {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 16 / 10 !important;
+  margin: 0 !important;
+  border: 1px solid rgba(216, 205, 225, 0.48) !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  background: rgba(242, 243, 249, 0.60) !important;
+  box-shadow: 0 5px 14px rgba(74, 59, 87, 0.045) !important;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+html.story-archive-compact .story-archive-link:hover .story-archive-media {
+  transform: translateY(-2px);
+  border-color: rgba(199, 178, 211, 0.64) !important;
+  box-shadow: 0 8px 18px rgba(74, 59, 87, 0.07) !important;
+}
+
+html.story-archive-compact .story-archive-image {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+html.story-archive-compact .story-archive-body,
+html.story-archive-compact .story-archive-tags-inline {
+  display: none !important;
+}
+
+/* event cards use exactly the same geometry */
+html.story-archive-compact .story-archive-card-shell.is-event {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+/* ---------- filter modal terminology / cleanup ---------- */
+.stories-filter-modal-eyebrow {
+  letter-spacing: 0.13em !important;
+}
+
+.stories-filter-modal h2 {
+  letter-spacing: -0.025em !important;
+}
+
+@media (max-width: 1100px) {
+  html.story-archive-compact .story-archive-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .story-toolbar-top {
+    grid-template-columns: minmax(0, 1fr) 42px !important;
+  }
+
+  .story-toolbar-submit {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+  }
+
+  .story-archive-intro {
+    padding-top: 12px !important;
+  }
+
+  .story-archive-intro-top {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .story-archive-intro-right {
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+
+  .story-archive-admin-mini {
+    flex-wrap: wrap !important;
+  }
+
+  html:not(.story-archive-compact) .story-archive-list {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  html.story-archive-compact .story-archive-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  html.story-archive-compact .story-archive-media {
+    border-radius: 12px !important;
+  }
+}
+
+/* =========================================================
+   STORY EVENT HEADER ALIGN FIX · 2026-10-11
+   Event fast-path uses:
+   .story-archive-intro-head / .story-archive-intro-actions
+   while normal stories use:
+   .story-archive-intro-top / .story-archive-intro-right
+   Style both structures identically.
+========================================================= */
+
+.story-archive-intro-head,
+.story-archive-intro-top {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 18px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.story-archive-intro-head > div:first-child,
+.story-archive-intro-top > div:first-child {
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.story-archive-intro-kicker,
+.story-archive-intro-label {
+  margin: 0 0 4px !important;
+  padding: 0 !important;
+  color: rgba(142, 123, 149, 0.58) !important;
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+}
+
+.story-archive-intro-title {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: rgba(78, 65, 84, 0.90) !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.story-archive-intro-actions,
+.story-archive-intro-right {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 7px !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Event fast path still uses old button classes.
+   Make them look exactly like the normal story mini buttons. */
+.story-archive-intro-actions .story-new-button,
+.story-archive-intro-actions > .primary-button,
+.story-archive-intro-actions > .nav-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 30px !important;
+  height: 30px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  border: 1px solid rgba(207, 195, 216, 0.52) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.50) !important;
+  color: rgba(94, 79, 102, 0.78) !important;
+  box-shadow: none !important;
+  font-size: 9.5px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+.story-archive-intro-actions .story-new-button,
+.story-archive-intro-actions > .primary-button {
+  border-color: rgba(185, 205, 224, 0.42) !important;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(194, 222, 241, 0.72),
+      rgba(213, 228, 246, 0.70)
+    ) !important;
+  color: rgba(63, 88, 107, 0.88) !important;
+}
+
+.story-archive-intro-actions > .meta-pill,
+.story-archive-intro-right > .meta-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-height: 30px !important;
+  height: 30px !important;
+  margin: 0 !important;
+  padding: 0 9px !important;
+  font-size: 9px !important;
+  white-space: nowrap !important;
+}
+
+/* The description belongs under the aligned header, not between controls. */
+.story-archive-intro-head + .story-archive-intro-desc,
+.story-archive-intro-top + .story-archive-intro-desc {
+  margin-top: 9px !important;
+}
+
+/* Keep event subfilters visually separated from the header row. */
+.story-archive-intro > .archive-subchip-row {
+  margin: 0 0 16px !important;
+}
+
+@media (max-width: 768px) {
+  .story-archive-intro-head,
+  .story-archive-intro-top {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .story-archive-intro-actions,
+  .story-archive-intro-right {
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+}
+
+/* =========================================================
+   STORY FILTER OPTICAL CENTER FIX · 2026-10-11
+   Desktop modal sits slightly ABOVE mathematical center.
+========================================================= */
+
+@media (min-width: 769px) {
+  .stories-filter-modal-root {
+    position: fixed !important;
+    inset: 0 !important;
+    display: grid !important;
+    place-items: center !important;
+    padding: 24px !important;
+  }
+
+  .stories-filter-modal {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    inset: auto !important;
+    margin: 0 !important;
+
+    /* mathematical center felt too low; lift to optical center */
+    transform: translateY(-4.5vh) !important;
+
+    width: min(620px, calc(100vw - 48px)) !important;
+    max-height: min(78dvh, 700px) !important;
+  }
+}
+
+/* Keep mobile behavior untouched except reset stray desktop transform. */
+@media (max-width: 768px) {
+  .stories-filter-modal {
+    transform: none !important;
+  }
+}
+
+/* =========================================================
+   STORY FILTER PORTAL POSITION FIX · 2026-10-11
+   Modal is rendered directly under <body>.
+========================================================= */
+
+@media (min-width: 769px) {
+  body > .stories-filter-modal-root {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    z-index: 9999 !important;
+    display: block !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body > .stories-filter-modal-root > .stories-filter-backdrop {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  body > .stories-filter-modal-root > .stories-filter-modal {
+    position: absolute !important;
+    top: 42dvh !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    inset: auto !important;
+
+    width: min(620px, calc(100vw - 48px)) !important;
+    max-width: 620px !important;
+    max-height: 76dvh !important;
+
+    margin: 0 !important;
+    transform: translate(-50%, -50%) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  body > .stories-filter-modal-root {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    z-index: 9999 !important;
+    display: block !important;
+    padding: 0 !important;
+  }
+
+  body > .stories-filter-modal-root > .stories-filter-modal {
+    position: absolute !important;
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    inset: auto 0 0 0 !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 88dvh !important;
+
+    margin: 0 !important;
+    transform: none !important;
+    border-radius: 26px 26px 0 0 !important;
+  }
+}
+
+/* =========================================================
+   STORY FILTER TRUE CENTER AFTER PORTAL · 2026-10-11
+   Portal fixed the containing-block issue, so we can safely
+   use real viewport centering without clipping.
+========================================================= */
+
+@media (min-width: 769px) {
+  body > .stories-filter-modal-root {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    z-index: 9999 !important;
+    display: block !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body > .stories-filter-modal-root > .stories-filter-backdrop {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  body > .stories-filter-modal-root > .stories-filter-modal {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    inset: auto !important;
+
+    width: min(620px, calc(100vw - 48px)) !important;
+    max-width: 620px !important;
+
+    /* guarantees at least 24px top/bottom breathing room */
+    max-height: calc(100dvh - 48px) !important;
+    overflow-y: auto !important;
+
+    margin: 0 !important;
+    transform: translate(-50%, -50%) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  body > .stories-filter-modal-root > .stories-filter-modal {
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    transform: none !important;
+    max-height: 88dvh !important;
+  }
+}
+
+/* =========================================================
+   STORY FILTER SAFE CENTER + 16:9 THUMBNAILS · 2026-10-11
+========================================================= */
+
+/* ---------------------------------------------------------
+   1) FILTER MODAL
+   Portal 기준에서 절대좌표(top: 42/50%)를 쓰지 않고,
+   viewport 전체 flex 중앙정렬 + 내부 스크롤 구조로 고정.
+   헤더는 항상 보이고 form만 스크롤됨.
+--------------------------------------------------------- */
+
+.stories-filter-modal-root,
+body > .stories-filter-modal-root {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  z-index: 9999 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.stories-filter-modal-root > .stories-filter-backdrop,
+body > .stories-filter-modal-root > .stories-filter-backdrop {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.stories-filter-modal-root > .stories-filter-modal,
+body > .stories-filter-modal-root > .stories-filter-modal {
+  position: relative !important;
+
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  inset: auto !important;
+
+  width: min(620px, calc(100vw - 32px)) !important;
+  max-width: 620px !important;
+
+  /* viewport 안에 무조건 들어오게 */
+  height: auto !important;
+  max-height: calc(100dvh - 32px) !important;
+  min-height: 0 !important;
+
+  margin: 0 !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* 모달 헤더는 항상 고정해서 상단 잘림 방지 */
+.stories-filter-modal-head {
+  flex: 0 0 auto !important;
+}
+
+/* 내용만 스크롤 */
+.stories-filter-form {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------------------------------------------------------
+   2) STORY / EVENT THUMBNAILS = YouTube-like 16:9
+--------------------------------------------------------- */
+
+.story-archive-media {
+  position: relative !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 16 / 9 !important;
+  overflow: hidden !important;
+}
+
+.story-archive-image {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+}
+
+/* 큰 보기에서도 16:9 유지 */
+html:not(.story-archive-compact) .story-archive-media {
+  aspect-ratio: 16 / 9 !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+/* 작은 보기 역시 동일한 16:9 thumbnail grid */
+html.story-archive-compact .story-archive-media {
+  aspect-ratio: 16 / 9 !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+/* 구형 horizontal-card 규칙이 높이를 강제로 잡는 경우 무력화 */
+.story-archive-link .story-archive-media {
+  align-self: start !important;
+}
+
+/* mobile */
+@media (max-width: 768px) {
+  .stories-filter-modal-root,
+  body > .stories-filter-modal-root {
+    align-items: flex-end !important;
+    justify-content: stretch !important;
+    padding: 0 !important;
+  }
+
+  .stories-filter-modal-root > .stories-filter-modal,
+  body > .stories-filter-modal-root > .stories-filter-modal {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: 88dvh !important;
+    margin: 0 !important;
+    border-radius: 26px 26px 0 0 !important;
+  }
+
+  .stories-filter-form {
+    overflow-y: auto !important;
+  }
+
+  .story-archive-media,
+  html:not(.story-archive-compact) .story-archive-media,
+  html.story-archive-compact .story-archive-media {
+    aspect-ratio: 16 / 9 !important;
+  }
+}
+
+/* =========================================================
+   STORY RELATED CONTENT → TITLE RIGHT PANEL · 2026-10-11
+========================================================= */
+
+/* Use the wide title area instead of a full-width panel below reader */
+.story-topbar-layout {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 16px !important;
+}
+
+.story-topbar-main-panel {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+.story-related-topbar {
+  flex: 0 0 330px !important;
+  width: 330px !important;
+  min-width: 0 !important;
+}
+
+/* neutralize old right-side relation UI if it still exists in JSX */
+.story-topbar-side {
+  display: none !important;
+}
+
+/* compact version of the existing Related Content component */
+.story-related-topbar .story-related-figma {
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 15px !important;
+  border-radius: 18px !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,0.60),
+      rgba(246,243,251,0.48)
+    ) !important;
+}
+
+.story-related-topbar .story-related-figma-head {
+  gap: 8px !important;
+}
+
+.story-related-topbar .story-related-figma-head p {
+  margin-bottom: 2px !important;
+  font-size: 7px !important;
+}
+
+.story-related-topbar .story-related-figma-head h2 {
+  font-size: 14px !important;
+}
+
+.story-related-topbar .story-related-figma-total {
+  min-width: 23px !important;
+  height: 23px !important;
+  font-size: 8px !important;
+}
+
+.story-related-topbar .story-related-figma-tabs {
+  flex-wrap: nowrap !important;
+  gap: 5px !important;
+  margin-top: 10px !important;
+  overflow-x: auto !important;
+  scrollbar-width: none;
+}
+
+.story-related-topbar .story-related-figma-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.story-related-topbar .story-related-figma-tab {
+  flex: 0 0 auto !important;
+  min-height: 26px !important;
+  padding: 0 8px !important;
+  font-size: 8.5px !important;
+}
+
+.story-related-topbar .story-related-figma-body {
+  margin-top: 9px !important;
+  max-height: 112px !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.story-related-topbar .story-related-figma-grid {
+  grid-template-columns: 1fr !important;
+  gap: 6px !important;
+}
+
+.story-related-topbar .story-related-figma-link {
+  min-height: 38px !important;
+  padding: 7px 9px !important;
+  border-radius: 11px !important;
+  font-size: 9.5px !important;
+}
+
+.story-related-topbar .story-related-figma-empty {
+  min-height: 38px !important;
+  padding: 0 9px !important;
+  border-radius: 11px !important;
+  font-size: 9px !important;
+}
+
+/* title can use the remaining width naturally */
+.story-topbar-main-panel .story-page-title {
+  max-width: none !important;
+  overflow-wrap: anywhere;
+}
+
+/* Medium desktop: don't crush a long story title */
+@media (max-width: 1180px) {
+  .story-topbar-layout {
+    flex-direction: column !important;
+  }
+
+  .story-related-topbar {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+  }
+
+  .story-related-topbar .story-related-figma-body {
+    max-height: 130px !important;
+  }
+
+  .story-related-topbar .story-related-figma-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Mobile: directly below title/meta, before the reader */
+@media (max-width: 768px) {
+  .story-topbar-layout {
+    gap: 10px !important;
+  }
+
+  .story-related-topbar .story-related-figma {
+    padding: 13px !important;
+    border-radius: 16px !important;
+  }
+
+  .story-related-topbar .story-related-figma-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .story-related-topbar .story-related-figma-body {
+    max-height: 108px !important;
+  }
+}
+
+/* =========================================================
+   STORY RELATED FLOATING ACCESS · 2026-10-11
+   Keep the full Related Content panel at the bottom.
+   Add an always-accessible floating launcher for long stories.
+========================================================= */
+
+/* original full panel stays where it was */
+.story-related-bottom-anchor {
+  scroll-margin-top: 24px;
+}
+
+/* If the previous "move to title-right" patch CSS remains,
+   neutralize it. The markup is restored to bottom by the script. */
+.story-related-topbar {
+  display: none !important;
+}
+
+/* ---------- always-visible launcher ---------- */
+.story-related-floating-trigger {
+  position: fixed !important;
+  right: 22px !important;
+  bottom: 108px !important;
+  z-index: 1100 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+
+  min-height: 38px !important;
+  padding: 0 10px !important;
+
+  border: 1px solid rgba(208, 190, 216, 0.54) !important;
+  border-radius: 999px !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 250, 253, 0.88),
+      rgba(237, 235, 249, 0.86)
+    ) !important;
+
+  color: rgba(89, 69, 98, 0.88) !important;
+
+  box-shadow:
+    0 8px 24px rgba(69, 54, 79, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.80) !important;
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  font: inherit !important;
+  cursor: pointer !important;
+}
+
+.story-related-floating-trigger .material-symbols-rounded {
+  font-size: 17px !important;
+}
+
+.story-related-floating-label {
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.story-related-floating-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(224, 204, 235, 0.52);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+/* ---------- overlay ---------- */
+.story-related-quick-root {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 6200 !important;
+}
+
+.story-related-quick-backdrop {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border: 0 !important;
+  background: rgba(47, 42, 55, 0.18) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Desktop: compact right-side drawer.
+   It doesn't change the reader width at all. */
+.story-related-quick-sheet {
+  position: absolute !important;
+  top: 50% !important;
+  right: 24px !important;
+  transform: translateY(-50%) !important;
+
+  width: min(360px, calc(100vw - 48px)) !important;
+  max-height: min(70dvh, 620px) !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+
+  overflow: hidden !important;
+
+  border: 1px solid rgba(221, 209, 228, 0.58) !important;
+  border-radius: 22px !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 252, 254, 0.96),
+      rgba(246, 246, 252, 0.94)
+    ) !important;
+
+  box-shadow: 0 24px 70px rgba(54, 43, 65, 0.20) !important;
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.story-related-quick-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+
+  padding: 18px 18px 13px;
+
+  border-bottom: 1px solid rgba(225, 215, 231, 0.46);
+}
+
+.story-related-quick-head p {
+  margin: 0 0 3px;
+  color: rgba(178, 132, 159, 0.66);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.story-related-quick-head h2 {
+  margin: 0;
+  color: rgba(76, 62, 82, 0.92);
+  font-size: 17px;
+  letter-spacing: -0.025em;
+}
+
+.story-related-quick-head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.story-related-quick-head-right > span {
+  display: grid;
+  place-items: center;
+  min-width: 25px;
+  height: 25px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(229, 215, 238, 0.48);
+  color: rgba(106, 86, 116, 0.70);
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.story-related-quick-head-right button {
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  padding: 0;
+  border: 1px solid rgba(216, 205, 224, 0.54);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.54);
+  color: rgba(102, 85, 111, 0.72);
+  cursor: pointer;
+}
+
+.story-related-quick-head-right .material-symbols-rounded {
+  font-size: 17px !important;
+}
+
+.story-related-quick-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 12px 14px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.story-related-quick-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.story-related-quick-tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 29px;
+  padding: 0 9px;
+
+  border: 1px solid rgba(218, 207, 225, 0.50);
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.46);
+  color: rgba(119, 100, 127, 0.66);
+
+  font: inherit;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.story-related-quick-tab.is-active {
+  border-color: rgba(216, 157, 189, 0.42);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(244, 213, 231, 0.68),
+      rgba(226, 221, 246, 0.64)
+    );
+  color: rgba(91, 66, 99, 0.90);
+}
+
+.story-related-quick-tab span {
+  opacity: 0.58;
+  font-size: 8px;
+}
+
+.story-related-quick-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+
+  display: grid;
+  align-content: start;
+  gap: 7px;
+
+  padding: 6px 14px 12px;
+}
+
+.story-related-quick-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  min-height: 45px;
+  padding: 9px 11px;
+
+  border: 1px solid rgba(225, 215, 231, 0.44);
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.52);
+  color: rgba(79, 65, 85, 0.84);
+
+  font-size: 10px;
+}
+
+.story-related-quick-link span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.story-related-quick-empty {
+  display: flex;
+  align-items: center;
+  min-height: 45px;
+  padding: 0 11px;
+
+  border: 1px solid rgba(225, 215, 231, 0.32);
+  border-radius: 12px;
+
+  color: rgba(140, 122, 148, 0.58);
+  font-size: 9px;
+}
+
+.story-related-quick-jump {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  min-height: 39px;
+  margin: 0 14px 14px;
+  padding: 0 12px;
+
+  border: 1px solid rgba(210, 196, 220, 0.50);
+  border-radius: 12px;
+
+  background: rgba(248, 244, 250, 0.62);
+  color: rgba(105, 84, 114, 0.74);
+
+  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.story-related-quick-jump .material-symbols-rounded {
+  font-size: 15px !important;
+}
+
+/* ---------- mobile: bottom sheet above the global nav ---------- */
+@media (max-width: 768px) {
+  .story-related-floating-trigger {
+    right: 14px !important;
+    bottom: calc(82px + env(safe-area-inset-bottom)) !important;
+    min-height: 36px !important;
+    padding: 0 9px !important;
+  }
+
+  .story-related-floating-label {
+    font-size: 9px;
+  }
+
+  .story-related-quick-sheet {
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    transform: none !important;
+
+    width: 100% !important;
+    max-height: 72dvh !important;
+
+    border-radius: 24px 24px 0 0 !important;
+    border-bottom: 0 !important;
+
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .story-related-quick-head {
+    padding: 17px 17px 12px;
+  }
+
+  .story-related-quick-tabs {
+    padding-inline: 13px;
+  }
+
+  .story-related-quick-list {
+    padding-inline: 13px;
+  }
+
+  .story-related-quick-jump {
+    margin-inline: 13px;
+  }
+}
+
+/* =========================================================
+   STORY RELATED MOBILE TOP · 2026-10-11
+   Mobile launcher stays at the top-right instead of above
+   the global bottom navigation.
+========================================================= */
+
+@media (max-width: 768px) {
+  .story-related-floating-trigger {
+    top: calc(12px + env(safe-area-inset-top)) !important;
+    right: 12px !important;
+    bottom: auto !important;
+    left: auto !important;
+
+    min-height: 34px !important;
+    padding: 0 9px !important;
+
+    z-index: 1150 !important;
+  }
+
+  .story-related-floating-trigger .material-symbols-rounded {
+    font-size: 16px !important;
+  }
+
+  .story-related-floating-label {
+    font-size: 9px !important;
+  }
+
+  .story-related-floating-count {
+    min-width: 18px !important;
+    height: 18px !important;
+    padding-inline: 4px !important;
+    font-size: 7.5px !important;
+  }
+}

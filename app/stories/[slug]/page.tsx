@@ -10,6 +10,8 @@ import { hasStoryAccess } from "@/lib/utils/story-access";
 import StoryTranslationSwitcher from "@/components/story/StoryTranslationSwitcher";
 import StoryMediaSwitcher from "@/components/story/StoryMediaSwitcher";
 import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
+import StoryRelatedContent from "@/components/story/StoryRelatedContent";
+import StoryRelatedQuickAccess from "@/components/story/StoryRelatedQuickAccess";
 import StorySideBlock from "@/components/story/StorySideBlock";
 import StoryReaderMobileNav from "@/components/story/StoryReaderMobileNav";
 
@@ -823,7 +825,7 @@ const hasConnections =
   relatedEvents.length > 0;
 
   return (
-    <main>
+    <main className="story-detail-figma-page">
       <StoryReaderMobileNav
         title={story.title}
         listHref={storiesListHref}
@@ -957,7 +959,9 @@ const hasConnections =
     </div>
   </section>
 
- {hasConnections ? (
+ 
+
+  {hasConnections ? (
   <aside className="story-topbar-side">
 
 
@@ -1049,6 +1053,59 @@ const hasConnections =
           목록으로
         </Link>
       </nav>
+
+
+      
+
+      <div
+        id="story-related-content-anchor"
+        className="story-related-bottom-anchor"
+      >
+        <StoryRelatedContent
+        stories={relatedStories.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: `/stories/${item.slug}`,
+        }))}
+        cards={relatedCards.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: `/cards/${item.slug}`,
+        }))}
+        phoneItems={relatedPhoneItems.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: getPhoneItemHref(item),
+        }))}
+        events={relatedEvents.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: `/events/${item.slug}`,
+        }))}
+      />
+      </div>
+      <StoryRelatedQuickAccess
+        stories={relatedStories.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: `/stories/${item.slug}`,
+        }))}
+        cards={relatedCards.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: `/cards/${item.slug}`,
+        }))}
+        phoneItems={relatedPhoneItems.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: getPhoneItemHref(item),
+        }))}
+        events={relatedEvents.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: `/events/${item.slug}`,
+        }))}
+      />
 
     </main>
   );

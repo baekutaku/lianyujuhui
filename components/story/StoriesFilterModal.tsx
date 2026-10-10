@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Option = {
   value: string;
@@ -32,6 +33,15 @@ export default function StoriesFilterModal({
   sortOptions,
 }: StoriesFilterModalProps) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const showScopeFilter =
+    scopeOptions.length > 1 ||
+    (scopeOptions.length === 1 && scopeOptions[0]?.value !== "");
 
   const resetHref = useMemo(() => {
     const params = new URLSearchParams();
@@ -59,7 +69,7 @@ export default function StoriesFilterModal({
         <span className="material-symbols-rounded">tune</span>
       </button>
 
-      {open ? (
+      {mounted && open ? createPortal(
         <div className="stories-filter-modal-root">
           <button
             type="button"
@@ -71,8 +81,8 @@ export default function StoriesFilterModal({
           <div className="stories-filter-modal">
             <div className="stories-filter-modal-head">
               <div>
-                <div className="stories-filter-modal-eyebrow">FILTER</div>
-                <h2>스토리 필터</h2>
+                <div className="stories-filter-modal-eyebrow">ARCHIVE FILTER</div>
+                <h2>아카이브 필터</h2>
               </div>
 
               <button
@@ -97,7 +107,7 @@ export default function StoriesFilterModal({
                 <input
                   name="q"
                   defaultValue={defaultValues.q ?? ""}
-                  placeholder="제목 / 스토리 내용 검색"
+                  placeholder="제목 / 내용 검색"
                 />
               </label>
 
@@ -111,16 +121,21 @@ export default function StoriesFilterModal({
                 />
               </label>
 
-              <label className="form-field">
-                <span>등장 범위</span>
-                <select name="scope" defaultValue={defaultValues.scope ?? ""}>
-                  {scopeOptions.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {showScopeFilter ? (
+                <label className="form-field">
+                  <span>등장 범위</span>
+                  <select
+                    name="scope"
+                    defaultValue={defaultValues.scope ?? ""}
+                  >
+                    {scopeOptions.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
 
               <label className="form-field">
                 <span>정렬</span>
@@ -183,6 +198,8 @@ export default function StoriesFilterModal({
             </form>
           </div>
         </div>
+        ,
+        document.body
       ) : null}
     </>
   );
