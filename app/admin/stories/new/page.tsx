@@ -9,14 +9,14 @@ import RelationPicker, {
 } from "@/components/admin/relations/RelationPicker";
 
 const STORY_SUBTYPE_OPTIONS = [
-  { value: "card_story", label: "데이트" },
   { value: "main_story", label: "메인스토리" },
-  { value: "side_story", label: "외전" },
-  { value: "asmr", label: "너의 곁에" },
   { value: "behind_story", label: "막후의 장" },
+  { value: "card_story", label: "데이트" },
+  { value: "side_story", label: "비밀이야기 / 외전" },
+  { value: "asmr", label: "너의 곁에" },
   { value: "xiyue_story", label: "서월국" },
-  { value: "myhome_story", label: "마이홈 스토리" },
-  { value: "company_project", label: "회사 프로젝트" },
+  { value: "myhome_story", label: "마이홈" },
+  { value: "company_project", label: "촬영장 / 회사 프로젝트" },
 ] as const;
 
 const CHARACTER_OPTIONS = [
@@ -28,12 +28,10 @@ const CHARACTER_OPTIONS = [
 ] as const;
 
 const CARD_CATEGORY_OPTIONS = [
-  { value: "date", label: "데이트 카드" },
+  { value: "date", label: "데이트 연계" },
   { value: "main_story", label: "메인스토리 연계" },
-  { value: "side_story", label: "외전 / 서브" },
-  { value: "birthday", label: "생일 카드" },
-  { value: "charge", label: "누적충전 카드" },
-  { value: "free", label: "무료 카드" },
+  { value: "side_story", label: "비밀이야기 / 외전 연계" },
+  { value: "event", label: "이벤트 / 기념일 연계" },
 ] as const;
 
 const PHONE_CATEGORY_OPTIONS = [

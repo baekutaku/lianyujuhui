@@ -43,23 +43,27 @@ const ATTRIBUTE_LABEL_MAP: Record<string, string> = {
 };
 
 const CATEGORY_LABEL_MAP: Record<string, string> = {
-  date: "데이트 카드",
+  date: "데이트 연계",
   main_story: "메인스토리 연계",
-  side_story: "외전 / 서브",
+  side_story: "비밀이야기 / 외전 연계",
+  event: "이벤트 / 기념일 연계",
+
+  // 기존 데이터 호환용. 신규 등록에서는 사용하지 않음.
   birthday: "생일 카드",
   charge: "누적충전 카드",
   free: "무료 카드",
+  other: "미분류",
 };
 
 const STORY_SUBTYPE_LABEL_MAP: Record<string, string> = {
   card_story: "데이트",
   asmr: "너의 곁에",
-  side_story: "외전",
+  side_story: "비밀이야기 / 외전",
   main_story: "메인스토리",
   behind_story: "막후의 장",
   xiyue_story: "서월국",
-  myhome_story: "마이홈 스토리",
-  company_project: "회사 프로젝트",
+  myhome_story: "마이홈",
+  company_project: "촬영장 / 회사 프로젝트",
 };
 
 const PHONE_SUBTYPE_LABEL_MAP: Record<string, string> = {
@@ -139,7 +143,7 @@ function getAttributeClass(value: string | null | undefined) {
 
 
 function getCategoryLabel(value: string | null | undefined) {
-  if (!value) return "미분류";
+  if (!value || value === "other") return "미분류";
   return CATEGORY_LABEL_MAP[value] ?? "미분류";
 }
 
@@ -246,7 +250,7 @@ export default async function CardDetailPage({
     const matchesCategory =
       !category ||
       (category === "__uncategorized__"
-        ? !normalizedCategory
+        ? !normalizedCategory || normalizedCategory === "other"
         : normalizedCategory === category);
 
     const matchesCharacter = !character || item.characterKey === character;

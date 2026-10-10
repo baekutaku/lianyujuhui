@@ -403,7 +403,7 @@ export async function createCard(formData: FormData) {
     const releaseYear = Number(formData.get("releaseYear") || 2025);
     const releaseDate = String(formData.get("releaseDate") || "").trim();
     const summary = String(formData.get("summary") || "").trim();
-    const cardCategory = String(formData.get("cardCategory") || "other").trim();
+    const cardCategory = String(formData.get("cardCategory") || "").trim();
     const tagLabels = parseTagLabelsFromForm(formData);
    const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
     const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
@@ -1197,7 +1197,7 @@ export async function updateCard(formData: FormData) {
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
     const coverAfterUrl = String(formData.get("coverAfterUrl") || "").trim();
     const summary = String(formData.get("summary") || "").trim();
-    const cardCategory = String(formData.get("cardCategory") || "other").trim();
+    const cardCategory = String(formData.get("cardCategory") || "").trim();
    const tagLabels = parseTagLabelsFromForm(formData);
     const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
     const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));

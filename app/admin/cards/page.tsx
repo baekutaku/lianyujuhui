@@ -24,12 +24,16 @@ const attributeLabelMap: Record<string, string> = {
 };
 
 const categoryLabelMap: Record<string, string> = {
-  date: "데이트 카드",
+  date: "데이트 연계",
   main_story: "메인스토리 연계",
-  side_story: "외전 / 서브",
+  side_story: "비밀이야기 / 외전 연계",
+  event: "이벤트 / 기념일 연계",
+
+  // 기존 데이터 호환용
   birthday: "생일 카드",
   charge: "누적충전 카드",
   free: "무료 카드",
+  other: "미분류",
 };
 
 
@@ -44,7 +48,7 @@ function getAttributeLabel(value: string | null) {
 }
 
 function getCategoryLabel(value: string | null) {
-  if (!value) return "미분류";
+  if (!value || value === "other") return "미분류";
   return categoryLabelMap[value] ?? "미분류";
 }
 

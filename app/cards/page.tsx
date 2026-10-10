@@ -67,12 +67,16 @@ const RARITY_LABEL_MAP: Record<string, string> = {
 };
 
 const CATEGORY_LABEL_MAP: Record<string, string> = {
-  date: "데이트 카드",
+  date: "데이트 연계",
   main_story: "메인스토리 연계",
-  side_story: "외전 / 서브",
+  side_story: "비밀이야기 / 외전 연계",
+  event: "이벤트 / 기념일 연계",
+
+  // 기존 데이터 호환용. 신규 등록에서는 사용하지 않음.
   birthday: "생일 카드",
   charge: "누적충전 카드",
   free: "무료 카드",
+  other: "미분류",
 };
 
 const SORT_LABEL_MAP: Record<string, string> = {
@@ -97,7 +101,7 @@ const RARITY_SORT_ORDER: Record<string, number> = {
 };
 
 function getCategoryLabel(value: string | null | undefined) {
-  if (!value) return "미분류";
+  if (!value || value === "other") return "미분류";
   return CATEGORY_LABEL_MAP[value] ?? "미분류";
 }
 
@@ -216,7 +220,7 @@ const baseFilteredCards = allCards.filter((card: any) => {
   const matchesCategory =
     !category ||
     (category === "__uncategorized__"
-      ? !normalizedCategory
+      ? !normalizedCategory || normalizedCategory === "other"
       : normalizedCategory === category);
 
   const matchesCharacter = !character || card.characterKey === character;

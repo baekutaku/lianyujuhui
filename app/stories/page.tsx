@@ -80,31 +80,31 @@ const STORY_TAB_OPTIONS = [
     key: "main",
     label: "메인스토리",
     subtypes: ["main_story", "behind_story"],
-    desc: "1부 / 2부 / 3부와 막후의 장 중심의 메인스토리 묶음",
+    desc: "1부 / 2부 / 3부와 막후의 장 중심의 메인스토리",
   },
   {
     key: "card",
     label: "데이트",
     subtypes: ["card_story"],
-    desc: "카드 연계 데이트 스토리",
+    desc: "개별 데이트와 마음탐색을 포함한 카드 연계 스토리",
+  },
+  {
+    key: "side",
+    label: "비밀이야기 / 외전",
+    subtypes: ["side_story"],
+    desc: "캐릭터 개인서사와 비밀이야기 / 외전",
   },
   {
     key: "asmr",
     label: "너의 곁에",
     subtypes: ["asmr"],
-    desc: "ASMR / 오디오형 스토리",
+    desc: "ASMR / 오디오형 캐릭터 콘텐츠",
   },
   {
     key: "event",
     label: "이벤트 / 기념일",
     subtypes: [],
-    desc: "생일, 기념일, 시즌, 복귀, N주년 이벤트",
-  },
-  {
-    key: "side",
-    label: "외전",
-    subtypes: ["side_story"],
-    desc: "개인서사 외전 중심",
+    desc: "생일, 기념일, 시즌, N주년 등 이벤트 스토리",
   },
   {
     key: "xiyue",
@@ -116,13 +116,13 @@ const STORY_TAB_OPTIONS = [
     key: "myhome",
     label: "마이홈",
     subtypes: ["myhome_story"],
-    desc: "마이홈 계열 스토리",
+    desc: "마이홈 및 생활형 콘텐츠 스토리",
   },
   {
     key: "company",
-    label: "촬영장 / 회사 프로젝트",
+    label: "촬영장 / 회사",
     subtypes: ["company_project"],
-    desc: "회사 프로젝트 / 촬영장 계열 스토리",
+    desc: "촬영장 및 회사 프로젝트 계열 스토리",
   },
   {
     key: "all",
@@ -135,12 +135,12 @@ const STORY_TAB_OPTIONS = [
 const SUBTYPE_LABELS: Record<string, string> = {
   card_story: "데이트",
   main_story: "메인스토리",
-  side_story: "외전",
+  side_story: "비밀이야기 / 외전",
   asmr: "너의 곁에",
   behind_story: "막후의 장",
   xiyue_story: "서월국",
   myhome_story: "마이홈",
-  company_project: "회사 프로젝트",
+  company_project: "촬영장 / 회사 프로젝트",
 };
 
 const NOTICE_ITEMS = [

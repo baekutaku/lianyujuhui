@@ -34,12 +34,10 @@ const ATTRIBUTE_OPTIONS = [
 ] as const;
 
 const CARD_CATEGORY_OPTIONS = [
-  { value: "date", label: "데이트 카드" },
+  { value: "date", label: "데이트 연계" },
   { value: "main_story", label: "메인스토리 연계" },
-  { value: "side_story", label: "외전 / 서브" },
-  { value: "birthday", label: "생일 카드" },
-  { value: "charge", label: "누적충전 카드" },
-  { value: "free", label: "무료 카드" },
+  { value: "side_story", label: "비밀이야기 / 외전 연계" },
+  { value: "event", label: "이벤트 / 기념일 연계" },
 ] as const;
 
 const SERVER_OPTIONS = [
@@ -257,7 +255,7 @@ export default async function NewCardPage({
           <label className="form-field">
             <span>카드 분류</span>
             <select name="cardCategory" defaultValue="">
-              <option value="">미분류</option>
+              <option value="">미분류 (연결 스토리 없음)</option>
               {CARD_CATEGORY_OPTIONS.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
