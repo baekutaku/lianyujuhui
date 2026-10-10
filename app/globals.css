@@ -14623,3 +14623,26 @@ body > .game-event-backdrop > .game-event-modal {
     max-height: calc(100dvh - 32px) !important;
   }
 }
+
+/* =========================================================
+   MOBILE KOPUB HARD FIX · 2026-10-11
+   SmartEditor 저장 HTML의 inline font-family보다 우선한다.
+========================================================= */
+
+.translation-body,
+.translation-body.rich-content,
+.rich-content.translation-body,
+.translation-body.rich-content *,
+.rich-content.translation-body * {
+  font-family: 'KoPubWorldBatang', 'GowunBatang', serif !important;
+}
+
+@media (max-width: 768px) {
+  .translation-body,
+  .translation-body.rich-content,
+  .rich-content.translation-body,
+  .translation-body.rich-content *,
+  .rich-content.translation-body * {
+    font-family: 'KoPubWorldBatang', 'GowunBatang', serif !important;
+  }
+}

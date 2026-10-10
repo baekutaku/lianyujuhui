@@ -138,9 +138,14 @@ function injectFontStyle(doc: Document) {
     }
 
     html,
+    /* SMARTEDITOR_MOBILE_KOPUB_HARD_FIX_20261011 */
+    html,
     body,
+    body *,
     .se2_inputarea,
-    .husky_seditor_editing_area_container {
+    .se2_inputarea *,
+    .husky_seditor_editing_area_container,
+    .husky_seditor_editing_area_container * {
       font-family: 'KoPubWorldBatang', 'GowunBatang', serif !important;
     }
 
