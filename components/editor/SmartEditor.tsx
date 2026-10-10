@@ -17,6 +17,8 @@ type SmartEditorProps = {
   autosyncMs?: number;
 };
 
+type PreviewMode = "wide" | "pc" | "mobile";
+
 function normalizeHeight(height: number | string) {
   return typeof height === "number" ? `${height}px` : height;
 }
@@ -59,8 +61,7 @@ function loadSmartEditorScript() {
     script.dataset.smarteditor = "husky";
 
     script.onload = () => resolve();
-    script.onerror = () =>
-      reject(new Error("SmartEditor 스크립트 로드 실패"));
+    script.onerror = () => reject(new Error("SmartEditor 스크립트 로드 실패"));
 
     document.body.appendChild(script);
   });
@@ -81,7 +82,7 @@ async function getSmartEditorDocuments(wrapper: HTMLDivElement | null) {
     };
   }
 
-  for (let i = 0; i < 40; i += 1) {
+  for (let i = 0; i < 50; i += 1) {
     const outerIframe = wrapper.querySelector<HTMLIFrameElement>("iframe");
     const skinDoc = getIframeDocument(outerIframe);
 
@@ -109,18 +110,23 @@ async function getSmartEditorDocuments(wrapper: HTMLDivElement | null) {
 }
 
 function injectFontStyle(doc: Document) {
-  if (doc.getElementById("smarteditor-custom-font-style")) {
-    return;
+  let style = doc.getElementById(
+    "smarteditor-custom-font-style"
+  ) as HTMLStyleElement | null;
+
+  if (!style) {
+    style = doc.createElement("style");
+    style.id = "smarteditor-custom-font-style";
+    doc.head.appendChild(style);
   }
 
-  const style = doc.createElement("style");
-  style.id = "smarteditor-custom-font-style";
   style.textContent = `
     @font-face {
       font-family: 'KoPubWorldBatang';
       src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2410-1@1.0/KoPubWorldBatangLight.woff2') format('woff2');
-      font-weight: 300;
+      font-weight: 300 400;
       font-style: normal;
+      font-display: swap;
     }
 
     @font-face {
@@ -128,44 +134,94 @@ function injectFontStyle(doc: Document) {
       src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/2104@1.0/GowunBatang-Regular.woff') format('woff');
       font-weight: 400;
       font-style: normal;
+      font-display: swap;
     }
 
+    html,
     body,
     .se2_inputarea,
     .husky_seditor_editing_area_container {
-      font-family: 'KoPubWorldBatang', serif !important;
+      font-family: 'KoPubWorldBatang', 'GowunBatang', serif !important;
+    }
+
+    body {
+      font-weight: 300;
     }
   `;
-
-  doc.head.appendChild(style);
 }
 
-async function applyEditorFonts(wrapper: HTMLDivElement | null) {
+function applyPreviewMode(doc: Document, mode: PreviewMode) {
+  if (!doc.body) return;
+
+  const body = doc.body;
+  body.dataset.storyPreviewMode = mode;
+  body.style.boxSizing = "border-box";
+
+  if (mode === "mobile") {
+    body.style.width = "min(360px, calc(100% - 24px))";
+    body.style.maxWidth = "360px";
+    body.style.marginLeft = "auto";
+    body.style.marginRight = "auto";
+    body.style.paddingLeft = "0";
+    body.style.paddingRight = "0";
+    return;
+  }
+
+  if (mode === "pc") {
+    body.style.width = "min(720px, calc(100% - 32px))";
+    body.style.maxWidth = "720px";
+    body.style.marginLeft = "auto";
+    body.style.marginRight = "auto";
+    body.style.paddingLeft = "0";
+    body.style.paddingRight = "0";
+    return;
+  }
+
+  body.style.width = "calc(100% - 20px)";
+  body.style.maxWidth = "none";
+  body.style.marginLeft = "10px";
+  body.style.marginRight = "10px";
+  body.style.paddingLeft = "0";
+  body.style.paddingRight = "0";
+}
+
+async function loadEditorFonts(doc: Document) {
+  if (!("fonts" in doc)) return;
+
+  try {
+    await Promise.all([
+      doc.fonts.load(`300 16px "KoPubWorldBatang"`),
+      doc.fonts.load(`400 16px "GowunBatang"`),
+    ]);
+  } catch {
+    // 외부 폰트 로딩이 실패해도 에디터 자체는 계속 사용
+  }
+}
+
+async function applyEditorAppearance(
+  wrapper: HTMLDivElement | null,
+  previewMode: PreviewMode
+) {
   const { skinDoc, editingDoc } = await getSmartEditorDocuments(wrapper);
 
   if (skinDoc) {
     injectFontStyle(skinDoc);
-    if (skinDoc.body) {
-      skinDoc.body.style.fontFamily = "'KoPubWorldBatang', serif";
-    }
+    await loadEditorFonts(skinDoc);
   }
 
   if (editingDoc) {
     injectFontStyle(editingDoc);
+
     if (editingDoc.body) {
-      editingDoc.body.style.fontFamily = "'KoPubWorldBatang', serif";
+      editingDoc.body.style.fontFamily =
+        "'KoPubWorldBatang', 'GowunBatang', serif";
+      editingDoc.body.style.fontWeight = "300";
+      editingDoc.body.style.fontSize = "15px";
+      editingDoc.body.style.lineHeight = "1.5";
     }
 
-    if ("fonts" in editingDoc) {
-      try {
-        await Promise.all([
-          editingDoc.fonts.load(`400 16px "KoPubWorldBatang"`),
-          editingDoc.fonts.load(`400 16px "GowunBatang"`),
-        ]);
-      } catch {
-        // 폰트 로드 실패해도 에디터 자체는 계속 사용
-      }
-    }
+    applyPreviewMode(editingDoc, previewMode);
+    await loadEditorFonts(editingDoc);
   }
 
   return { skinDoc, editingDoc };
@@ -184,6 +240,7 @@ export default function SmartEditor({
   const initializedRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [previewMode, setPreviewMode] = useState<PreviewMode>("pc");
 
   const reactId = useId();
   const editorId = `smarteditor_${reactId.replace(/[:]/g, "_")}`;
@@ -228,19 +285,28 @@ export default function SmartEditor({
 
             (async () => {
               try {
-                const seedHtml =
-                  textareaRef.current?.value || initialValue || "";
+                const seedHtml = textareaRef.current?.value || initialValue;
 
                 if (seedHtml) {
-                  editor.exec("SET_IR", [seedHtml]);
+                  editor.exec("PASTE_HTML", [seedHtml]);
                   editor.exec("UPDATE_CONTENTS_FIELD", []);
                 }
 
-                await applyEditorFonts(wrapperRef.current);
+                await applyEditorAppearance(
+                  wrapperRef.current,
+                  previewMode
+                );
 
                 if (typeof editor.setDefaultFont === "function") {
                   editor.setDefaultFont("KoPubWorldBatang", 11);
                 }
+
+                // SmartEditor 내부 iframe이 완전히 그려진 뒤 한 번 더 적용.
+                await wait(250);
+                await applyEditorAppearance(
+                  wrapperRef.current,
+                  previewMode
+                );
               } catch (e) {
                 console.error("[SmartEditor] initial sync failed", e);
               }
@@ -269,6 +335,35 @@ export default function SmartEditor({
       setReady(false);
     };
   }, [editorId, initialValue]);
+
+  useEffect(() => {
+    if (!ready || failed) return;
+
+    let cancelled = false;
+
+    (async () => {
+      await applyEditorAppearance(
+        wrapperRef.current,
+        previewMode
+      );
+
+      if (cancelled) return;
+
+      // iframe 내부 레이아웃 계산 후 한 번 더 적용
+      window.setTimeout(() => {
+        if (!cancelled) {
+          applyEditorAppearance(
+            wrapperRef.current,
+            previewMode
+          ).catch(() => {});
+        }
+      }, 120);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [previewMode, ready, failed]);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -320,6 +415,10 @@ export default function SmartEditor({
       try {
         editor.exec("SET_IR", [textarea.value || ""]);
         editor.exec("UPDATE_CONTENTS_FIELD", []);
+        applyEditorAppearance(
+          wrapperRef.current,
+          previewMode
+        ).catch(() => {});
       } catch (error) {
         console.error("[SmartEditor] draft restore sync failed", error);
       }
@@ -336,11 +435,45 @@ export default function SmartEditor({
         handleRestore as EventListener
       );
     };
-  }, []);
+  }, [previewMode]);
 
   return (
     <div ref={wrapperRef} className="form-field form-field-full">
-      {label && <span>{label}</span>}
+      <div className="smarteditor-label-row">
+        {label && <span>{label}</span>}
+
+        <div
+          className="smarteditor-preview-switch"
+          role="group"
+          aria-label="본문 미리보기 폭"
+        >
+          <button
+            type="button"
+            className={previewMode === "wide" ? "is-active" : ""}
+            onClick={() => setPreviewMode("wide")}
+          >
+            편집 넓게
+          </button>
+          <button
+            type="button"
+            className={previewMode === "pc" ? "is-active" : ""}
+            onClick={() => setPreviewMode("pc")}
+          >
+            실제 PC 폭
+          </button>
+          <button
+            type="button"
+            className={previewMode === "mobile" ? "is-active" : ""}
+            onClick={() => setPreviewMode("mobile")}
+          >
+            모바일 폭
+          </button>
+        </div>
+      </div>
+
+      <p className="smarteditor-preview-note">
+        폭 전환은 편집 화면 미리보기만 바꾸며 저장되는 HTML 너비에는 영향을 주지 않습니다.
+      </p>
 
       {failed && (
         <p style={{ color: "#ff8f8f", marginBottom: "8px" }}>

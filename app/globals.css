@@ -14471,3 +14471,155 @@ html.story-archive-compact .story-archive-media {
     font-size: 7.5px !important;
   }
 }
+
+/* =========================================================
+   SMARTEDITOR FONT + PREVIEW WIDTH · 2026-10-11
+========================================================= */
+
+.smarteditor-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 7px;
+}
+
+.smarteditor-preview-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid rgba(208, 196, 216, 0.72);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.56);
+}
+
+.smarteditor-preview-switch button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #8d8292;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.smarteditor-preview-switch button.is-active {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(246, 219, 234, 0.88),
+      rgba(229, 226, 248, 0.88)
+    );
+  color: #5f5365;
+  box-shadow: 0 4px 12px rgba(111, 87, 120, 0.08);
+}
+
+.smarteditor-preview-note {
+  margin: 0 0 8px;
+  color: #a29aa7;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+/* =========================================================
+   RELATED CONTENT TRUE VIEWPORT FLOAT · 2026-10-11
+   Trigger is portaled to body, so this is now true viewport fixed.
+========================================================= */
+
+.story-related-floating-trigger {
+  top: 50% !important;
+  right: 18px !important;
+  bottom: auto !important;
+  left: auto !important;
+  transform: translateY(-50%) !important;
+  z-index: 6100 !important;
+}
+
+@media (max-width: 768px) {
+  .story-related-floating-trigger {
+    top: calc(12px + env(safe-area-inset-top)) !important;
+    right: 12px !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    z-index: 6100 !important;
+  }
+
+  .smarteditor-label-row {
+    align-items: flex-start;
+  }
+
+  .smarteditor-preview-switch {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .smarteditor-preview-switch::-webkit-scrollbar {
+    display: none;
+  }
+
+  .smarteditor-preview-switch button {
+    flex: 1 0 auto;
+    white-space: nowrap;
+  }
+}
+
+/* =========================================================
+   HOME EVENT PREVIEW VIEWPORT PORTAL · 2026-10-11
+   Event preview is portaled to <body>, so it must be laid out
+   against the real browser viewport, not the transformed lobby.
+========================================================= */
+
+body > .game-event-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  z-index: 10000 !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  box-sizing: border-box !important;
+  padding: 24px !important;
+  margin: 0 !important;
+
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+
+body > .game-event-backdrop > .game-event-modal {
+  position: relative !important;
+
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  inset: auto !important;
+
+  margin: auto !important;
+  transform: none !important;
+
+  max-width: min(680px, calc(100vw - 48px)) !important;
+  max-height: calc(100dvh - 48px) !important;
+
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 768px) {
+  body > .game-event-backdrop {
+    padding: 16px !important;
+  }
+
+  body > .game-event-backdrop > .game-event-modal {
+    max-width: calc(100vw - 32px) !important;
+    max-height: calc(100dvh - 32px) !important;
+  }
+}

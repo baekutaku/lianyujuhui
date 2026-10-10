@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { useEffect, useMemo, useState } from "react";
 
 type RelatedItem = {
@@ -36,8 +37,13 @@ export default function StoryRelatedQuickAccess({
   const firstAvailable =
     tabs.find((tab) => tab.items.length > 0)?.key ?? "stories";
 
+  const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [activeKey, setActiveKey] = useState(firstAvailable);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -50,7 +56,7 @@ export default function StoryRelatedQuickAccess({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
-  if (total === 0) return null;
+  if (!mounted || total === 0) return null;
 
   const activeTab =
     tabs.find((tab) => tab.key === activeKey) ?? tabs[0];
@@ -68,7 +74,7 @@ export default function StoryRelatedQuickAccess({
     }, 80);
   };
 
-  return (
+  return createPortal(
     <>
       <button
         type="button"
@@ -190,6 +196,7 @@ export default function StoryRelatedQuickAccess({
           </aside>
         </div>
       ) : null}
-    </>
+    </>,
+    document.body
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import HomeGuideButton from "@/components/home/HomeGuideButton";
 import HomeUpdateButton from "@/components/home/HomeUpdateButton";
+import { createPortal } from "react-dom";
 
 type SiteUpdate = {
   id: string;
@@ -137,6 +138,18 @@ export default function HomeLobby({
     setReady(true);
   }, []);
 
+  // HOME_EVENT_BODY_SCROLL_LOCK_20261011
+  useEffect(() => {
+    if (!eventOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [eventOpen]);
+
   function enterArchive() {
     window.sessionStorage.setItem("lianyujuhui-home-entered", "1");
     setEntered(true);
@@ -262,7 +275,9 @@ export default function HomeLobby({
         )}
       </div>
 
-      {eventOpen && featuredEvent ? (
+      {/* HOME_EVENT_PORTAL_20261011 */}
+      {eventOpen && featuredEvent
+        ? createPortal(
         <div className="game-event-backdrop" onClick={closeEvent}>
           <section
             className="game-event-modal"
@@ -304,8 +319,10 @@ export default function HomeLobby({
               <span>오늘 다시 표시하지 않기</span>
             </label>
           </section>
-        </div>
-      ) : null}
+        </div>,
+        document.body
+      )
+        : null}
     </section>
   );
 }
