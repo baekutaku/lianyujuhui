@@ -34,7 +34,11 @@ const CARD_CATEGORY_OPTIONS = [
   { value: "date", label: "데이트 연계" },
   { value: "main_story", label: "메인스토리 연계" },
   { value: "side_story", label: "비밀이야기 / 외전 연계" },
-  { value: "event", label: "이벤트 / 기념일 연계" },
+  { value: "birthday", label: "생일" },
+  { value: "anniversary", label: "주년" },
+  { value: "event", label: "이벤트" },
+  { value: "charge", label: "누적충전 카드" },
+  { value: "free", label: "무료 카드" },
 ] as const;
 
 const PHONE_CATEGORY_OPTIONS = [

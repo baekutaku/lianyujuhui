@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import { deleteCard } from "@/app/admin/actions";
 import CardDetailMediaSwitcher from "@/components/cards/CardDetailMediaSwitcher";
+import CardConnectedContent from "@/components/cards/CardConnectedContent";
 import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
 
 type PageProps = {
@@ -46,10 +47,9 @@ const CATEGORY_LABEL_MAP: Record<string, string> = {
   date: "데이트 연계",
   main_story: "메인스토리 연계",
   side_story: "비밀이야기 / 외전 연계",
-  event: "이벤트 / 기념일 연계",
-
-  // 기존 데이터 호환용. 신규 등록에서는 사용하지 않음.
-  birthday: "생일 카드",
+  birthday: "생일",
+  anniversary: "주년",
+  event: "이벤트",
   charge: "누적충전 카드",
   free: "무료 카드",
   other: "미분류",
@@ -524,226 +524,196 @@ const { data: relations } = await supabase
         : Promise.resolve({ data: [] as any[] }),
     ]);
 
-  return (
-    <main>
-      <section className="detail-panel story-topbar card-detail-topbar">
-        <div className="story-topbar-main">
-          <p className="page-eyebrow">Archive / Cards</p>
-          <h1 className="story-page-title">{card.title}</h1>
+  const storyTabLabel =
+    (stories?.length ?? 0) > 0 &&
+    stories!.every((story: any) => story.subtype === "card_story")
+      ? "데이트"
+      : "스토리";
 
-          <div className="meta-row story-top-meta">
-            <span className="meta-pill">등급: {getRarityLabel(card.rarity)}</span>
-           <span className={`meta-pill ${attributeClass}`.trim()}>
-  속성: {getAttributeLabel(card.attribute)}
-</span>
-            <span className="meta-pill">분류: {getCategoryLabel(card.card_category)}</span>
-            {card.release_year ? (
-              <span className="meta-pill">연도: {card.release_year}</span>
-            ) : null}
-            <span className="meta-pill">
-              정렬 기준: {SORT_LABEL_MAP[sort] ?? "최신 등록순"}
+  const releaseDateLabel = card.release_date
+    ? String(card.release_date).replaceAll("-", ".")
+    : "—";
+
+  return (
+    <main className="card-detail-page-figma">
+      <div className="card-detail-back-row">
+        <Link href={cardsListHref} className="card-detail-back-link">
+          ← 카드 도감으로
+        </Link>
+      </div>
+
+      <section
+        className={`card-detail-figma ${attributeClass}`.trim()}
+      >
+        <div className="card-detail-figma-media">
+          <div className="card-detail-media-panel">
+            <CardDetailMediaSwitcher
+              media={{
+                title: card.title,
+                beforeThumb,
+                afterThumb,
+                beforeCover,
+                afterCover,
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="card-detail-figma-info">
+          <p className="card-detail-database-label">
+            Card Database
+          </p>
+
+          <h1 className="card-detail-figma-title">{card.title}</h1>
+
+          <div className="card-detail-primary-meta">
+            <span className="card-detail-soft-pill card-detail-rarity-pill">
+              {getRarityLabel(card.rarity)}
             </span>
+
+            <span className="card-detail-soft-pill card-detail-attribute-pill">
+              주속성 · {getAttributeLabel(card.attribute)}
+            </span>
+
             {!card.is_published && admin ? (
-              <span className="meta-pill">비공개 초안</span>
+              <span className="card-detail-soft-pill">비공개 초안</span>
             ) : null}
           </div>
 
-          <div className="story-top-actions">
-            <Link href={cardsListHref} className="story-action-button story-action-muted">
-              목록으로
-            </Link>
+          {tags.length > 0 ? (
+            <div className="card-detail-tag-row">
+              {tags.map((item) => (
+                <Link
+                  key={item}
+                  href={`/cards?tag=${encodeURIComponent(item)}`}
+                  className="card-tag-link"
+                >
+                  #{item}
+                </Link>
+              ))}
+            </div>
+          ) : null}
 
+          {card.summary ? (
+            <p className="card-detail-summary">{card.summary}</p>
+          ) : (
+            <p className="card-detail-summary is-empty">
+              등록된 카드 설명이 없습니다.
+            </p>
+          )}
+
+          <div className="card-detail-facts">
+            <div className="card-detail-fact">
+              <span className="card-detail-fact-label">Release</span>
+              <strong className="card-detail-fact-value">
+                {releaseDateLabel}
+              </strong>
+            </div>
+
+            <div className="card-detail-fact">
+              <span className="card-detail-fact-label">Year</span>
+              <strong className="card-detail-fact-value">
+                {card.release_year || "—"}
+              </strong>
+            </div>
+
+            <div className="card-detail-fact">
+              <span className="card-detail-fact-label">Type</span>
+              <strong className="card-detail-fact-value">
+                {getCategoryLabel(card.card_category)}
+              </strong>
+            </div>
+          </div>
+
+          <CardConnectedContent
+            storyLabel={storyTabLabel}
+            stories={(stories ?? []).map((story: any) => ({
+              id: story.id,
+              title: story.title,
+              href: getStoryHref(story.slug, currentCardPath),
+              kicker: getStorySubtypeLabel(story.subtype),
+            }))}
+            phoneItems={(phoneItems ?? []).map((item: any) => ({
+              id: item.id,
+              title: item.title,
+              href: getPhoneItemHref(item),
+              kicker: getPhoneSubtypeLabel(item.subtype),
+            }))}
+            cards={(relatedCards ?? []).map((relCard: any) => ({
+              id: relCard.id,
+              title: relCard.title,
+              href: `/cards/${relCard.slug}`,
+              kicker: getRarityLabel(relCard.rarity),
+            }))}
+            events={(events ?? []).map((event: any) => ({
+              id: event.id,
+              title: event.title,
+              href: getEventHref(event.slug, currentCardPath),
+              kicker: getEventSubtypeLabel(event.subtype),
+            }))}
+          />
+
+          <nav
+            className="card-detail-secondary-nav"
+            aria-label="카드 이동"
+          >
             {prevHref ? (
-              <Link href={prevHref} className="story-action-button story-action-muted">
+              <Link
+                href={prevHref}
+                className="card-detail-secondary-link"
+              >
                 ← 이전 카드
               </Link>
             ) : (
-              <span className="story-action-button story-action-muted" style={{ opacity: 0.45 }}>
+              <span className="card-detail-secondary-link is-disabled">
                 ← 이전 카드
               </span>
             )}
 
             {nextHref ? (
-              <Link href={nextHref} className="story-action-button story-action-muted">
+              <Link
+                href={nextHref}
+                className="card-detail-secondary-link"
+              >
                 다음 카드 →
               </Link>
             ) : (
-              <span className="story-action-button story-action-muted" style={{ opacity: 0.45 }}>
+              <span className="card-detail-secondary-link is-disabled">
                 다음 카드 →
               </span>
             )}
+          </nav>
 
-            {admin ? (
-              <>
-                <Link
-                  href={`/admin/cards/${encodeURIComponent(card.slug)}/edit`}
-                  className="story-action-button"
+          {admin ? (
+            <div className="card-detail-admin-actions">
+              <Link
+                href={`/admin/cards/${encodeURIComponent(card.slug)}/edit`}
+                className="story-action-button"
+              >
+                관리자 수정
+              </Link>
+
+              <Link
+                href="/admin/cards/new"
+                className="story-action-button story-action-muted"
+              >
+                새 카드 등록
+              </Link>
+
+              <form action={deleteCard} style={{ display: "inline-flex" }}>
+                <input type="hidden" name="cardId" value={card.id} />
+                <input type="hidden" name="slug" value={card.slug} />
+                <button
+                  type="submit"
+                  className="story-action-button story-action-danger"
+                  style={{ border: "none", cursor: "pointer" }}
                 >
-                  관리자 수정
-                </Link>
-
-                <Link
-                  href="/admin/cards/new"
-                  className="story-action-button story-action-muted"
-                >
-                  새 카드 등록
-                </Link>
-
-                <form action={deleteCard} style={{ display: "inline-flex" }}>
-                  <input type="hidden" name="cardId" value={card.id} />
-                  <input type="hidden" name="slug" value={card.slug} />
-                  <button
-                    type="submit"
-                    className="story-action-button story-action-danger"
-                    style={{ border: "none", cursor: "pointer" }}
-                  >
-                    삭제
-                  </button>
-                </form>
-              </>
-            ) : null}
-          </div>
+                  삭제
+                </button>
+              </form>
+            </div>
+          ) : null}
         </div>
-
-        <aside className="story-topbar-side card-detail-top-side">
-          <section className="story-side-block">
-            <h2 className="story-side-title">해시태그</h2>
-            {tags.length > 0 ? (
-              <div className="card-detail-tags">
-                {tags.map((item) => (
-                  <Link
-                    key={item}
-                    href={`/cards?tag=${encodeURIComponent(item)}`}
-                    className="card-tag-link"
-                  >
-                    #{item}
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="detail-text">등록된 해시태그가 없습니다.</div>
-            )}
-          </section>
-
-          <section className="story-side-block">
-            <h2 className="story-side-title">요약</h2>
-            {card.summary ? (
-              <div className="rich-content detail-text">
-                <p>{card.summary}</p>
-              </div>
-            ) : (
-              <div className="detail-text">등록된 카드 설명이 없습니다.</div>
-            )}
-          </section>
-        </aside>
-      </section>
-
-      <section className="story-main-grid card-detail-main-grid">
-        <div className="detail-panel card-detail-media-panel">
-          <CardDetailMediaSwitcher
-            media={{
-              title: card.title,
-              beforeThumb,
-              afterThumb,
-              beforeCover,
-              afterCover,
-            }}
-          />
-        </div>
-
-        <aside className="detail-panel card-detail-links-panel">
-          <div className="card-detail-links-scroll">
-            <section className="card-detail-side-block">
-              <h2 className="detail-section-title">연결 스토리</h2>
-              {(stories?.length ?? 0) > 0 ? (
-                <div className="card-related-list">
-                  {stories!.map((story: any) => (
-                    <Link
-                      key={story.id}
-                      href={getStoryHref(story.slug, currentCardPath)}
-                      className="card-related-link"
-                    >
-                      <span className="card-related-kicker">
-                        {getStorySubtypeLabel(story.subtype)}
-                      </span>
-                      <strong className="card-related-title">{story.title}</strong>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="card-related-empty">연결된 스토리가 없습니다.</div>
-              )}
-            </section>
-
-            <section className="card-detail-side-block">
-              <h2 className="detail-section-title">연결 휴대폰</h2>
-              {(phoneItems?.length ?? 0) > 0 ? (
-                <div className="card-related-list">
-                  {phoneItems!.map((item: any) => (
-                    <Link
-                      key={item.id}
-                     href={getPhoneItemHref(item)}
-                      className="card-related-link"
-                    >
-                      <span className="card-related-kicker">
-                        {getPhoneSubtypeLabel(item.subtype)}
-                      </span>
-                      <strong className="card-related-title">{item.title}</strong>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="card-related-empty">
-                  연결된 휴대폰 콘텐츠가 없습니다.
-                </div>
-              )}
-            </section>
-
-            <section className="card-detail-side-block">
-              <h2 className="detail-section-title">연결 카드</h2>
-              {(relatedCards?.length ?? 0) > 0 ? (
-                <div className="card-related-list">
-                  {relatedCards!.map((relCard: any) => (
-                    <Link
-                      key={relCard.id}
-                      href={`/cards/${relCard.slug}`}
-                      className="card-related-link"
-                    >
-                      <span className="card-related-kicker">
-                        {getRarityLabel(relCard.rarity)}
-                      </span>
-                      <strong className="card-related-title">{relCard.title}</strong>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="card-related-empty">연결된 카드가 없습니다.</div>
-              )}
-            </section>
-
-            <section className="card-detail-side-block">
-              <h2 className="detail-section-title">관련 이벤트</h2>
-              {(events?.length ?? 0) > 0 ? (
-                <div className="card-related-list">
-                  {events!.map((event: any) => (
-                    <Link
-                      key={event.id}
-                      href={getEventHref(event.slug, currentCardPath)}
-                      className="card-related-link"
-                    >
-                      <span className="card-related-kicker">
-                        {getEventSubtypeLabel(event.subtype)}
-                      </span>
-                      <strong className="card-related-title">{event.title}</strong>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="card-related-empty">관련 이벤트가 없습니다.</div>
-              )}
-            </section>
-          </div>
-        </aside>
       </section>
     </main>
   );

@@ -27,10 +27,9 @@ const categoryLabelMap: Record<string, string> = {
   date: "데이트 연계",
   main_story: "메인스토리 연계",
   side_story: "비밀이야기 / 외전 연계",
-  event: "이벤트 / 기념일 연계",
-
-  // 기존 데이터 호환용
-  birthday: "생일 카드",
+  birthday: "생일",
+  anniversary: "주년",
+  event: "이벤트",
   charge: "누적충전 카드",
   free: "무료 카드",
   other: "미분류",

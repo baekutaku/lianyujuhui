@@ -11,6 +11,7 @@ import StoryTranslationSwitcher from "@/components/story/StoryTranslationSwitche
 import StoryMediaSwitcher from "@/components/story/StoryMediaSwitcher";
 import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
 import StorySideBlock from "@/components/story/StorySideBlock";
+import StoryReaderMobileNav from "@/components/story/StoryReaderMobileNav";
 
 type SearchParamValue = string | string[] | undefined;
 
@@ -823,6 +824,40 @@ const hasConnections =
 
   return (
     <main>
+      <StoryReaderMobileNav
+        title={story.title}
+        listHref={storiesListHref}
+        groups={[
+          {
+            label: "연결된 스토리",
+            items: relatedStories.map((item) => ({
+              title: item.title,
+              href: `/stories/${item.slug}`,
+            })),
+          },
+          {
+            label: "연결된 카드",
+            items: relatedCards.map((item) => ({
+              title: item.title,
+              href: `/cards/${item.slug}`,
+            })),
+          },
+          {
+            label: "연결된 휴대폰",
+            items: relatedPhoneItems.map((item) => ({
+              title: item.title,
+              href: getPhoneItemHref(item),
+            })),
+          },
+          {
+            label: "연결된 이벤트",
+            items: relatedEvents.map((item) => ({
+              title: item.title,
+              href: `/events/${item.slug}`,
+            })),
+          },
+        ]}
+      />
 <section className="story-topbar-layout">
   <section className="detail-panel story-topbar-main-panel">
     <div className="story-topbar-main">
@@ -983,6 +1018,38 @@ const hasConnections =
       </section>
 
       
+      <nav className="story-reader-end-nav" aria-label="스토리 읽기 이동">
+        {prevStoryHref ? (
+          <Link href={prevStoryHref} className="story-reader-end-link">
+            ← 이전 스토리
+          </Link>
+        ) : (
+          <span className="story-reader-end-link is-disabled">
+            ← 이전 스토리
+          </span>
+        )}
+
+        {nextStoryHref ? (
+          <Link
+            href={nextStoryHref}
+            className="story-reader-end-link is-next"
+          >
+            다음 스토리 →
+          </Link>
+        ) : (
+          <span className="story-reader-end-link is-next is-disabled">
+            다음 스토리 →
+          </span>
+        )}
+
+        <Link
+          href={storiesListHref}
+          className="story-reader-end-link story-reader-end-list"
+        >
+          목록으로
+        </Link>
+      </nav>
+
     </main>
   );
 }

@@ -70,10 +70,9 @@ const CATEGORY_LABEL_MAP: Record<string, string> = {
   date: "데이트 연계",
   main_story: "메인스토리 연계",
   side_story: "비밀이야기 / 외전 연계",
-  event: "이벤트 / 기념일 연계",
-
-  // 기존 데이터 호환용. 신규 등록에서는 사용하지 않음.
-  birthday: "생일 카드",
+  birthday: "생일",
+  anniversary: "주년",
+  event: "이벤트",
   charge: "누적충전 카드",
   free: "무료 카드",
   other: "미분류",
@@ -108,6 +107,35 @@ function getCategoryLabel(value: string | null | undefined) {
 function getRarityLabel(value: string | null | undefined) {
   if (!value) return "미분류";
   return RARITY_LABEL_MAP[value] ?? String(value).toUpperCase();
+}
+
+function getVisiblePageNumbers(
+  totalPages: number,
+  currentPage: number
+) {
+  const MAX_VISIBLE = 10;
+
+  if (totalPages <= MAX_VISIBLE) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  // 총 10개 숫자만 표시하고, 첫 페이지와 마지막 페이지는 항상 유지.
+  // 예: 15페이지 / 현재 1페이지 -> 1 2 3 4 5 6 7 8 9 15
+  const innerCount = MAX_VISIBLE - 2;
+  let start = Math.max(2, currentPage - Math.floor(innerCount / 2));
+  let end = start + innerCount - 1;
+
+  if (end >= totalPages) {
+    end = totalPages - 1;
+    start = end - innerCount + 1;
+  }
+
+  const middle = Array.from(
+    { length: end - start + 1 },
+    (_, index) => start + index
+  );
+
+  return [1, ...middle, totalPages];
 }
 
 export default async function CardsPage({ searchParams }: CardsPageProps) {
@@ -427,10 +455,32 @@ function buildCardsPageHref(targetPage: number) {
         <p className="page-desc">카드와 연결된 컨텐츠 아카이브</p>
       </header>
 
+      <form className="cards-quick-search" method="get" action="/cards">
+        <span className="material-symbols-rounded cards-quick-search-icon">
+          search
+        </span>
+        {rarity ? <input type="hidden" name="rarity" value={rarity} /> : null}
+        {category ? <input type="hidden" name="category" value={category} /> : null}
+        {character ? <input type="hidden" name="character" value={character} /> : null}
+        {year ? <input type="hidden" name="year" value={year} /> : null}
+        {tag ? <input type="hidden" name="tag" value={tag} /> : null}
+        {sort && sort !== "latest" ? <input type="hidden" name="sort" value={sort} /> : null}
+        <input
+          type="search"
+          name="q"
+          defaultValue={q}
+          placeholder="카드명 / 요약 / 태그 검색"
+          className="cards-quick-search-input"
+        />
+        <button type="submit" className="cards-quick-search-button">
+          검색
+        </button>
+      </form>
+
       <div className="cards-page-toolbar">
         <div className="cards-page-toolbar-left">
           {admin ? (
-            <Link href="/admin/cards/new" className="primary-button">
+            <Link href="/admin/cards/new" className="cards-new-button">
               새 카드 등록
             </Link>
           ) : null}
@@ -539,6 +589,11 @@ function buildCardsPageHref(targetPage: number) {
                   afterImageUrl ? " has-after" : ""
                 }`}
               >
+                <div className="card-thumb-badges">
+                  <span className="card-thumb-rarity">
+                    {getRarityLabel(card.rarity)}
+                  </span>
+                </div>
                 {beforeImageUrl ? (
                   <>
                     <img
@@ -566,10 +621,11 @@ function buildCardsPageHref(targetPage: number) {
               </div>
 
               <div className="card-thumb-body card-thumb-body-minimal">
+                <h2 className="card-thumb-visible-title">{card.title}</h2>
+                {card.summary ? (
+                  <p className="card-thumb-summary">{card.summary}</p>
+                ) : null}
                 <div className="card-thumb-meta-row">
-                  <span className="meta-pill">
-                    {getRarityLabel(card.rarity)}
-                  </span>
                   <span className="meta-pill">
                     {getCategoryLabel(card.card_category)}
                   </span>
@@ -577,8 +633,6 @@ function buildCardsPageHref(targetPage: number) {
                     <span className="meta-pill">{card.release_year}</span>
                   ) : null}
                 </div>
-
-                <span className="mini-button">상세 보기</span>
               </div>
             </Link>
           </li>
@@ -594,14 +648,14 @@ function buildCardsPageHref(targetPage: number) {
       <Link
         href={buildCardsPageHref(currentPage - 1)}
         className="cards-pagination-button"
+        aria-label="이전 페이지"
       >
         ←
       </Link>
     )}
 
     <div className="cards-pagination-numbers">
-      {Array.from({ length: totalPages }, (_, index) => {
-        const pageNumber = index + 1;
+      {getVisiblePageNumbers(totalPages, currentPage).map((pageNumber) => {
         const isActive = pageNumber === currentPage;
 
         return (
@@ -623,10 +677,36 @@ function buildCardsPageHref(targetPage: number) {
       <Link
         href={buildCardsPageHref(currentPage + 1)}
         className="cards-pagination-button"
+        aria-label="다음 페이지"
       >
         →
       </Link>
     )}
+
+    <form method="get" action="/cards" className="cards-page-jump">
+      {q ? <input type="hidden" name="q" value={q} /> : null}
+      {rarity ? <input type="hidden" name="rarity" value={rarity} /> : null}
+      {category ? <input type="hidden" name="category" value={category} /> : null}
+      {character ? (
+        <input type="hidden" name="character" value={character} />
+      ) : null}
+      {year ? <input type="hidden" name="year" value={year} /> : null}
+      {tag ? <input type="hidden" name="tag" value={tag} /> : null}
+      {sort ? <input type="hidden" name="sort" value={sort} /> : null}
+
+      <input
+        className="cards-page-jump-input"
+        type="number"
+        name="page"
+        min={1}
+        max={totalPages}
+        defaultValue={currentPage}
+        aria-label="이동할 페이지 번호"
+      />
+      <button type="submit" className="cards-page-jump-button">
+        이동
+      </button>
+    </form>
   </nav>
 ) : null}
   </>
