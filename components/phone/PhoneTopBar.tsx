@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-
 type PhoneTopBarVariant =
   | "message"
   | "articles"
@@ -32,9 +31,18 @@ export default function PhoneTopBar({
   const router = useRouter();
 
   function handleBack() {
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-      return;
+    if (typeof window !== "undefined") {
+      const isMobile = window.matchMedia("(max-width: 900px)").matches;
+
+      if (isMobile) {
+        router.push(backHref);
+        return;
+      }
+
+      if (window.history.length > 1) {
+        router.back();
+        return;
+      }
     }
 
     router.push(backHref);
@@ -59,7 +67,9 @@ export default function PhoneTopBar({
       </div>
 
       <div className="phone-topbar-right">
-        {rightSlot ?? <div className="phone-topbar-spacer" />}
+        {rightSlot ?? (
+          <div className="phone-topbar-spacer" />
+        )}
       </div>
     </div>
   );

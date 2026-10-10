@@ -14646,3 +14646,102 @@ body > .game-event-backdrop > .game-event-modal {
     font-family: 'KoPubWorldBatang', 'GowunBatang', serif !important;
   }
 }
+
+/* =========================================================
+   PHONE HOME MENU BELOW TABS · 2026-10-11
+   PC + MOBILE 공통:
+   메시지/모멘트/음성/핫이슈/나 아래에 사이트 홈 탈출구
+========================================================= */
+
+.phone-shell-inner:has(> .phone-tabbar-with-home) {
+  grid-template-rows: 92px minmax(0, 1fr) 110px !important;
+}
+
+.phone-tabbar.phone-tabbar-with-home {
+  height: 110px !important;
+  min-height: 110px !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  grid-template-rows: 72px 38px !important;
+  align-items: stretch !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+/* 기존 phone-tabbar 배경 아트는 위쪽 5개 메뉴에만 보이게 */
+.phone-tabbar.phone-tabbar-with-home::before {
+  inset: 0 0 38px 0 !important;
+}
+
+.phone-tabbar-tabs {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+}
+
+.phone-tabbar-tabs > .phone-tab {
+  min-width: 0;
+  height: 72px;
+}
+
+.phone-site-home-menu {
+  position: relative;
+  z-index: 2;
+  height: 38px;
+  min-height: 38px;
+  box-sizing: border-box;
+  border-top: 1px solid rgba(224, 213, 225, 0.82);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 252, 254, 0.92),
+      rgba(248, 242, 249, 0.96)
+    );
+  color: #76677b;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.phone-site-home-menu .material-symbols-rounded {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.phone-site-home-menu small {
+  color: #a095a4;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.phone-site-home-menu:hover,
+.phone-site-home-menu:focus-visible {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(251, 244, 250, 0.98),
+      rgba(242, 233, 245, 0.98)
+    );
+}
+
+/* 이전 SITE 버튼 패치가 남아 있어도 보이지 않게 */
+.phone-mobile-site-menu-trigger {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .phone-site-home-menu {
+    min-height: 38px;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

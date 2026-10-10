@@ -49,32 +49,46 @@ type Props = {
 
 export default function PhoneTabNav({ currentPath }: Props) {
   return (
-    <nav className="phone-tabbar">
-      {tabs.map((tab) => {
-        const active = currentPath === tab.href;
+    <nav className="phone-tabbar phone-tabbar-with-home">
+      <div className="phone-tabbar-tabs">
+        {tabs.map((tab) => {
+          const active = currentPath === tab.href;
 
-        return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            className={`phone-tab ${active ? "active" : ""}`}
-          >
-            <span className="phone-tab-icon-wrap">
-              <img
-                src={active ? tab.activeIcon : tab.icon}
-                alt=""
-                aria-hidden="true"
-                className="phone-tab-icon-image"
-                style={{
-                  width: tab.width,
-                  height: tab.height,
-                }}
-              />
-            </span>
-            <span className="phone-tab-label">{tab.label}</span>
-          </Link>
-        );
-      })}
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={`phone-tab ${active ? "active" : ""}`}
+            >
+              <span className="phone-tab-icon-wrap">
+                <img
+                  src={active ? tab.activeIcon : tab.icon}
+                  alt=""
+                  aria-hidden="true"
+                  className="phone-tab-icon-image"
+                  style={{
+                    width: tab.width,
+                    height: tab.height,
+                  }}
+                />
+              </span>
+              <span className="phone-tab-label">{tab.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+
+      <Link
+        href="/"
+        className="phone-site-home-menu"
+        aria-label="사이트 홈으로 이동"
+      >
+        <span className="material-symbols-rounded" aria-hidden="true">
+          home
+        </span>
+        <span>홈</span>
+        <small>사이트 홈</small>
+      </Link>
     </nav>
   );
 }
