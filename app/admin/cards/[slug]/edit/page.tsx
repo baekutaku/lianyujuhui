@@ -1,3 +1,4 @@
+import CardImagesField from "@/components/admin/cards/CardImagesField";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
@@ -515,41 +516,16 @@ const storyCandidates: RelationCandidate[] =
             />
           </label>
 
-          <label className="form-field form-field-full">
-            <span>썸네일 (진화 전)</span>
-            <input
-              name="thumbnailUrl"
-              defaultValue={card.thumbnail_url ?? ""}
-              placeholder="https://..."
+          <div className="form-field form-field-full">
+            <span>카드 이미지</span>
+            <CardImagesField
+              cardId={card.id}
+              beforeThumb={card.thumbnail_url}
+              afterThumb={thumbnailAfterUrl}
+              beforeCover={card.cover_image_url}
+              afterCover={coverAfterUrl}
             />
-          </label>
-
-          <label className="form-field form-field-full">
-            <span>썸네일 (진화 후)</span>
-            <input
-              name="thumbnailAfterUrl"
-              defaultValue={thumbnailAfterUrl}
-              placeholder="https://..."
-            />
-          </label>
-
-          <label className="form-field form-field-full">
-            <span>커버 이미지 (진화 전)</span>
-            <input
-              name="coverImageUrl"
-              defaultValue={card.cover_image_url ?? ""}
-              placeholder="https://..."
-            />
-          </label>
-
-          <label className="form-field form-field-full">
-            <span>커버 이미지 (진화 후)</span>
-            <input
-              name="coverAfterUrl"
-              defaultValue={coverAfterUrl}
-              placeholder="https://..."
-            />
-          </label>
+          </div>
 
           <label className="form-field form-field-full">
             <span>요약</span>

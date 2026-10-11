@@ -16,6 +16,7 @@ type CardsFilterModalProps = {
     year?: string;
     sort?: string;
     tag?: string;
+    illustrations?: string;
   };
   yearOptions: string[];
   characterOptions: Option[];
@@ -67,9 +68,13 @@ export default function CardsFilterModal({
       params.set("tag", defaultValues.tag);
     }
 
+    if (defaultValues.illustrations) {
+      params.set("illustrations", defaultValues.illustrations);
+    }
+
     const query = params.toString();
     return query ? `/cards?${query}` : "/cards";
-  }, [defaultValues.sort, defaultValues.tag]);
+  }, [defaultValues.sort, defaultValues.tag, defaultValues.illustrations]);
 
   const showCharacter = characterOptions.length > 1;
 
@@ -125,6 +130,14 @@ export default function CardsFilterModal({
 
               {defaultValues.tag ? (
                 <input type="hidden" name="tag" value={defaultValues.tag} />
+              ) : null}
+
+              {defaultValues.illustrations ? (
+                <input
+                  type="hidden"
+                  name="illustrations"
+                  value={defaultValues.illustrations}
+                />
               ) : null}
 
               <div className="cards-filter-search-wrap">

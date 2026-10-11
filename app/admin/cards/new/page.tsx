@@ -1,9 +1,11 @@
-﻿import { createCard } from "@/app/admin/actions";
+import CardImagesField from "@/components/admin/cards/CardImagesField";
+import { createCard } from "@/app/admin/actions";
 import { supabase } from "@/lib/supabase/server";
 import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 import RelationPicker, {
   type RelationCandidate,
 } from "@/components/admin/relations/RelationPicker";
+import AdminVisualTypeSelector from "@/components/admin/cards/AdminVisualTypeSelector";
 
 function safeDecode(value: string) {
   try {
@@ -27,21 +29,21 @@ const RARITY_OPTIONS = [
 ] as const;
 
 const ATTRIBUTE_OPTIONS = [
-  { value: "drive", label: "異붿쭊?? },
-  { value: "affinity", label: "移쒗솕?? },
-  { value: "judgment", label: "寃곕떒?? },
-  { value: "creativity", label: "李쎌쓽?? },
+  { value: "drive", label: "추진력" },
+  { value: "affinity", label: "친화력" },
+  { value: "judgment", label: "결단력" },
+  { value: "creativity", label: "창의력" },
 ] as const;
 
 const CARD_CATEGORY_OPTIONS = [
-  { value: "date", label: "?곗씠???곌퀎" },
-  { value: "main_story", label: "硫붿씤?ㅽ넗由??곌퀎" },
-  { value: "side_story", label: "鍮꾨??댁빞湲?/ ?몄쟾 ?곌퀎" },
-  { value: "birthday", label: "?앹씪" },
-  { value: "anniversary", label: "二쇰뀈" },
-  { value: "event", label: "?대깽?? },
-  { value: "charge", label: "?꾩쟻異⑹쟾 移대뱶" },
-  { value: "free", label: "臾대즺 移대뱶" },
+  { value: "date", label: "데이트 연계" },
+  { value: "main_story", label: "메인스토리 연계" },
+  { value: "side_story", label: "비밀이야기 / 외전 연계" },
+  { value: "birthday", label: "생일" },
+  { value: "anniversary", label: "주년" },
+  { value: "event", label: "이벤트" },
+  { value: "charge", label: "누적충전 카드" },
+  { value: "free", label: "무료 카드" },
 ] as const;
 
 const SERVER_OPTIONS = [
@@ -50,19 +52,19 @@ const SERVER_OPTIONS = [
 ] as const;
 
 const CHARACTER_OPTIONS = [
-  { value: "baiqi", label: "諛깃린" },
-  { value: "lizeyan", label: "?댄깮?? },
-  { value: "zhouqiluo", label: "二쇨린?? },
-  { value: "xumo", label: "?덈У" },
-  { value: "lingxiao", label: "?곗떆?? },
+  { value: "baiqi", label: "백기" },
+  { value: "lizeyan", label: "이택언" },
+  { value: "zhouqiluo", label: "주기락" },
+  { value: "xumo", label: "허묵" },
+  { value: "lingxiao", label: "연시호" },
 ] as const;
 
 const PHONE_CATEGORY_OPTIONS = [
-  { value: "daily", label: "?쇱긽" },
-  { value: "companion", label: "?숇컲" },
-  { value: "card_story", label: "移대뱶" },
-  { value: "main_story", label: "硫붿씤?ㅽ넗由? },
-  { value: "tangle", label: "?쏀옒" },
+  { value: "daily", label: "일상" },
+  { value: "companion", label: "동반" },
+  { value: "card_story", label: "카드" },
+  { value: "main_story", label: "메인스토리" },
+  { value: "tangle", label: "얽힘" },
 ] as const;
 
 export default async function NewCardPage({
@@ -109,7 +111,7 @@ export default async function NewCardPage({
     (characters ?? []).map((item: any) => [item.id, item.key])
   );
 
-  // ?쒓렇 議고쉶
+  // 태그 조회
   const allItemIds = [
     ...(allStories ?? []).map((item: any) => item.id ?? item.slug),
     ...(allPhoneItems ?? []).map((item: any) => item.id ?? item.slug),
@@ -205,9 +207,9 @@ export default async function NewCardPage({
     <main>
       <header className="page-header">
         <div className="page-eyebrow">Admin / Cards</div>
-        <h1 className="page-title">移대뱶 ?깅줉</h1>
+        <h1 className="page-title">카드 등록</h1>
         <p className="page-desc">
-          移대뱶 湲곕낯 ?뺣낫, ?대?吏, 移대뱶 遺꾨쪟, ?댁떆?쒓렇, ?곌껐 肄섑뀗痢좊? ?깅줉?⑸땲??
+          카드 기본 정보, 이미지, 카드 분류, 해시태그, 연결 콘텐츠를 등록합니다.
         </p>
       </header>
 
@@ -227,15 +229,17 @@ export default async function NewCardPage({
         </p>
       ) : null}
 
+            <AdminVisualTypeSelector />
+
       <form action={createCard} className="form-panel">
         <div className="form-grid">
           <label className="form-field form-field-full">
-            <span>移대뱶 ?쒕ぉ</span>
+            <span>카드 제목</span>
             <input name="title" required />
           </label>
 
           <label className="form-field">
-            <span>?깃툒</span>
+            <span>등급</span>
             <select name="rarity" defaultValue="ssr">
               {RARITY_OPTIONS.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -246,7 +250,7 @@ export default async function NewCardPage({
           </label>
 
           <label className="form-field">
-            <span>?띿꽦</span>
+            <span>속성</span>
             <select name="attribute" defaultValue="affinity">
               {ATTRIBUTE_OPTIONS.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -257,9 +261,9 @@ export default async function NewCardPage({
           </label>
 
           <label className="form-field">
-            <span>移대뱶 遺꾨쪟</span>
+            <span>카드 분류</span>
             <select name="cardCategory" defaultValue="">
-              <option value="">誘몃텇瑜?(?곌껐 ?ㅽ넗由??놁쓬)</option>
+              <option value="">미분류 (연결 스토리 없음)</option>
               {CARD_CATEGORY_OPTIONS.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
@@ -269,7 +273,7 @@ export default async function NewCardPage({
           </label>
 
           <label className="form-field">
-            <span>?곕룄</span>
+            <span>연도</span>
             <input
               name="releaseYear"
               type="number"
@@ -279,12 +283,12 @@ export default async function NewCardPage({
           </label>
 
           <label className="form-field">
-            <span>異쒖떆??/span>
+            <span>출시일</span>
             <input name="releaseDate" type="date" />
           </label>
 
           <label className="form-field">
-            <span>?쒕쾭</span>
+            <span>서버</span>
             <select name="serverKey" defaultValue="cn">
               {SERVER_OPTIONS.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -295,7 +299,7 @@ export default async function NewCardPage({
           </label>
 
           <label className="form-field">
-            <span>罹먮┃??/span>
+            <span>캐릭터</span>
             <select name="characterKey" defaultValue="baiqi">
               {CHARACTER_OPTIONS.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -306,88 +310,73 @@ export default async function NewCardPage({
           </label>
 
           <label className="form-field form-field-full">
-            <span>?댁떆?쒓렇</span>
+            <span>해시태그</span>
             <input
               name="tagLabels"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
-              placeholder="?? ?앹씪, 臾대즺, 移대뱶?ㅽ넗由? 硫붿씤?곌퀎"
+              placeholder="예: 생일, 무료, 카드스토리, 메인연계"
             />
           </label>
 
           <label className="form-field form-field-full">
-            <span>?붿빟</span>
+            <span>요약</span>
             <textarea
               name="summary"
               rows={4}
-              placeholder="?곸꽭?섏씠吏?먯꽌留?蹂댁씠寃???嫄곕㈃ 吏㏐쾶 ?곸뼱????
+              placeholder="상세페이지에서만 보이게 둘 거면 짧게 적어도 됨"
             />
           </label>
 
-          <label className="form-field form-field-full">
-            <span>?몃꽕??(吏꾪솕 ??</span>
-            <input name="thumbnailUrl" placeholder="https://..." />
-          </label>
-
-          <label className="form-field form-field-full">
-            <span>?몃꽕??(吏꾪솕 ??</span>
-            <input name="thumbnailAfterUrl" placeholder="https://..." />
-          </label>
-
-          <label className="form-field form-field-full">
-            <span>而ㅻ쾭 ?대?吏 (吏꾪솕 ??</span>
-            <input name="coverImageUrl" placeholder="https://..." />
-          </label>
-
-          <label className="form-field form-field-full">
-            <span>而ㅻ쾭 ?대?吏 (吏꾪솕 ??</span>
-            <input name="coverAfterUrl" placeholder="https://..." />
-          </label>
+          <div className="form-field form-field-full">
+            <span>카드 이미지</span>
+            <CardImagesField />
+          </div>
         </div>
 
         <RelationPicker
-          label="?곌껐 ?ㅽ넗由?
+          label="연결 스토리"
           name="linkedStorySlugs"
           candidates={storyCandidates}
           characterOptions={[...CHARACTER_OPTIONS]}
           subtypeOptions={[
-            { value: "card_story", label: "?곗씠?? },
-            { value: "asmr", label: "?덉쓽 怨곸뿉" },
-            { value: "side_story", label: "?몄쟾" },
-            { value: "main_story", label: "硫붿씤?ㅽ넗由? },
-            { value: "behind_story", label: "留됲썑???? },
-            { value: "xiyue_story", label: "?쒖썡援? },
-            { value: "myhome_story", label: "留덉씠???ㅽ넗由? },
-            { value: "company_project", label: "?뚯궗 ?꾨줈?앺듃" },
+            { value: "card_story", label: "데이트" },
+            { value: "asmr", label: "너의 곁에" },
+            { value: "side_story", label: "외전" },
+            { value: "main_story", label: "메인스토리" },
+            { value: "behind_story", label: "막후의 장" },
+            { value: "xiyue_story", label: "서월국" },
+            { value: "myhome_story", label: "마이홈 스토리" },
+            { value: "company_project", label: "회사 프로젝트" },
           ]}
         />
 
         <RelationPicker
-          label="?곌껐 ?대???
+          label="연결 휴대폰"
           name="linkedPhoneItemSlugs"
           candidates={phoneCandidates}
           characterOptions={[...CHARACTER_OPTIONS]}
           categoryOptions={[...PHONE_CATEGORY_OPTIONS]}
           subtypeOptions={[
-            { value: "message", label: "硫붿떆吏" },
-            { value: "moment", label: "紐⑤찘?? },
-            { value: "call", label: "?꾪솕" },
-            { value: "video_call", label: "?곸긽?듯솕" },
-            { value: "article", label: "湲곗궗" },
+            { value: "message", label: "메시지" },
+            { value: "moment", label: "모멘트" },
+            { value: "call", label: "전화" },
+            { value: "video_call", label: "영상통화" },
+            { value: "article", label: "기사" },
           ]}
         />
 
         <RelationPicker
-          label="?곌껐 ?대깽??
+          label="연결 이벤트"
           name="linkedEventSlugs"
           candidates={eventCandidates}
           characterOptions={[...CHARACTER_OPTIONS]}
         />
 
         <RelationPicker
-          label="?곌껐 移대뱶"
+          label="연결 카드"
           name="linkedCardSlugs"
           candidates={cardCandidates}
           characterOptions={[...CHARACTER_OPTIONS]}

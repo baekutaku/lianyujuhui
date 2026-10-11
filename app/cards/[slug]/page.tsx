@@ -411,7 +411,35 @@ export default async function CardDetailPage({
     .eq("parent_id", card.id)
     .eq("media_type", "image");
 
+  const { data: cardImageRows } = await supabase
+    .from("card_images")
+    .select(
+      "id, url, sort_order, is_detail_before, is_detail_after, is_list_default, is_list_hover"
+    )
+    .eq("card_id", card.id)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  const cardRoleBefore =
+    cardImageRows?.find((item) => item.is_detail_before)?.url || null;
+
+  const cardRoleAfter =
+    cardImageRows?.find((item) => item.is_detail_after)?.url || null;
+
+  const cardRoleListDefault =
+    cardImageRows?.find((item) => item.is_list_default)?.url || null;
+
+  const cardRoleListHover =
+    cardImageRows?.find((item) => item.is_list_hover)?.url || null;
+
+  const cardGalleryImages =
+    (cardImageRows ?? []).map((item) => ({
+      id: item.id,
+      url: item.url,
+    })) ?? [];
+
   const beforeThumb =
+    cardRoleListDefault ||
     card.thumbnail_url ||
     mediaRows?.find(
       (item) =>
@@ -420,12 +448,14 @@ export default async function CardDetailPage({
     null;
 
   const afterThumb =
+    cardRoleListHover ||
     mediaRows?.find(
       (item) =>
         item.usage_type === "thumbnail" && item.title === "evolution_after"
     )?.url || null;
 
   const beforeCover =
+    cardRoleBefore ||
     card.cover_image_url ||
     mediaRows?.find(
       (item) => item.usage_type === "cover" && item.title !== "evolution_after"
@@ -433,6 +463,7 @@ export default async function CardDetailPage({
     null;
 
   const afterCover =
+    cardRoleAfter ||
     mediaRows?.find(
       (item) => item.usage_type === "cover" && item.title === "evolution_after"
     )?.url || null;
@@ -554,6 +585,7 @@ const { data: relations } = await supabase
                 afterThumb,
                 beforeCover,
                 afterCover,
+              gallery: cardGalleryImages,
               }}
             />
           </div>

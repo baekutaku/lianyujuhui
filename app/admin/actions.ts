@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
+import { getAdminSupabase } from "@/lib/supabase/admin";
 import { buildCardKeys, buildStoryKeys } from "@/lib/utils/admin-keys";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import {
@@ -391,6 +392,100 @@ async function requireAdmin() {
   }
 }
 
+
+function parseCardImageForm(formData: FormData) {
+  const hasLibraryField = formData.has("cardImageUrlsJson");
+
+  if (!hasLibraryField) {
+    return null;
+  }
+
+  let parsed: unknown = [];
+
+  try {
+    parsed = JSON.parse(
+      String(formData.get("cardImageUrlsJson") || "[]")
+    );
+  } catch {
+    parsed = [];
+  }
+
+  const urls = Array.from(
+    new Set(
+      (Array.isArray(parsed) ? parsed : [])
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+    )
+  );
+
+  const detailBefore = String(
+    formData.get("detailBeforeUrl") || ""
+  ).trim();
+  const detailAfter = String(
+    formData.get("detailAfterUrl") || ""
+  ).trim();
+  const listDefault = String(
+    formData.get("listDefaultUrl") || ""
+  ).trim();
+  const listHover = String(
+    formData.get("listHoverUrl") || ""
+  ).trim();
+
+  for (const roleUrl of [
+    detailBefore,
+    detailAfter,
+    listDefault,
+    listHover,
+  ]) {
+    if (roleUrl && !urls.includes(roleUrl)) {
+      urls.push(roleUrl);
+    }
+  }
+
+  return {
+    urls,
+    detailBefore,
+    detailAfter,
+    listDefault,
+    listHover,
+  };
+}
+
+async function syncCardImagesFromForm(
+  cardId: string,
+  formData: FormData
+) {
+  const parsed = parseCardImageForm(formData);
+  if (!parsed) return;
+
+  const adminDb = getAdminSupabase();
+
+  const { error: deleteError } = await adminDb
+    .from("card_images")
+    .delete()
+    .eq("card_id", cardId);
+
+  if (deleteError) throw new Error(deleteError.message);
+
+  if (parsed.urls.length === 0) return;
+
+  const rows = parsed.urls.map((url, index) => ({
+    card_id: cardId,
+    url,
+    sort_order: index,
+    is_detail_before: url === parsed.detailBefore,
+    is_detail_after: url === parsed.detailAfter,
+    is_list_default: url === parsed.listDefault,
+    is_list_hover: url === parsed.listHover,
+  }));
+
+  const { error: insertError } = await adminDb
+    .from("card_images")
+    .insert(rows);
+
+  if (insertError) throw new Error(insertError.message);
+}
+
 export async function createCard(formData: FormData) {
   let targetSlug = "";
 
@@ -475,6 +570,8 @@ export async function createCard(formData: FormData) {
     if (cardError || !insertedCard) {
       throw new Error(cardError?.message || "cards 저장 실패");
     }
+
+    await syncCardImagesFromForm(insertedCard.id, formData);
 
     await syncCardTags(insertedCard.id, tagLabels);
     await syncRelationsBySlugs({
@@ -1262,7 +1359,9 @@ export async function updateCard(formData: FormData) {
 
     phase = "thumb-after";
     if (thumbnailAfterUrl) {
-      const { data: existingThumbAfter } = await supabase
+      await syncCardImagesFromForm(cardId, formData);
+
+    const { data: existingThumbAfter } = await supabase
         .from("media_assets")
         .select("id")
         .eq("parent_type", "card")

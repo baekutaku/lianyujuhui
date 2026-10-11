@@ -17,6 +17,7 @@ type CardsSortModalProps = {
     character?: string;
     year?: string;
     tag?: string;
+    illustrations?: string;
   };
 };
 
@@ -36,6 +37,7 @@ export default function CardsSortModal({
     if (preserveValues?.character) params.set("character", preserveValues.character);
     if (preserveValues?.year) params.set("year", preserveValues.year);
     if (preserveValues?.tag) params.set("tag", preserveValues.tag);
+    if (preserveValues?.illustrations) params.set("illustrations", preserveValues.illustrations);
 
     const query = params.toString();
     return query ? `/cards?${query}` : "/cards";
@@ -96,6 +98,13 @@ export default function CardsSortModal({
               ) : null}
               {preserveValues?.tag ? (
                 <input type="hidden" name="tag" value={preserveValues.tag} />
+              ) : null}
+              {preserveValues?.illustrations ? (
+                <input
+                  type="hidden"
+                  name="illustrations"
+                  value={preserveValues.illustrations}
+                />
               ) : null}
 
               <label className="form-field form-field-full">
