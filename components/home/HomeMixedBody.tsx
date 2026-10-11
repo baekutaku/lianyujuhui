@@ -83,6 +83,7 @@ type CalendarEntryRow = {
   id: string;
   title: string;
   schedule_date: string;
+  end_date: string | null;
   note: string | null;
   kind: string;
 };
@@ -364,7 +365,7 @@ async function getLatestEventSection(): Promise<HomeSection> {
 async function getCalendarEntries(): Promise<CalendarEntryRow[]> {
   const { data, error } = await supabase
     .from("calendar_entries")
-    .select("id, title, schedule_date, note, kind")
+    .select("id, title, schedule_date, end_date, note, kind")
     .eq("is_published", true)
     .order("schedule_date", { ascending: true })
     .limit(120);

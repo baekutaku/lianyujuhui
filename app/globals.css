@@ -14745,3 +14745,106 @@ body > .game-event-backdrop > .game-event-modal {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+
+/* =========================================================
+   CALENDAR RANGE V2 · 2026-10-11
+========================================================= */
+
+.home-calendar-cell {
+  isolation: isolate;
+}
+
+.home-calendar-range-fill {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: -2px;
+  right: -2px;
+  height: 22px;
+  transform: translateY(-50%);
+  background: linear-gradient(
+    90deg,
+    rgba(223, 204, 239, 0.28),
+    rgba(247, 216, 231, 0.34)
+  );
+  border-radius: 0;
+  pointer-events: none;
+}
+
+.home-calendar-cell.range-start .home-calendar-range-fill {
+  left: 2px;
+  border-radius: 999px 0 0 999px;
+}
+
+.home-calendar-cell.range-end .home-calendar-range-fill {
+  right: 2px;
+  border-radius: 0 999px 999px 0;
+}
+
+.home-calendar-cell.range-start.range-end .home-calendar-range-fill {
+  left: 2px;
+  right: 2px;
+  border-radius: 999px;
+}
+
+.home-calendar-cell.has-range .home-calendar-date-number {
+  position: relative;
+  z-index: 2;
+}
+
+.home-calendar-cell.has-range:not(.has-entry) .home-calendar-date-number {
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-calendar-cell.has-range.is-selected .home-calendar-date-number {
+  background: linear-gradient(
+    135deg,
+    rgba(226, 212, 244, 0.98),
+    rgba(252, 223, 233, 0.98)
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(223, 197, 217, 0.96),
+    0 4px 10px rgba(226, 191, 210, 0.16);
+}
+
+.calendar-modal-date-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.calendar-modal-range-hint {
+  margin-top: -5px;
+  color: #a397a7;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.home-calendar-bottom-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.home-calendar-month-count {
+  color: #b1a5b2;
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.home-calendar-entry-range {
+  margin-top: 2px;
+  color: #aa99a9;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+@media (max-width: 480px) {
+  .calendar-modal-date-row {
+    grid-template-columns: 1fr;
+  }
+}
