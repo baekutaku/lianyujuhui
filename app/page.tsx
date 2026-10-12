@@ -1,7 +1,8 @@
-import { unstable_noStore as noStore } from "next/cache";
 import { supabase } from "@/lib/supabase/server";
 import HomeMixedBody from "@/components/home/HomeMixedBody";
 import HomeLobby from "@/components/home/HomeLobby";
+
+export const revalidate = 60;
 
 // 홈 일러스트 풀. 나중에 백기 중심 이미지 URL만 넣으면 랜덤 로비 배경으로 사용됩니다.
 const heroImages = [
@@ -15,8 +16,6 @@ function getRandomHeroImage() {
 }
 
 export default async function HomePage() {
-  noStore();
-
   const [{ data: siteUpdates }, { data: latestMainStory }, { data: featuredEvent }] =
     await Promise.all([
       supabase

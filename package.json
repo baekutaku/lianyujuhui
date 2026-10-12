@@ -11,7 +11,8 @@
     "images:mirror-external": "node scripts/mirror-external-images.mjs",
     "images:audit": "node scripts/image-architecture-audit.mjs",
     "images:cleanup-registry": "node scripts/cleanup-image-derivative-registry.mjs",
-    "images:trace-failed": "node scripts/trace-failed-image-references.mjs"
+    "images:trace-failed": "node scripts/trace-failed-image-references.mjs",
+    "images:switch-domain": "node scripts/switch-r2-public-domain.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1149.0",

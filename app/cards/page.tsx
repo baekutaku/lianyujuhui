@@ -3,8 +3,9 @@ import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import CardsFilterModal from "@/components/cards/CardsFilterModal";
 import CardsSortModal from "@/components/cards/CardsSortModal";
-import { optimizedImageUrl } from "@/lib/media/optimized-image";
 import { getImageDerivativeObject, resolveImageDerivativeUrl } from "@/lib/media/image-derivative-server";
+import CardThumbMedia from "@/components/cards/CardThumbMedia";
+import { getCardsFilterCache } from "@/lib/cards/card-list-cache";
 
 type CardsPageProps = {
   searchParams?: Promise<{
@@ -141,9 +142,19 @@ function getVisiblePageNumbers(
   return [1, ...middle, totalPages];
 }
 
+type CardsSearchParams = Awaited<
+  NonNullable<CardsPageProps["searchParams"]>
+>;
+
 export default async function CardsPage({ searchParams }: CardsPageProps) {
-  const admin = await isAdmin();
-  const params = searchParams ? await searchParams : {};
+  const paramsPromise: Promise<CardsSearchParams> =
+    searchParams ?? Promise.resolve({} as CardsSearchParams);
+
+  const [admin, params, cachedFilterData] = await Promise.all([
+    isAdmin(),
+    paramsPromise,
+    getCardsFilterCache(),
+  ]);
 
   const q = String(params?.q || "").trim().toLowerCase();
   const rarity = String(params?.rarity || "").trim().toLowerCase();
@@ -154,387 +165,660 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   const sort = String(params?.sort || "latest").trim();
   const includeIllustrations = String(params?.illustrations || "") === "1";
   const page = Math.max(1, Number(String(params?.page || "1")) || 1);
-const ITEMS_PER_PAGE = 15;
+  const ITEMS_PER_PAGE = 15;
 
- const illustrationQuery = includeIllustrations
-  ? supabase
-      .from("illustrations")
-      .select(
-        "id, title, image_url, release_year, release_date, created_at, summary, primary_character_id"
-      )
-      .eq("is_published", true)
-      .order("created_at", { ascending: false })
-  : Promise.resolve({ data: [], error: null });
-
- const [
-  { data: cards, error },
-  { data: characters },
-  { data: illustrations, error: illustrationsError },
-] = await Promise.all([
-  supabase
-    .from("cards")
-    .select(
-      "id, title, slug, rarity, attribute, release_year, release_date, created_at, thumbnail_url, cover_image_url, card_category, summary, primary_character_id"
-    )
-    .eq("is_published", true)
-    .order("release_year", { ascending: false })
-    .order("created_at", { ascending: false }),
-
-  supabase.from("characters").select("id, key"),
-  illustrationQuery,
-]);
-const characterKeyMap = new Map(
-  (characters ?? []).map((item: any) => [item.id, item.key])
-);
-
-const allCards =
-  (cards ?? []).map((card: any) => {
-    const characterKey = characterKeyMap.get(card.primary_character_id) ?? "";
-    return { ...card, characterKey };
-  }) ?? [];
-
-const allIllustrations =
-  ((illustrations ?? []) as any[]).map((item: any) => {
-    const characterKey = characterKeyMap.get(item.primary_character_id) ?? "";
-    return { ...item, characterKey };
-  }) ?? [];
-
-const cardIds = allCards.map((card: any) => card.id);
-
-let tagSearchTextByCardId = new Map<string, string>();
-
-if (cardIds.length > 0) {
-  const { data: itemTags, error: itemTagsError } = await supabase
-    .from("item_tags")
-    .select("item_id, tag_id")
-    .eq("item_type", "card")
-    .in("item_id", cardIds);
-
-  if (itemTagsError) {
-    throw new Error(itemTagsError.message);
-  }
-
-  const tagIds = Array.from(
-    new Set((itemTags ?? []).map((row: any) => row.tag_id))
+  const { characters, cardMeta } = cachedFilterData;
+  const characterKeyMap = new Map(
+    (characters ?? []).map((item: any) => [item.id, item.key])
+  );
+  const characterIdByKey = new Map(
+    (characters ?? [])
+      .filter((item: any) => item.key)
+      .map((item: any) => [String(item.key), item.id])
   );
 
-  if (tagIds.length > 0) {
-    const { data: tags, error: tagsError } = await supabase
-      .from("tags")
-      .select("id, label, name, slug")
-      .in("id", tagIds);
+  let error: any = null;
+  let illustrationsError: any = null;
+  let allCards: any[] = [];
+  let allIllustrations: any[] = [];
+  let mixedArchiveItems: any[] = [];
+  let pagedItems: any[] = [];
+  let pagedCards: any[] = [];
+  let optionSource: any[] = [];
+  let totalCount = 0;
+  let totalPages = 1;
+  let currentPage = page;
 
-    if (tagsError) {
-      throw new Error(tagsError.message);
-    }
+  // q/tag/illustration/rank-title sorts need the legacy in-memory path.
+  // The common archive path is paginated in Postgres so we do not fetch
+  // every published card on every request.
+  const useDatabasePagination =
+    !includeIllustrations &&
+    !q &&
+    !tag &&
+    category !== "__uncategorized__" &&
+    sort !== "rarity" &&
+    sort !== "title";
 
-    const tagTextMap = new Map(
-      (tags ?? []).map((tag: any) => [
-        tag.id,
-        [tag.label, tag.name, tag.slug].filter(Boolean).join(" ").toLowerCase(),
-      ])
-    );
+  if (useDatabasePagination) {
+    const targetCharacterId = character
+      ? characterIdByKey.get(character)
+      : null;
 
-    const grouped = new Map<string, string[]>();
+    const impossibleCharacter = Boolean(character && !targetCharacterId);
 
-    for (const row of itemTags ?? []) {
-      const tagText = tagTextMap.get(row.tag_id);
-      if (!tagText) continue;
+    const buildFastQuery = () => {
+      let query: any = supabase
+        .from("cards")
+        .select(
+          "id, title, slug, rarity, attribute, release_year, release_date, created_at, thumbnail_url, cover_image_url, card_category, summary, primary_character_id",
+          { count: "exact" }
+        )
+        .eq("is_published", true);
 
-      const prev = grouped.get(row.item_id) ?? [];
-      prev.push(tagText);
-      grouped.set(row.item_id, prev);
-    }
-
-    tagSearchTextByCardId = new Map(
-      Array.from(grouped.entries()).map(([itemId, texts]) => [
-        itemId,
-        texts.join(" ").toLowerCase(),
-      ])
-    );
-  }
-}
-
-const baseFilteredCards = allCards.filter((card: any) => {
-  const summaryText = String(card.summary || "").toLowerCase();
-  const tagText = tagSearchTextByCardId.get(card.id) ?? "";
-
-  const matchesQ =
-    !q ||
-    String(card.title || "").toLowerCase().includes(q) ||
-    String(card.slug || "").toLowerCase().includes(q) ||
-    summaryText.includes(q) ||
-    tagText.includes(q);
-
-  const matchesRarity =
-    !rarity || String(card.rarity || "").toLowerCase() === rarity;
-
-  const normalizedCategory = card.card_category ?? "";
-  const matchesCategory =
-    !category ||
-    (category === "__uncategorized__"
-      ? !normalizedCategory || normalizedCategory === "other"
-      : normalizedCategory === category);
-
-  const matchesCharacter = !character || card.characterKey === character;
-  const matchesYear = !year || String(card.release_year || "") === year;
-
-  return (
-    matchesQ &&
-    matchesRarity &&
-    matchesCategory &&
-    matchesCharacter &&
-    matchesYear
-  );
-});
-
-  let filteredCards = baseFilteredCards;
-
-  if (tag && baseFilteredCards.length > 0) {
-    const baseCardIds = baseFilteredCards.map((card: any) => card.id);
-
-    const { data: itemTags } = await supabase
-      .from("item_tags")
-      .select("item_id, tag_id")
-      .eq("item_type", "card")
-      .in("item_id", baseCardIds);
-
-    const relatedTagIds = Array.from(
-      new Set((itemTags ?? []).map((row) => row.tag_id))
-    );
-
-    if (relatedTagIds.length > 0) {
-      const { data: relatedTags } = await supabase
-        .from("tags")
-        .select("id, slug, label, name")
-        .in("id", relatedTagIds);
-
-      const normalizedTargetTag = tag.toLowerCase();
-
-      const matchedTagIds = new Set(
-        (relatedTags ?? [])
-          .filter((row) =>
-            [row.slug, row.label, row.name]
-              .filter(Boolean)
-              .some((value) =>
-  String(value).trim().toLowerCase().includes(normalizedTargetTag)
-)
-          )
-          .map((row) => row.id)
-      );
-
-      if (matchedTagIds.size > 0) {
-        const matchedCardIds = new Set(
-          (itemTags ?? [])
-            .filter((row) => matchedTagIds.has(row.tag_id))
-            .map((row) => row.item_id)
-        );
-
-        filteredCards = baseFilteredCards.filter((card: any) =>
-          matchedCardIds.has(card.id)
-        );
-      } else {
-        filteredCards = [];
+      if (rarity) query = query.eq("rarity", rarity);
+      if (category) query = query.eq("card_category", category);
+      if (year) query = query.eq("release_year", year);
+      if (targetCharacterId) {
+        query = query.eq("primary_character_id", targetCharacterId);
       }
-    } else {
-      filteredCards = [];
-    }
-  }
-const filteredIllustrations = includeIllustrations
-  ? allIllustrations.filter((item: any) => {
-      const titleText = String(item.title || "").toLowerCase();
-      const summaryText = String(item.summary || "").toLowerCase();
-
-      const matchesQ = !q || titleText.includes(q) || summaryText.includes(q);
-      const matchesYear = !year || String(item.release_year || "") === year;
-      const matchesCharacter = !character || item.characterKey === character;
-
-      // 카드 전용 필터가 활성화되어 있으면 일반 일러스트는 섞지 않는다.
-      const hasCardOnlyFilter = Boolean(rarity || category || tag);
-
-      return (
-        !hasCardOnlyFilter &&
-        matchesQ &&
-        matchesYear &&
-        matchesCharacter
-      );
-    })
-  : [];
-
-const sortedCards = [...filteredCards].sort((a: any, b: any) => {
-  const aTitle = String(a.title || "");
-  const bTitle = String(b.title || "");
-
-  const aYear = Number(a.release_year || 0);
-  const bYear = Number(b.release_year || 0);
-
-  const aRelease = a.release_date ? new Date(a.release_date).getTime() : 0;
-  const bRelease = b.release_date ? new Date(b.release_date).getTime() : 0;
-
-  const aCreated = a.created_at ? new Date(a.created_at).getTime() : 0;
-  const bCreated = b.created_at ? new Date(b.created_at).getTime() : 0;
-
-  const aRarity =
-    RARITY_SORT_ORDER[String(a.rarity || "").toLowerCase()] ?? -1;
-  const bRarity =
-    RARITY_SORT_ORDER[String(b.rarity || "").toLowerCase()] ?? -1;
-
-  switch (sort) {
-    case "oldest":
-      return (
-        aCreated - bCreated ||
-        aRelease - bRelease ||
-        aTitle.localeCompare(bTitle, "ko")
-      );
-
-    case "year_desc":
-      return (
-        bYear - aYear ||
-        bRelease - aRelease ||
-        aTitle.localeCompare(bTitle, "ko")
-      );
-
-    case "year_asc":
-      return (
-        aYear - bYear ||
-        aRelease - bRelease ||
-        aTitle.localeCompare(bTitle, "ko")
-      );
-
-    case "title":
-      return aTitle.localeCompare(bTitle, "ko") || bYear - aYear;
-
-    case "rarity":
-      return (
-        bRarity - aRarity ||
-        bYear - aYear ||
-        bRelease - aRelease ||
-        aTitle.localeCompare(bTitle, "ko")
-      );
-
-    case "latest":
-    default:
-      return (
-        bCreated - aCreated ||
-        bRelease - aRelease ||
-        bYear - aYear ||
-        aTitle.localeCompare(bTitle, "ko")
-      );
-  }
-});
-
-const mixedArchiveItems = includeIllustrations
-  ? [
-      ...sortedCards.map((card: any) => ({ kind: "card" as const, data: card })),
-      ...filteredIllustrations.map((item: any) => ({
-        kind: "illustration" as const,
-        data: item,
-      })),
-    ].sort((a: any, b: any) => {
-      const aData = a.data;
-      const bData = b.data;
-      const aTitle = String(aData.title || "");
-      const bTitle = String(bData.title || "");
-      const aYear = Number(aData.release_year || 0);
-      const bYear = Number(bData.release_year || 0);
-      const aRelease = aData.release_date
-        ? new Date(aData.release_date).getTime()
-        : 0;
-      const bRelease = bData.release_date
-        ? new Date(bData.release_date).getTime()
-        : 0;
-      const aCreated = aData.created_at
-        ? new Date(aData.created_at).getTime()
-        : 0;
-      const bCreated = bData.created_at
-        ? new Date(bData.created_at).getTime()
-        : 0;
-      const aRarity =
-        a.kind === "card"
-          ? RARITY_SORT_ORDER[String(aData.rarity || "").toLowerCase()] ?? -1
-          : -1;
-      const bRarity =
-        b.kind === "card"
-          ? RARITY_SORT_ORDER[String(bData.rarity || "").toLowerCase()] ?? -1
-          : -1;
 
       switch (sort) {
         case "oldest":
-          return aCreated - bCreated || aRelease - bRelease || aTitle.localeCompare(bTitle, "ko");
+          query = query
+            .order("created_at", { ascending: true, nullsFirst: true })
+            .order("release_date", { ascending: true, nullsFirst: true })
+            .order("title", { ascending: true });
+          break;
+
         case "year_desc":
-          return bYear - aYear || bRelease - aRelease || aTitle.localeCompare(bTitle, "ko");
+          query = query
+            .order("release_year", { ascending: false, nullsFirst: false })
+            .order("release_date", { ascending: false, nullsFirst: false })
+            .order("title", { ascending: true });
+          break;
+
         case "year_asc":
-          return aYear - bYear || aRelease - bRelease || aTitle.localeCompare(bTitle, "ko");
-        case "title":
-          return aTitle.localeCompare(bTitle, "ko") || bYear - aYear;
-        case "rarity":
-          return bRarity - aRarity || bYear - aYear || bRelease - aRelease || aTitle.localeCompare(bTitle, "ko");
+          query = query
+            .order("release_year", { ascending: true, nullsFirst: true })
+            .order("release_date", { ascending: true, nullsFirst: true })
+            .order("title", { ascending: true });
+          break;
+
         case "latest":
         default:
-          return bCreated - aCreated || bRelease - aRelease || bYear - aYear || aTitle.localeCompare(bTitle, "ko");
+          query = query
+            .order("created_at", { ascending: false, nullsFirst: false })
+            .order("release_date", { ascending: false, nullsFirst: false })
+            .order("release_year", { ascending: false, nullsFirst: false })
+            .order("title", { ascending: true });
+          break;
       }
-    })
-  : sortedCards.map((card: any) => ({ kind: "card" as const, data: card }));
 
-const totalCount = mixedArchiveItems.length;
-const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
-const currentPage = Math.min(page, totalPages);
+      return query;
+    };
 
-const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-const endIndex = startIndex + ITEMS_PER_PAGE;
-const pagedItems = mixedArchiveItems.slice(startIndex, endIndex);
-const pagedCards = pagedItems
-  .filter((item: any) => item.kind === "card")
-  .map((item: any) => item.data);
+    let fastCards: any[] = [];
+    let count = 0;
 
-const pagedCardIds = pagedCards.map((card: any) => card.id);
-const afterThumbMap = new Map<string, string>();
+    if (!impossibleCharacter) {
+      const requestedStart = (page - 1) * ITEMS_PER_PAGE;
+      const requestedEnd = requestedStart + ITEMS_PER_PAGE - 1;
 
-if (pagedCardIds.length > 0) {
-  const { data: afterThumbs } = await supabase
-    .from("media_assets")
-    .select("parent_id, url")
-    .eq("parent_type", "card")
-    .eq("media_type", "image")
-    .eq("usage_type", "thumbnail")
-    .eq("title", "evolution_after")
-    .in("parent_id", pagedCardIds);
+      let result = await buildFastQuery().range(
+        requestedStart,
+        requestedEnd
+      );
 
-  for (const item of afterThumbs ?? []) {
-    afterThumbMap.set(item.parent_id, item.url);
+      error = result.error;
+      count = result.count ?? 0;
+
+      totalCount = count;
+      totalPages = Math.max(
+        1,
+        Math.ceil(totalCount / ITEMS_PER_PAGE)
+      );
+      currentPage = Math.min(page, totalPages);
+
+      if (
+        !error &&
+        totalCount > 0 &&
+        currentPage !== page
+      ) {
+        const safeStart =
+          (currentPage - 1) * ITEMS_PER_PAGE;
+        const safeEnd =
+          safeStart + ITEMS_PER_PAGE - 1;
+
+        result = await buildFastQuery().range(
+          safeStart,
+          safeEnd
+        );
+        error = result.error;
+      }
+
+      fastCards = result.data ?? [];
+    } else {
+      totalCount = 0;
+      totalPages = 1;
+      currentPage = 1;
+    }
+
+    pagedCards = fastCards.map((card: any) => ({
+      ...card,
+      characterKey:
+        characterKeyMap.get(card.primary_character_id) ?? "",
+    }));
+
+    pagedItems = pagedCards.map((card: any) => ({
+      kind: "card" as const,
+      data: card,
+    }));
+
+    mixedArchiveItems = pagedItems;
+
+    optionSource = (cardMeta ?? []).map((item: any) => ({
+      ...item,
+      characterKey:
+        characterKeyMap.get(item.primary_character_id) ?? "",
+    }));
+  } else {
+    const illustrationQuery = includeIllustrations
+      ? supabase
+          .from("illustrations")
+          .select(
+            "id, title, image_url, release_year, release_date, created_at, summary, primary_character_id"
+          )
+          .eq("is_published", true)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null });
+
+    const [
+      { data: cards, error: cardsError },
+      { data: illustrations, error: loadedIllustrationsError },
+    ] = await Promise.all([
+      supabase
+        .from("cards")
+        .select(
+          "id, title, slug, rarity, attribute, release_year, release_date, created_at, thumbnail_url, cover_image_url, card_category, summary, primary_character_id"
+        )
+        .eq("is_published", true),
+      illustrationQuery,
+    ]);
+
+    error = cardsError;
+    illustrationsError = loadedIllustrationsError;
+
+    allCards = (cards ?? []).map((card: any) => ({
+      ...card,
+      characterKey:
+        characterKeyMap.get(card.primary_character_id) ?? "",
+    }));
+
+    allIllustrations = ((illustrations ?? []) as any[]).map(
+      (item: any) => ({
+        ...item,
+        characterKey:
+          characterKeyMap.get(item.primary_character_id) ?? "",
+      })
+    );
+
+    const cardIds = allCards.map((card: any) => card.id);
+    let tagSearchTextByCardId = new Map<string, string>();
+
+    // Tag text is only needed when the free-text search is active.
+    // Previously these two queries ran for every /cards request.
+    if (q && cardIds.length > 0) {
+      const { data: itemTags, error: itemTagsError } =
+        await supabase
+          .from("item_tags")
+          .select("item_id, tag_id")
+          .eq("item_type", "card")
+          .in("item_id", cardIds);
+
+      if (itemTagsError) {
+        throw new Error(itemTagsError.message);
+      }
+
+      const tagIds = Array.from(
+        new Set((itemTags ?? []).map((row: any) => row.tag_id))
+      );
+
+      if (tagIds.length > 0) {
+        const { data: tags, error: tagsError } =
+          await supabase
+            .from("tags")
+            .select("id, label, name, slug")
+            .in("id", tagIds);
+
+        if (tagsError) {
+          throw new Error(tagsError.message);
+        }
+
+        const tagTextMap = new Map(
+          (tags ?? []).map((tagRow: any) => [
+            tagRow.id,
+            [tagRow.label, tagRow.name, tagRow.slug]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase(),
+          ])
+        );
+
+        const grouped = new Map<string, string[]>();
+
+        for (const row of itemTags ?? []) {
+          const tagText = tagTextMap.get(row.tag_id);
+          if (!tagText) continue;
+
+          const prev = grouped.get(row.item_id) ?? [];
+          prev.push(tagText);
+          grouped.set(row.item_id, prev);
+        }
+
+        tagSearchTextByCardId = new Map(
+          Array.from(grouped.entries()).map(
+            ([itemId, texts]) => [
+              itemId,
+              texts.join(" ").toLowerCase(),
+            ]
+          )
+        );
+      }
+    }
+
+    const baseFilteredCards = allCards.filter((card: any) => {
+      const summaryText = String(
+        card.summary || ""
+      ).toLowerCase();
+      const tagText =
+        tagSearchTextByCardId.get(card.id) ?? "";
+
+      const matchesQ =
+        !q ||
+        String(card.title || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(card.slug || "")
+          .toLowerCase()
+          .includes(q) ||
+        summaryText.includes(q) ||
+        tagText.includes(q);
+
+      const matchesRarity =
+        !rarity ||
+        String(card.rarity || "").toLowerCase() === rarity;
+
+      const normalizedCategory =
+        card.card_category ?? "";
+      const matchesCategory =
+        !category ||
+        (category === "__uncategorized__"
+          ? !normalizedCategory ||
+            normalizedCategory === "other"
+          : normalizedCategory === category);
+
+      const matchesCharacter =
+        !character || card.characterKey === character;
+      const matchesYear =
+        !year ||
+        String(card.release_year || "") === year;
+
+      return (
+        matchesQ &&
+        matchesRarity &&
+        matchesCategory &&
+        matchesCharacter &&
+        matchesYear
+      );
+    });
+
+    let filteredCards = baseFilteredCards;
+
+    if (tag && baseFilteredCards.length > 0) {
+      const baseCardIds = baseFilteredCards.map(
+        (card: any) => card.id
+      );
+
+      const { data: itemTags } = await supabase
+        .from("item_tags")
+        .select("item_id, tag_id")
+        .eq("item_type", "card")
+        .in("item_id", baseCardIds);
+
+      const relatedTagIds = Array.from(
+        new Set((itemTags ?? []).map((row: any) => row.tag_id))
+      );
+
+      if (relatedTagIds.length > 0) {
+        const { data: relatedTags } = await supabase
+          .from("tags")
+          .select("id, slug, label, name")
+          .in("id", relatedTagIds);
+
+        const normalizedTargetTag = tag.toLowerCase();
+
+        const matchedTagIds = new Set(
+          (relatedTags ?? [])
+            .filter((row: any) =>
+              [row.slug, row.label, row.name]
+                .filter(Boolean)
+                .some((value) =>
+                  String(value)
+                    .trim()
+                    .toLowerCase()
+                    .includes(normalizedTargetTag)
+                )
+            )
+            .map((row: any) => row.id)
+        );
+
+        if (matchedTagIds.size > 0) {
+          const matchedCardIds = new Set(
+            (itemTags ?? [])
+              .filter((row: any) =>
+                matchedTagIds.has(row.tag_id)
+              )
+              .map((row: any) => row.item_id)
+          );
+
+          filteredCards = baseFilteredCards.filter(
+            (card: any) =>
+              matchedCardIds.has(card.id)
+          );
+        } else {
+          filteredCards = [];
+        }
+      } else {
+        filteredCards = [];
+      }
+    }
+
+    const filteredIllustrations = includeIllustrations
+      ? allIllustrations.filter((item: any) => {
+          const titleText = String(
+            item.title || ""
+          ).toLowerCase();
+          const summaryText = String(
+            item.summary || ""
+          ).toLowerCase();
+
+          const matchesQ =
+            !q ||
+            titleText.includes(q) ||
+            summaryText.includes(q);
+          const matchesYear =
+            !year ||
+            String(item.release_year || "") === year;
+          const matchesCharacter =
+            !character ||
+            item.characterKey === character;
+
+          const hasCardOnlyFilter = Boolean(
+            rarity || category || tag
+          );
+
+          return (
+            !hasCardOnlyFilter &&
+            matchesQ &&
+            matchesYear &&
+            matchesCharacter
+          );
+        })
+      : [];
+
+    const sortedCards = [...filteredCards].sort(
+      (a: any, b: any) => {
+        const aTitle = String(a.title || "");
+        const bTitle = String(b.title || "");
+
+        const aYear = Number(a.release_year || 0);
+        const bYear = Number(b.release_year || 0);
+
+        const aRelease = a.release_date
+          ? new Date(a.release_date).getTime()
+          : 0;
+        const bRelease = b.release_date
+          ? new Date(b.release_date).getTime()
+          : 0;
+
+        const aCreated = a.created_at
+          ? new Date(a.created_at).getTime()
+          : 0;
+        const bCreated = b.created_at
+          ? new Date(b.created_at).getTime()
+          : 0;
+
+        const aRarity =
+          RARITY_SORT_ORDER[
+            String(a.rarity || "").toLowerCase()
+          ] ?? -1;
+        const bRarity =
+          RARITY_SORT_ORDER[
+            String(b.rarity || "").toLowerCase()
+          ] ?? -1;
+
+        switch (sort) {
+          case "oldest":
+            return (
+              aCreated - bCreated ||
+              aRelease - bRelease ||
+              aTitle.localeCompare(bTitle, "ko")
+            );
+
+          case "year_desc":
+            return (
+              bYear - aYear ||
+              bRelease - aRelease ||
+              aTitle.localeCompare(bTitle, "ko")
+            );
+
+          case "year_asc":
+            return (
+              aYear - bYear ||
+              aRelease - bRelease ||
+              aTitle.localeCompare(bTitle, "ko")
+            );
+
+          case "title":
+            return (
+              aTitle.localeCompare(bTitle, "ko") ||
+              bYear - aYear
+            );
+
+          case "rarity":
+            return (
+              bRarity - aRarity ||
+              bYear - aYear ||
+              bRelease - aRelease ||
+              aTitle.localeCompare(bTitle, "ko")
+            );
+
+          case "latest":
+          default:
+            return (
+              bCreated - aCreated ||
+              bRelease - aRelease ||
+              bYear - aYear ||
+              aTitle.localeCompare(bTitle, "ko")
+            );
+        }
+      }
+    );
+
+    mixedArchiveItems = includeIllustrations
+      ? [
+          ...sortedCards.map((card: any) => ({
+            kind: "card" as const,
+            data: card,
+          })),
+          ...filteredIllustrations.map((item: any) => ({
+            kind: "illustration" as const,
+            data: item,
+          })),
+        ].sort((a: any, b: any) => {
+          const aData = a.data;
+          const bData = b.data;
+          const aTitle = String(aData.title || "");
+          const bTitle = String(bData.title || "");
+          const aYear = Number(aData.release_year || 0);
+          const bYear = Number(bData.release_year || 0);
+          const aRelease = aData.release_date
+            ? new Date(aData.release_date).getTime()
+            : 0;
+          const bRelease = bData.release_date
+            ? new Date(bData.release_date).getTime()
+            : 0;
+          const aCreated = aData.created_at
+            ? new Date(aData.created_at).getTime()
+            : 0;
+          const bCreated = bData.created_at
+            ? new Date(bData.created_at).getTime()
+            : 0;
+          const aRarity =
+            a.kind === "card"
+              ? RARITY_SORT_ORDER[
+                  String(
+                    aData.rarity || ""
+                  ).toLowerCase()
+                ] ?? -1
+              : -1;
+          const bRarity =
+            b.kind === "card"
+              ? RARITY_SORT_ORDER[
+                  String(
+                    bData.rarity || ""
+                  ).toLowerCase()
+                ] ?? -1
+              : -1;
+
+          switch (sort) {
+            case "oldest":
+              return (
+                aCreated - bCreated ||
+                aRelease - bRelease ||
+                aTitle.localeCompare(bTitle, "ko")
+              );
+            case "year_desc":
+              return (
+                bYear - aYear ||
+                bRelease - aRelease ||
+                aTitle.localeCompare(bTitle, "ko")
+              );
+            case "year_asc":
+              return (
+                aYear - bYear ||
+                aRelease - bRelease ||
+                aTitle.localeCompare(bTitle, "ko")
+              );
+            case "title":
+              return (
+                aTitle.localeCompare(bTitle, "ko") ||
+                bYear - aYear
+              );
+            case "rarity":
+              return (
+                bRarity - aRarity ||
+                bYear - aYear ||
+                bRelease - aRelease ||
+                aTitle.localeCompare(bTitle, "ko")
+              );
+            case "latest":
+            default:
+              return (
+                bCreated - aCreated ||
+                bRelease - aRelease ||
+                bYear - aYear ||
+                aTitle.localeCompare(bTitle, "ko")
+              );
+          }
+        })
+      : sortedCards.map((card: any) => ({
+          kind: "card" as const,
+          data: card,
+        }));
+
+    totalCount = mixedArchiveItems.length;
+    totalPages = Math.max(
+      1,
+      Math.ceil(totalCount / ITEMS_PER_PAGE)
+    );
+    currentPage = Math.min(page, totalPages);
+
+    const startIndex =
+      (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex =
+      startIndex + ITEMS_PER_PAGE;
+
+    pagedItems = mixedArchiveItems.slice(
+      startIndex,
+      endIndex
+    );
+
+    pagedCards = pagedItems
+      .filter((item: any) => item.kind === "card")
+      .map((item: any) => item.data);
+
+    optionSource = includeIllustrations
+      ? [...allCards, ...allIllustrations]
+      : allCards;
   }
-}
 
-
-const optionSource = includeIllustrations
-  ? [...allCards, ...allIllustrations]
-  : allCards;
-
-const cardListDerivativeSources = [
-  ...pagedCards.flatMap((card: any) => [
-    card.thumbnail_url,
-    card.cover_image_url,
-  ]),
-  ...Array.from(afterThumbMap.values()),
-];
-
-const cardListImageDerivatives =
-  await getImageDerivativeObject(
-    cardListDerivativeSources
+  const pagedCardIds = pagedCards.map(
+    (card: any) => card.id
   );
+  const afterThumbMap = new Map<string, string>();
 
-const yearOptions = Array.from(
-  new Set(
-    optionSource
-      .map((item: any) => item.release_year)
-      .filter(Boolean)
-      .map(String)
-  )
-).sort((a, b) => Number(b) - Number(a));
+  if (pagedCardIds.length > 0) {
+    const { data: afterThumbs } = await supabase
+      .from("media_assets")
+      .select("parent_id, url")
+      .eq("parent_type", "card")
+      .eq("media_type", "image")
+      .eq("usage_type", "thumbnail")
+      .eq("title", "evolution_after")
+      .in("parent_id", pagedCardIds);
 
-const characterOptions = Array.from(
-  new Set(optionSource.map((item: any) => item.characterKey).filter(Boolean))
-);
+    for (const item of afterThumbs ?? []) {
+      afterThumbMap.set(item.parent_id, item.url);
+    }
+  }
+
+  // Only resolve the image that is actually used as "before".
+  // The previous code queried both thumbnail_url and cover_image_url.
+  const cardListDerivativeSources = [
+    ...pagedCards
+      .map(
+        (card: any) =>
+          card.thumbnail_url ||
+          card.cover_image_url ||
+          ""
+      )
+      .filter(Boolean),
+    ...Array.from(afterThumbMap.values()),
+  ];
+
+  const cardListImageDerivatives =
+    await getImageDerivativeObject(
+      cardListDerivativeSources
+    );
+
+  const yearOptions = Array.from(
+    new Set(
+      optionSource
+        .map((item: any) => item.release_year)
+        .filter(Boolean)
+        .map(String)
+    )
+  ).sort((a, b) => Number(b) - Number(a));
+
+  const characterOptions = Array.from(
+    new Set(
+      optionSource
+        .map((item: any) => item.characterKey)
+        .filter(Boolean)
+    )
+  );
 
 const currentListParams = new URLSearchParams();
 
@@ -792,42 +1076,37 @@ function buildIllustrationToggleHref(nextEnabled: boolean) {
                 }
                 className={`card-thumb-link ${attrClass}`.trim()}
               >
-                <div
-                  className={`card-thumb-media${afterImageUrl ? " has-after" : ""}`}
-                >
-                  <div className="card-thumb-badges">
-                    <span className="card-thumb-rarity">
-                      {getRarityLabel(card.rarity)}
-                    </span>
-                  </div>
-                  {beforeImageUrl ? (
-                    <>
-                      <img
-                        src={resolveImageDerivativeUrl(beforeImageUrl, cardListImageDerivatives, "thumb")}
-                        alt={card.title}
-                        className="card-thumb-image card-thumb-image-before"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                      {afterImageUrl ? (
-                        <img
-                          src={resolveImageDerivativeUrl(afterImageUrl, cardListImageDerivatives, "thumb")}
-                          alt={`${card.title} evolution after`}
-                          className="card-thumb-image card-thumb-image-after"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      ) : null}
-                    </>
-                  ) : (
-                    <div className="story-thumb-empty">NO IMAGE</div>
+              {beforeImageUrl ? (
+                <CardThumbMedia
+                  beforeSrc={resolveImageDerivativeUrl(
+                    beforeImageUrl,
+                    cardListImageDerivatives,
+                    "thumb"
                   )}
+                  afterSrc={
+                    afterImageUrl
+                      ? resolveImageDerivativeUrl(
+                          afterImageUrl,
+                          cardListImageDerivatives,
+                          "thumb"
+                        )
+                      : ""
+                  }
+                  title={card.title}
+                />
+              ) : (
+                <div className="card-thumb-media">
+                  <div className="story-thumb-empty">NO IMAGE</div>
                   <div className="card-thumb-overlay">
                     <div className="card-thumb-overlay-inner">
-                      <h2 className="card-thumb-overlay-title">{card.title}</h2>
+                      <h2 className="card-thumb-overlay-title">
+                        {card.title}
+                      </h2>
                     </div>
                   </div>
                 </div>
+              )}
+
                 <div className="card-thumb-body card-thumb-body-minimal">
                   <span className="cards-mixed-kind">CARD</span>
                   <h2 className="card-thumb-visible-title">{card.title}</h2>
@@ -847,7 +1126,7 @@ function buildIllustrationToggleHref(nextEnabled: boolean) {
       </div>
     ) : (
       <ul className="card-thumb-grid">
-        {pagedCards.map((card: any) => {
+        {pagedCards.map((card: any, index: number) => {
           const beforeImageUrl =
             card.thumbnail_url || card.cover_image_url || "";
           const afterImageUrl = afterThumbMap.get(card.id) || "";
@@ -863,45 +1142,43 @@ function buildIllustrationToggleHref(nextEnabled: boolean) {
                 }
                 className={`card-thumb-link ${attrClass}`.trim()}
               >
-                <div
-                  className={`card-thumb-media${
-                    afterImageUrl ? " has-after" : ""
-                  }`}
-                >
-                  <div className="card-thumb-badges">
-                    <span className="card-thumb-rarity">
-                      {getRarityLabel(card.rarity)}
-                    </span>
-                  </div>
-                  {beforeImageUrl ? (
-                    <>
-                      <img
-                        src={resolveImageDerivativeUrl(beforeImageUrl, cardListImageDerivatives, "thumb")}
-                        alt={card.title}
-                        className="card-thumb-image card-thumb-image-before"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                      {afterImageUrl ? (
-                        <img
-                          src={resolveImageDerivativeUrl(afterImageUrl, cardListImageDerivatives, "thumb")}
-                          alt={`${card.title} evolution after`}
-                          className="card-thumb-image card-thumb-image-after"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      ) : null}
-                    </>
-                  ) : (
+                {beforeImageUrl ? (
+                  <CardThumbMedia
+                    beforeSrc={resolveImageDerivativeUrl(
+                      beforeImageUrl,
+                      cardListImageDerivatives,
+                      "thumb"
+                    )}
+                    afterSrc={
+                      afterImageUrl
+                        ? resolveImageDerivativeUrl(
+                            afterImageUrl,
+                            cardListImageDerivatives,
+                            "thumb"
+                          )
+                        : ""
+                    }
+                    title={card.title}
+                    badge={getRarityLabel(card.rarity)}
+                    eager={index < 4}
+                  />
+                ) : (
+                  <div className="card-thumb-media">
+                    <div className="card-thumb-badges">
+                      <span className="card-thumb-rarity">
+                        {getRarityLabel(card.rarity)}
+                      </span>
+                    </div>
                     <div className="story-thumb-empty">NO IMAGE</div>
-                  )}
-
-                  <div className="card-thumb-overlay">
-                    <div className="card-thumb-overlay-inner">
-                      <h2 className="card-thumb-overlay-title">{card.title}</h2>
+                    <div className="card-thumb-overlay">
+                      <div className="card-thumb-overlay-inner">
+                        <h2 className="card-thumb-overlay-title">
+                          {card.title}
+                        </h2>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 <div className="card-thumb-body card-thumb-body-minimal">
                   <h2 className="card-thumb-visible-title">{card.title}</h2>
