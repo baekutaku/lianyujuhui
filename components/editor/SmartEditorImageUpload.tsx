@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { uploadImageBundle } from "@/lib/media/client-r2-image-bundle";
 
 type Props = {
   disabled?: boolean;
@@ -13,36 +14,17 @@ async function uploadEditorImage(file: File) {
   if (!file.type.startsWith("image/")) {
     throw new Error(`${file.name}: 이미지 파일이 아닙니다.`);
   }
+
   if (file.size > MAX_FILE_SIZE) {
     throw new Error(`${file.name}: 30MB 이하 이미지만 가능합니다.`);
   }
 
-  const presignResponse = await fetch("/api/admin/r2/editor-presign", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      fileName: file.name,
-      contentType: file.type,
-      fileSize: file.size,
-    }),
+  const result = await uploadImageBundle({
+    file,
+    presignEndpoint: "/api/admin/r2/editor-presign",
   });
 
-  const data = await presignResponse.json();
-  if (!presignResponse.ok) {
-    throw new Error(data?.error || `${file.name}: 업로드 준비 실패`);
-  }
-
-  const uploadResponse = await fetch(data.uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
-  });
-
-  if (!uploadResponse.ok) {
-    throw new Error(`${file.name}: R2 업로드 실패 (${uploadResponse.status})`);
-  }
-
-  return String(data.publicUrl || "").trim();
+  return result.storedUrl;
 }
 
 export default function SmartEditorImageUpload({ disabled = false, onUploaded }: Props) {

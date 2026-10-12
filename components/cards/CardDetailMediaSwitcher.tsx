@@ -28,6 +28,16 @@ type Pan = {
   y: number;
 };
 
+type MainMode = "before" | "after" | "gallery";
+
+type ViewerItem = {
+  key: string;
+  url: string;
+  label: string;
+  kind: "before" | "after" | "extra";
+  extraIndex?: number;
+};
+
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 
@@ -56,9 +66,12 @@ export default function CardDetailMediaSwitcher({
 
   const hasAfter = Boolean(media.afterCover || media.afterThumb);
 
-  const [mode, setMode] = useState<"before" | "after" | "gallery">("before");
+  const [mode, setMode] = useState<MainMode>("before");
   const [galleryUrl, setGalleryUrl] = useState("");
+
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Pan>({ x: 0, y: 0 });
 
@@ -78,6 +91,7 @@ export default function CardDetailMediaSwitcher({
     for (const item of media.gallery ?? []) {
       const url = String(item?.url || "").trim();
       if (!url || seen.has(url)) continue;
+
       seen.add(url);
       result.push({ ...item, url });
     }
@@ -85,9 +99,57 @@ export default function CardDetailMediaSwitcher({
     return result;
   }, [media.gallery]);
 
-  const extraGallery = gallery.filter(
-    (item) => item.url !== beforeUrl && item.url !== afterUrl
+  const extraGallery = useMemo(
+    () =>
+      gallery.filter(
+        (item) => item.url !== beforeUrl && item.url !== afterUrl
+      ),
+    [gallery, beforeUrl, afterUrl]
   );
+
+  /*
+    상세 페이지 UI에서는 진화 전/후와 기타 이미지를 분리해서 보여주되,
+    돋보기 안에서는 이 카드의 모든 이미지를 하나의 순서로 이어 본다.
+  */
+  const viewerItems = useMemo(() => {
+    const seen = new Set<string>();
+    const items: ViewerItem[] = [];
+
+    if (beforeUrl && !seen.has(beforeUrl)) {
+      seen.add(beforeUrl);
+      items.push({
+        key: "before",
+        url: beforeUrl,
+        label: "진화 전",
+        kind: "before",
+      });
+    }
+
+    if (hasAfter && afterUrl && !seen.has(afterUrl)) {
+      seen.add(afterUrl);
+      items.push({
+        key: "after",
+        url: afterUrl,
+        label: "진화 후",
+        kind: "after",
+      });
+    }
+
+    extraGallery.forEach((item, index) => {
+      if (!item.url || seen.has(item.url)) return;
+
+      seen.add(item.url);
+      items.push({
+        key: `extra-${item.id || index}`,
+        url: item.url,
+        label: `추가 이미지 ${index + 1}`,
+        kind: "extra",
+        extraIndex: index,
+      });
+    });
+
+    return items;
+  }, [beforeUrl, afterUrl, hasAfter, extraGallery]);
 
   const imageUrl =
     mode === "gallery" && galleryUrl
@@ -96,10 +158,8 @@ export default function CardDetailMediaSwitcher({
         ? afterUrl
         : beforeUrl;
 
-  const activeExtraIndex = Math.max(
-    0,
-    extraGallery.findIndex((item) => item.url === galleryUrl)
-  );
+  const viewerItem = viewerItems[viewerIndex] ?? null;
+  const viewerUrl = viewerItem?.url || "";
 
   function resetViewerTransform() {
     setZoom(1);
@@ -112,20 +172,101 @@ export default function CardDetailMediaSwitcher({
     resetViewerTransform();
   }
 
-  function moveViewer(direction: -1 | 1) {
-    if (!extraGallery.length) return;
+  function showBefore() {
+    setMode("before");
+    setGalleryUrl("");
+  }
 
-    const currentIndex = Math.max(
-      0,
-      extraGallery.findIndex((item) => item.url === galleryUrl)
+  function showAfter() {
+    setMode("after");
+    setGalleryUrl("");
+  }
+
+  function selectExtra(url: string) {
+    setGalleryUrl(url);
+    setMode("gallery");
+  }
+
+  function openViewer() {
+    if (!imageUrl || viewerItems.length === 0) return;
+
+    const index = viewerItems.findIndex(
+      (item) => item.url === imageUrl
     );
 
-    const nextIndex =
-      (currentIndex + direction + extraGallery.length) % extraGallery.length;
-
-    setGalleryUrl(extraGallery[nextIndex].url);
-    setMode("gallery");
+    setViewerIndex(index >= 0 ? index : 0);
     resetViewerTransform();
+    setViewerOpen(true);
+  }
+
+  function moveViewer(direction: -1 | 1) {
+    if (viewerItems.length <= 1) return;
+
+    setViewerIndex((current) => {
+      return (
+        (current + direction + viewerItems.length) %
+        viewerItems.length
+      );
+    });
+
+    resetViewerTransform();
+  }
+
+  function changeZoom(nextZoom: number) {
+    const clamped = clampZoom(nextZoom);
+    setZoom(clamped);
+
+    if (clamped === 1) {
+      setPan({ x: 0, y: 0 });
+    }
+  }
+
+  function handleWheel(event: ReactWheelEvent<HTMLDivElement>) {
+    event.preventDefault();
+    changeZoom(zoom + (event.deltaY < 0 ? 0.2 : -0.2));
+  }
+
+  function handlePointerDown(
+    event: ReactPointerEvent<HTMLDivElement>
+  ) {
+    if (zoom <= 1) return;
+
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      panX: pan.x,
+      panY: pan.y,
+    };
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerMove(
+    event: ReactPointerEvent<HTMLDivElement>
+  ) {
+    const drag = dragRef.current;
+
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    setPan({
+      x: drag.panX + (event.clientX - drag.startX),
+      y: drag.panY + (event.clientY - drag.startY),
+    });
+  }
+
+  function endPointer(
+    event: ReactPointerEvent<HTMLDivElement>
+  ) {
+    const drag = dragRef.current;
+
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    dragRef.current = null;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   }
 
   useEffect(() => {
@@ -159,116 +300,83 @@ export default function CardDetailMediaSwitcher({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [viewerOpen, galleryUrl, extraGallery.length]);
+  }, [viewerOpen, viewerItems.length]);
 
   if (!imageUrl) {
-    return <div className="empty-box">등록된 카드 이미지가 없습니다.</div>;
-  }
-
-  function showBefore() {
-    setMode("before");
-    setGalleryUrl("");
-    closeViewer();
-  }
-
-  function showAfter() {
-    setMode("after");
-    setGalleryUrl("");
-    closeViewer();
-  }
-
-  function selectExtra(url: string) {
-    setGalleryUrl(url);
-    setMode("gallery");
-    closeViewer();
-  }
-
-  function openViewer() {
-    if (mode !== "gallery" || !galleryUrl) return;
-    resetViewerTransform();
-    setViewerOpen(true);
-  }
-
-  function changeZoom(nextZoom: number) {
-    const clamped = clampZoom(nextZoom);
-    setZoom(clamped);
-
-    if (clamped === 1) {
-      setPan({ x: 0, y: 0 });
-    }
-  }
-
-  function handleWheel(event: ReactWheelEvent<HTMLDivElement>) {
-    event.preventDefault();
-
-    const delta = event.deltaY < 0 ? 0.2 : -0.2;
-    changeZoom(zoom + delta);
-  }
-
-  function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (zoom <= 1) return;
-
-    dragRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      panX: pan.x,
-      panY: pan.y,
-    };
-
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-
-    setPan({
-      x: drag.panX + (event.clientX - drag.startX),
-      y: drag.panY + (event.clientY - drag.startY),
-    });
-  }
-
-  function endPointer(event: ReactPointerEvent<HTMLDivElement>) {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-
-    dragRef.current = null;
-
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
+    return (
+      <div className="empty-box">
+        등록된 카드 이미지가 없습니다.
+      </div>
+    );
   }
 
   return (
     <div className="card-detail-media-shell">
-      {hasAfter ? (
-        <div className="card-detail-media-tabs">
+      <div className="card-detail-media-toolbar">
+        <div className="card-detail-media-toolbar-tabs">
+          {hasAfter ? (
+            <>
+              <button
+                type="button"
+                className={`card-detail-tab ${
+                  mode === "before" ? "is-active" : ""
+                }`}
+                onClick={showBefore}
+              >
+                진화 전
+              </button>
+
+              <button
+                type="button"
+                className={`card-detail-tab ${
+                  mode === "after" ? "is-active" : ""
+                }`}
+                onClick={showAfter}
+              >
+                진화 후
+              </button>
+            </>
+          ) : (
+            <span className="card-detail-media-toolbar-label">
+              카드 이미지
+            </span>
+          )}
+        </div>
+
+        <div className="card-detail-media-toolbar-actions">
           <button
             type="button"
-            className={`card-detail-tab ${
-              mode === "before" ? "is-active" : ""
-            }`}
-            onClick={showBefore}
+            className="card-detail-image-zoom-button"
+            onClick={openViewer}
+            aria-label="이미지 확대"
+            title="확대 보기"
           >
-            진화 전
+            <span className="material-symbols-rounded">
+              zoom_in
+            </span>
           </button>
 
-          <button
-            type="button"
-            className={`card-detail-tab ${
-              mode === "after" ? "is-active" : ""
-            }`}
-            onClick={showAfter}
+          <a
+            href={imageUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="card-detail-image-original-button"
+            aria-label="원본 이미지 새 탭에서 보기"
+            title="원본 보기"
           >
-            진화 후
-          </button>
+            <span className="material-symbols-rounded">
+              open_in_new
+            </span>
+            <span>원본 보기</span>
+          </a>
         </div>
-      ) : null}
+      </div>
 
       <div
         className={`card-detail-media-frame${
-          mode === "gallery" ? " is-extra-image" : ""
+          mode === "gallery"
+            ? " is-extra-image"
+            : " is-card-image"
         }`}
       >
         <img
@@ -276,24 +384,17 @@ export default function CardDetailMediaSwitcher({
           alt={
             mode === "gallery"
               ? `${media.title} 추가 이미지`
-              : `${media.title} ${mode === "after" ? "진화 후" : "진화 전"}`
+              : `${media.title} ${
+                  mode === "after" ? "진화 후" : "진화 전"
+                }`
           }
           className={`card-detail-main-image${
-            mode === "gallery" ? " is-extra-image" : ""
+            mode === "gallery"
+              ? " is-extra-image"
+              : " is-card-image"
           }`}
+          decoding="async"
         />
-
-        {mode === "gallery" && galleryUrl ? (
-          <button
-            type="button"
-            className="card-detail-image-zoom-button"
-            onClick={openViewer}
-            aria-label="이미지 크게 보기"
-            title="크게 보기"
-          >
-            <span className="material-symbols-rounded">zoom_in</span>
-          </button>
-        ) : null}
       </div>
 
       {extraGallery.length > 0 ? (
@@ -306,7 +407,8 @@ export default function CardDetailMediaSwitcher({
           >
             {extraGallery.map((item, index) => {
               const active =
-                mode === "gallery" && galleryUrl === item.url;
+                mode === "gallery" &&
+                galleryUrl === item.url;
 
               return (
                 <button
@@ -316,11 +418,18 @@ export default function CardDetailMediaSwitcher({
                     active ? " is-active" : ""
                   }`}
                   onClick={() => selectExtra(item.url)}
-                  aria-label={`${media.title} 추가 이미지 ${index + 1}`}
+                  aria-label={`${media.title} 추가 이미지 ${
+                    index + 1
+                  }`}
                   aria-pressed={active}
                   role="listitem"
                 >
-                  <img src={item.url} alt="" />
+                  <img
+                    src={item.url}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </button>
               );
             })}
@@ -342,7 +451,7 @@ export default function CardDetailMediaSwitcher({
           }
         }}
       >
-        {galleryUrl ? (
+        {viewerUrl ? (
           <>
             <button
               type="button"
@@ -350,10 +459,12 @@ export default function CardDetailMediaSwitcher({
               onClick={closeViewer}
               aria-label="닫기"
             >
-              <span className="material-symbols-rounded">close</span>
+              <span className="material-symbols-rounded">
+                close
+              </span>
             </button>
 
-            {extraGallery.length > 1 ? (
+            {viewerItems.length > 1 ? (
               <>
                 <button
                   type="button"
@@ -388,11 +499,15 @@ export default function CardDetailMediaSwitcher({
               onPointerMove={handlePointerMove}
               onPointerUp={endPointer}
               onPointerCancel={endPointer}
-              onDoubleClick={() => changeZoom(zoom > 1 ? 1 : 2)}
+              onDoubleClick={() =>
+                changeZoom(zoom > 1 ? 1 : 2)
+              }
             >
               <img
-                src={galleryUrl}
-                alt={`${media.title} 추가 이미지 확대`}
+                src={viewerUrl}
+                alt={`${media.title} ${
+                  viewerItem?.label || "원본 이미지"
+                }`}
                 draggable={false}
                 style={{
                   transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
@@ -401,6 +516,18 @@ export default function CardDetailMediaSwitcher({
             </div>
 
             <div className="card-image-viewer-toolbar">
+              <a
+                href={viewerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="card-image-viewer-original"
+              >
+                <span className="material-symbols-rounded">
+                  open_in_new
+                </span>
+                <span>원본</span>
+              </a>
+
               <button
                 type="button"
                 onClick={() => changeZoom(zoom - 0.25)}
@@ -437,12 +564,15 @@ export default function CardDetailMediaSwitcher({
             </div>
 
             <div className="card-image-viewer-hint">
-              {extraGallery.length > 1 ? (
-                <span>
-                  {activeExtraIndex + 1} / {extraGallery.length}
-                </span>
-              ) : null}
-              <span>휠 확대 · 확대 후 드래그 이동 · 더블클릭</span>
+              <span>
+                {viewerIndex + 1} / {viewerItems.length}
+                {" · "}
+                {viewerItem?.label || "이미지"}
+              </span>
+
+              <span>
+                원본 비율 · 휠 확대 · 확대 후 드래그 · 더블클릭
+              </span>
             </div>
           </>
         ) : null}

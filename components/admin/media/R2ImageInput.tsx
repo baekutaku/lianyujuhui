@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { uploadImageBundle } from "@/lib/media/client-r2-image-bundle";
 
 type R2ImageInputProps = {
   name: string;
@@ -41,40 +42,13 @@ export default function R2ImageInput({
     setUploading(true);
 
     try {
-      const presignResponse = await fetch("/api/admin/r2/presign", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          contentType: file.type,
-          fileSize: file.size,
-          scope,
-        }),
+      const result = await uploadImageBundle({
+        file,
+        scope,
+        presignEndpoint: "/api/admin/r2/presign",
       });
 
-      const presignData = await presignResponse.json();
-
-      if (!presignResponse.ok) {
-        throw new Error(presignData?.error || "업로드 준비에 실패했습니다.");
-      }
-
-      const uploadResponse = await fetch(presignData.uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type,
-        },
-        body: file,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error(
-          `Cloudflare R2 업로드 실패 (${uploadResponse.status})`
-        );
-      }
-
-      setValue(presignData.publicUrl);
+      setValue(result.storedUrl);
     } catch (uploadError) {
       setError(
         uploadError instanceof Error

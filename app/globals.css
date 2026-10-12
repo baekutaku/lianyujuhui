@@ -16672,3 +16672,391 @@ dialog.card-image-viewer-dialog.card-image-viewer {
 
 /* SMARTEDITOR R2 IMAGE UPLOAD · 2026-10-12 */
 .smarteditor-image-tools{display:grid;gap:6px;margin:0 0 8px}.smarteditor-image-file{display:none}.smarteditor-image-drop{display:flex;align-items:center;gap:10px;min-height:42px;padding:5px 7px;border:1px dashed rgba(194,180,202,.72);border-radius:12px;background:linear-gradient(135deg,rgba(250,245,251,.76),rgba(241,248,252,.76));transition:border-color .15s ease,background .15s ease}.smarteditor-image-drop.is-dragging{border-color:rgba(199,132,190,.98);background:linear-gradient(135deg,rgba(248,226,243,.94),rgba(230,244,252,.94))}.smarteditor-image-button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:31px;padding:0 11px;border:1px solid rgba(214,198,219,.9);border-radius:999px;background:rgba(255,255,255,.94);color:#806f83;font-size:10px;font-weight:900;cursor:pointer}.smarteditor-image-button:disabled{opacity:.5;cursor:wait}.smarteditor-image-button .material-symbols-rounded{font-size:15px}.smarteditor-image-help{color:#a095a2;font-size:9px}.smarteditor-image-error{margin:0;white-space:pre-wrap;color:#bd6673;font-size:9px;font-weight:700}@media(max-width:620px){.smarteditor-image-drop{align-items:stretch;flex-direction:column}.smarteditor-image-button{width:100%}}
+
+
+/* CARD DETAIL ORIGINAL VIEW + ZOOM ALL · 2026-10-12 */
+
+.card-detail-image-actions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.card-detail-image-actions .card-detail-image-zoom-button {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+}
+
+.card-detail-image-original-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid rgba(219, 209, 224, 0.88);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #806f83;
+  box-shadow: 0 6px 18px rgba(87, 69, 91, 0.12);
+  backdrop-filter: blur(10px);
+  font-size: 9px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.card-detail-image-original-button:hover {
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.card-detail-image-original-button .material-symbols-rounded {
+  font-size: 16px;
+}
+
+.card-image-viewer-original {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.94);
+  text-decoration: none;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.card-image-viewer-original .material-symbols-rounded {
+  font-size: 15px;
+}
+
+@media (max-width: 620px) {
+  .card-detail-image-actions {
+    top: 9px;
+    right: 9px;
+    gap: 5px;
+  }
+
+  .card-detail-image-original-button {
+    min-height: 33px;
+    padding: 0 9px;
+  }
+
+  .card-detail-image-original-button > span:last-child {
+    display: none;
+  }
+}
+
+
+/* CARD VIEWER SEPARATION + TOOLBAR FIX · 2026-10-12 */
+
+/*
+  상단 컨트롤은 이미지 위에 overlay하지 않는다.
+  카드 얼굴/그림을 가리지 않게 프레임 바깥 독립 toolbar로 배치.
+*/
+.card-detail-media-toolbar {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  margin-bottom: 4px;
+}
+
+.card-detail-media-toolbar-tabs,
+.card-detail-media-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.card-detail-media-toolbar-tabs {
+  min-width: 0;
+}
+
+.card-detail-media-toolbar-actions {
+  flex: 0 0 auto;
+}
+
+.card-detail-media-toolbar-label {
+  padding: 0 4px;
+  color: #8b7c8f;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/*
+  과거 absolute overlay 규칙을 무력화.
+*/
+.card-detail-media-toolbar .card-detail-image-zoom-button,
+.card-detail-media-toolbar .card-detail-image-original-button {
+  position: static !important;
+  inset: auto !important;
+  margin: 0 !important;
+}
+
+.card-detail-media-toolbar .card-detail-image-zoom-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(219, 209, 224, 0.88);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #806f83;
+  cursor: pointer;
+  box-shadow: 0 5px 16px rgba(87, 69, 91, 0.08);
+}
+
+.card-detail-media-toolbar .card-detail-image-original-button {
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+/*
+  진화 전/후 카드만 기존 카드 비율 유지.
+*/
+.card-detail-media-frame.is-card-image .card-detail-main-image.is-card-image {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+}
+
+/*
+  기타 이미지는 카드 비율을 강제로 상속하지 않는다.
+  원본 비율 그대로 contain.
+*/
+.card-detail-media-frame.is-extra-image {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  max-height: 72vh;
+  overflow: hidden;
+  background: rgba(238, 242, 247, 0.82);
+}
+
+.card-detail-media-frame.is-extra-image .card-detail-main-image.is-extra-image {
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 72vh !important;
+  aspect-ratio: auto !important;
+  object-fit: contain !important;
+}
+
+/*
+  기타 이미지 썸네일도 임의 비율을 자르지 않음.
+*/
+.card-detail-extra-thumb {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: rgba(243, 245, 248, 0.92);
+}
+
+.card-detail-extra-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain !important;
+}
+
+/*
+  확대창은 어떤 aspect-ratio도 고정하지 않는다.
+  세로/가로/초광폭/긴 캡처 모두 viewport 안에서 원본 비율로 맞춤.
+*/
+dialog.card-image-viewer-dialog[open] {
+  grid-template-rows: minmax(0, 1fr) auto auto !important;
+}
+
+.card-image-viewer-stage {
+  position: relative;
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  aspect-ratio: auto !important;
+  overflow: hidden !important;
+  touch-action: none;
+}
+
+.card-image-viewer-stage img {
+  display: block;
+  width: auto !important;
+  height: auto !important;
+  max-width: calc(100vw - 120px) !important;
+  max-height: calc(100dvh - 150px) !important;
+  aspect-ratio: auto !important;
+  object-fit: contain !important;
+  transform-origin: center center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/*
+  이전/다음은 오직 기타 이미지 viewer에서만 렌더링됨.
+  진화 전/후 viewer에는 DOM 자체가 생성되지 않는다.
+*/
+
+@media (max-width: 620px) {
+  .card-detail-media-toolbar {
+    gap: 6px;
+  }
+
+  .card-detail-media-toolbar-actions {
+    gap: 5px;
+  }
+
+  .card-detail-media-toolbar .card-detail-image-original-button > span:last-child {
+    display: none;
+  }
+
+  .card-image-viewer-stage img {
+    max-width: calc(100vw - 32px) !important;
+    max-height: calc(100dvh - 140px) !important;
+  }
+}
+
+
+/* CARD VIEWER UNIFIED NAVIGATION · 2026-10-12 */
+
+/*
+  상세 페이지의 버튼/탭은 이미지 위에 올리지 않는다.
+*/
+.card-detail-media-toolbar {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  margin-bottom: 4px;
+}
+
+.card-detail-media-toolbar-tabs,
+.card-detail-media-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.card-detail-media-toolbar-actions {
+  flex: 0 0 auto;
+}
+
+.card-detail-media-toolbar .card-detail-image-zoom-button,
+.card-detail-media-toolbar .card-detail-image-original-button {
+  position: static !important;
+  inset: auto !important;
+  margin: 0 !important;
+}
+
+.card-detail-media-toolbar .card-detail-image-zoom-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(219, 209, 224, 0.88);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #806f83;
+  cursor: pointer;
+}
+
+/* 카드 이미지는 기존 카드 비율 유지 */
+.card-detail-media-frame.is-card-image
+.card-detail-main-image.is-card-image {
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+}
+
+/* 기타 이미지는 각자의 원본 비율 유지 */
+.card-detail-media-frame.is-extra-image {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  max-height: 72vh;
+  overflow: hidden;
+}
+
+.card-detail-media-frame.is-extra-image
+.card-detail-main-image.is-extra-image {
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: 72vh !important;
+  aspect-ratio: auto !important;
+  object-fit: contain !important;
+}
+
+.card-detail-extra-thumb img {
+  object-fit: contain !important;
+}
+
+/*
+  돋보기에서는 이미지 종류와 관계없이
+  각 이미지 고유 비율 그대로 표시.
+*/
+dialog.card-image-viewer-dialog[open] {
+  grid-template-rows:
+    minmax(0, 1fr) auto auto !important;
+}
+
+.card-image-viewer-stage {
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  aspect-ratio: auto !important;
+  overflow: hidden !important;
+  touch-action: none;
+}
+
+.card-image-viewer-stage img {
+  display: block;
+  width: auto !important;
+  height: auto !important;
+  max-width: calc(100vw - 120px) !important;
+  max-height: calc(100dvh - 150px) !important;
+  aspect-ratio: auto !important;
+  object-fit: contain !important;
+  transform-origin: center center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+@media (max-width: 620px) {
+  .card-detail-media-toolbar {
+    gap: 6px;
+  }
+
+  .card-detail-media-toolbar-actions {
+    gap: 5px;
+  }
+
+  .card-detail-media-toolbar
+  .card-detail-image-original-button
+  > span:last-child {
+    display: none;
+  }
+
+  .card-image-viewer-stage img {
+    max-width: calc(100vw - 32px) !important;
+    max-height: calc(100dvh - 140px) !important;
+  }
+}
