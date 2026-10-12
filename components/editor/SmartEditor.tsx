@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import SmartEditorImageUpload from "@/components/editor/SmartEditorImageUpload";
 
 declare global {
   interface Window {
@@ -243,6 +244,8 @@ export default function SmartEditor({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const editorObjRef = useRef<any[]>([]);
   const initializedRef = useRef(false);
+  const submittingRef = useRef(false);
+  const initialSeedDoneRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [previewMode, setPreviewMode] = useState<PreviewMode>("pc");
@@ -250,6 +253,24 @@ export default function SmartEditor({
   const reactId = useId();
   const editorId = `smarteditor_${reactId.replace(/[:]/g, "_")}`;
   const resolvedHeight = normalizeHeight(height);
+
+  function insertUploadedImages(urls: string[]) {
+    const editor = editorObjRef.current?.[0];
+    if (!editor || urls.length === 0) return;
+
+    const imageHtml = urls.map((url) => {
+      const safeUrl = String(url).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      return `<p><img src="${safeUrl}" alt="" style="max-width:100%;height:auto;" /></p>`;
+    }).join("");
+
+    try {
+      editor.exec("FOCUS", []);
+      editor.exec("PASTE_HTML", [imageHtml]);
+      editor.exec("UPDATE_CONTENTS_FIELD", []);
+    } catch (error) {
+      console.error("[SmartEditor] image insert failed", error);
+    }
+  }
 
   useEffect(() => {
     let disposed = false;
@@ -292,8 +313,9 @@ export default function SmartEditor({
               try {
                 const seedHtml = textareaRef.current?.value || initialValue;
 
-                if (seedHtml) {
-                  editor.exec("PASTE_HTML", [seedHtml]);
+                if (seedHtml && !initialSeedDoneRef.current) {
+                  initialSeedDoneRef.current = true;
+                  editor.exec("SET_IR", [seedHtml]);
                   editor.exec("UPDATE_CONTENTS_FIELD", []);
                 }
 
@@ -378,6 +400,8 @@ export default function SmartEditor({
     if (!form) return;
 
     const handleSubmit = () => {
+      submittingRef.current = true;
+
       const editor = editorObjRef.current?.[0];
       if (!editor) return;
 
@@ -396,13 +420,20 @@ export default function SmartEditor({
     if (!ready || failed) return;
 
     const intervalId = window.setInterval(() => {
+      if (submittingRef.current) return;
+
+      const wrapper = wrapperRef.current;
+      if (!wrapper || !wrapper.isConnected) return;
+
       const editor = editorObjRef.current?.[0];
       if (!editor) return;
 
       try {
         editor.exec("UPDATE_CONTENTS_FIELD", []);
       } catch (error) {
-        console.error("[SmartEditor] autosync failed", error);
+        if (!submittingRef.current) {
+          console.error("[SmartEditor] autosync failed", error);
+        }
       }
     }, autosyncMs);
 
@@ -485,6 +516,10 @@ export default function SmartEditor({
           SmartEditor 초기화 실패. textarea로 입력하세요.
         </p>
       )}
+
+      {ready && !failed ? (
+        <SmartEditorImageUpload onUploaded={insertUploadedImages} />
+      ) : null}
 
       <div className="story-rich-editor-shell">
         <textarea
