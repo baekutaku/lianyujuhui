@@ -6,6 +6,7 @@ import { deleteCard } from "@/app/admin/actions";
 import CardDetailMediaSwitcher from "@/components/cards/CardDetailMediaSwitcher";
 import CardConnectedContent from "@/components/cards/CardConnectedContent";
 import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
+import { getImageDerivativeObject } from "@/lib/media/image-derivative-server";
 
 type PageProps = {
   params: Promise<{
@@ -467,6 +468,14 @@ export default async function CardDetailPage({
     mediaRows?.find(
       (item) => item.usage_type === "cover" && item.title === "evolution_after"
     )?.url || null;
+
+  const cardDetailImageDerivatives =
+    await getImageDerivativeObject([
+      beforeThumb,
+      afterThumb,
+      beforeCover,
+      afterCover,
+    ]);
 
   const { data: tagRows } = await supabase
     .from("item_tags")

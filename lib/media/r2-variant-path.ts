@@ -1,116 +1,75 @@
-export type R2ImageVariant = "display" | "thumb";
+import {
+  canonicalImageSource,
+  hasLegacyVariantMarker,
+  isGeneratedDerivativeUrl,
+  publicObjectUrl,
+  stableImageSourceId,
+  variantObjectKey,
+  type ImageVariantKind,
+} from "@/lib/media/image-source";
 
-const VARIANT_MARKER = "r2v";
+/*
+  Compatibility layer for the earlier ?r2v=1 implementation.
+  New code must keep source URLs clean and use image_derivatives.
+*/
 
-function hashA(value: string) {
-  let hash = 0x811c9dc5;
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193);
-  }
-
-  return hash >>> 0;
-}
-
-function hashB(value: string) {
-  let hash = 0x9e3779b9;
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index) + index;
-    hash = Math.imul(hash, 0x85ebca6b);
-    hash ^= hash >>> 13;
-  }
-
-  return hash >>> 0;
-}
-
-function hex32(value: number) {
-  return value.toString(16).padStart(8, "0");
-}
+export type R2ImageVariant = ImageVariantKind;
 
 export function stripVariantMarker(
   src: string | null | undefined
 ) {
-  const value = String(src || "").trim();
-  if (!value) return "";
-
-  try {
-    const url = new URL(value);
-    url.searchParams.delete(VARIANT_MARKER);
-    return url.toString();
-  } catch {
-    return value;
-  }
+  return canonicalImageSource(src);
 }
 
 export function hasVariantMarker(
   src: string | null | undefined
 ) {
-  const value = String(src || "").trim();
-  if (!value) return false;
-
-  try {
-    return new URL(value).searchParams.get(VARIANT_MARKER) === "1";
-  } catch {
-    return false;
-  }
+  return hasLegacyVariantMarker(src);
 }
 
 export function markVariantReady(
   src: string | null | undefined
 ) {
-  const value = stripVariantMarker(src);
-  if (!value) return "";
-
-  try {
-    const url = new URL(value);
-    url.searchParams.set(VARIANT_MARKER, "1");
-    return url.toString();
-  } catch {
-    return value;
-  }
+  // Deprecated: never add implementation-state query params to content URLs.
+  return canonicalImageSource(src);
 }
 
 export function stableVariantId(
   src: string | null | undefined
 ) {
-  const value = stripVariantMarker(src);
-  return `${hex32(hashA(value))}${hex32(hashB(value))}`;
+  return stableImageSourceId(src);
 }
 
 export function r2VariantUrl(
   src: string | null | undefined,
-  variant: R2ImageVariant
+  variant: R2ImageVariant,
+  publicBaseUrl?: string
 ) {
-  const value = String(src || "").trim();
-  if (!value || !hasVariantMarker(value)) return "";
+  const source = canonicalImageSource(src);
+  if (!source) return "";
 
-  try {
-    const original = new URL(stripVariantMarker(value));
-    const id = stableVariantId(original.toString());
+  let base = String(publicBaseUrl || "").trim();
 
-    original.pathname = `/.variants/${id}/${variant}.webp`;
-    original.search = "";
-    original.hash = "";
+  if (!base) {
+    const configured =
+      typeof process !== "undefined"
+        ? process.env.R2_PUBLIC_BASE_URL ||
+          process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
+          ""
+        : "";
 
-    return original.toString();
-  } catch {
-    return "";
+    base = String(configured).trim();
   }
+
+  if (!base) {
+    try {
+      base = new URL(source).origin;
+    } catch {
+      return "";
+    }
+  }
+
+  return publicObjectUrl(base, variantObjectKey(source, variant));
 }
 
-export function isGeneratedVariantUrl(
-  src: string | null | undefined
-) {
-  const value = String(src || "").trim();
-  if (!value) return false;
-
-  try {
-    return /\/\.variants\/[a-f0-9]{16}\/(?:display|thumb)\.webp$/i.test(
-      new URL(value).pathname
-    );
-  } catch {
-    return false;
-  }
-}
+export { isGeneratedDerivativeUrl as isGeneratedVariantUrl };

@@ -1,9 +1,8 @@
 "use client";
 
 import {
-  markVariantReady,
-  stripVariantMarker,
-} from "@/lib/media/r2-variant-path";
+  canonicalImageSource,
+} from "@/lib/media/image-source";
 
 type UploadImageBundleOptions = {
   file: File;
@@ -79,24 +78,28 @@ async function requestVariantPresign(params: {
   variant: "display" | "thumb";
   fileSize: number;
 }) {
-  const response = await fetch("/api/admin/r2/variant-presign", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      sourceUrl: params.sourceUrl,
-      variant: params.variant,
-      fileSize: params.fileSize,
-      contentType: "image/webp",
-    }),
-  });
+  const response = await fetch(
+    "/api/admin/r2/variant-presign",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sourceUrl: params.sourceUrl,
+        variant: params.variant,
+        fileSize: params.fileSize,
+        contentType: "image/webp",
+      }),
+    }
+  );
 
   const data = await response.json();
 
   if (!response.ok) {
     throw new Error(
-      data?.error || `${params.variant} 파생 이미지 업로드 준비 실패`
+      data?.error ||
+        `${params.variant} 파생 이미지 업로드 준비 실패`
     );
   }
 
@@ -104,6 +107,47 @@ async function requestVariantPresign(params: {
     uploadUrl: string;
     publicUrl: string;
   };
+}
+
+async function registerDerivative(params: {
+  sourceUrl: string;
+  displayUrl: string;
+  thumbUrl: string;
+  file: File;
+  width: number;
+  height: number;
+  displayBytes: number;
+  thumbBytes: number;
+}) {
+  const response = await fetch(
+    "/api/admin/r2/register-derivative",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sourceUrl: params.sourceUrl,
+        mirroredOriginalUrl: params.sourceUrl,
+        displayUrl: params.displayUrl,
+        thumbUrl: params.thumbUrl,
+        contentType: params.file.type,
+        width: params.width,
+        height: params.height,
+        originalBytes: params.file.size,
+        displayBytes: params.displayBytes,
+        thumbBytes: params.thumbBytes,
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error || "파생 이미지 registry 등록 실패"
+    );
+  }
 }
 
 async function loadBitmap(file: File) {
@@ -119,9 +163,11 @@ async function loadBitmap(file: File) {
     const image = await new Promise<HTMLImageElement>(
       (resolve, reject) => {
         const element = new Image();
+
         element.onload = () => resolve(element);
         element.onerror = () =>
           reject(new Error("이미지를 읽을 수 없습니다."));
+
         element.src = objectUrl;
       }
     );
@@ -149,24 +195,26 @@ function canvasToBlob(
 }
 
 async function makeWebp(
-  file: File,
+  source: ImageBitmap | HTMLImageElement,
+  sourceWidth: number,
+  sourceHeight: number,
   maxEdge: number,
   quality: number
 ) {
-  const source = await loadBitmap(file);
-
-  const sourceWidth =
-    "naturalWidth" in source ? source.naturalWidth : source.width;
-  const sourceHeight =
-    "naturalHeight" in source ? source.naturalHeight : source.height;
-
   const scale = Math.min(
     1,
     maxEdge / Math.max(sourceWidth, sourceHeight)
   );
 
-  const width = Math.max(1, Math.round(sourceWidth * scale));
-  const height = Math.max(1, Math.round(sourceHeight * scale));
+  const width = Math.max(
+    1,
+    Math.round(sourceWidth * scale)
+  );
+
+  const height = Math.max(
+    1,
+    Math.round(sourceHeight * scale)
+  );
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -177,26 +225,20 @@ async function makeWebp(
   });
 
   if (!context) {
-    throw new Error("이미지 변환 canvas를 만들 수 없습니다.");
+    throw new Error(
+      "이미지 변환 canvas를 만들 수 없습니다."
+    );
   }
 
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
   context.drawImage(source, 0, 0, width, height);
 
-  if ("close" in source && typeof source.close === "function") {
-    source.close();
-  }
-
-  return canvasToBlob(canvas, quality);
-}
-
-function supportsStaticVariants(file: File) {
-  /*
-    GIF는 애니메이션 손실을 피하기 위해 원본 유지.
-    SVG도 이 업로더의 허용 형식이 아니므로 제외.
-  */
-  return file.type !== "image/gif";
+  return {
+    blob: await canvasToBlob(canvas, quality),
+    width,
+    height,
+  };
 }
 
 export async function uploadImageBundle(
@@ -212,9 +254,15 @@ export async function uploadImageBundle(
     file.type || "application/octet-stream"
   );
 
-  const originalUrl = stripVariantMarker(original.publicUrl);
+  const originalUrl = canonicalImageSource(
+    original.publicUrl
+  );
 
-  if (!supportsStaticVariants(file)) {
+  /*
+    Animated GIFs keep the original untouched.
+    We do not silently turn an animation into a still image.
+  */
+  if (file.type === "image/gif") {
     return {
       storedUrl: originalUrl,
       originalUrl,
@@ -222,56 +270,87 @@ export async function uploadImageBundle(
     };
   }
 
+  const source = await loadBitmap(file);
+
   try {
-    const [displayBlob, thumbBlob] = await Promise.all([
-      makeWebp(file, DISPLAY_MAX_EDGE, 0.84),
-      makeWebp(file, THUMB_MAX_EDGE, 0.78),
+    const sourceWidth =
+      "naturalWidth" in source
+        ? source.naturalWidth
+        : source.width;
+
+    const sourceHeight =
+      "naturalHeight" in source
+        ? source.naturalHeight
+        : source.height;
+
+    const [display, thumb] = await Promise.all([
+      makeWebp(
+        source,
+        sourceWidth,
+        sourceHeight,
+        DISPLAY_MAX_EDGE,
+        0.84
+      ),
+      makeWebp(
+        source,
+        sourceWidth,
+        sourceHeight,
+        THUMB_MAX_EDGE,
+        0.78
+      ),
     ]);
 
-    const [displayPresign, thumbPresign] = await Promise.all([
-      requestVariantPresign({
-        sourceUrl: originalUrl,
-        variant: "display",
-        fileSize: displayBlob.size,
-      }),
-      requestVariantPresign({
-        sourceUrl: originalUrl,
-        variant: "thumb",
-        fileSize: thumbBlob.size,
-      }),
-    ]);
+    const [displayPresign, thumbPresign] =
+      await Promise.all([
+        requestVariantPresign({
+          sourceUrl: originalUrl,
+          variant: "display",
+          fileSize: display.blob.size,
+        }),
+        requestVariantPresign({
+          sourceUrl: originalUrl,
+          variant: "thumb",
+          fileSize: thumb.blob.size,
+        }),
+      ]);
 
     await Promise.all([
       putBlob(
         displayPresign.uploadUrl,
-        displayBlob,
+        display.blob,
         "image/webp"
       ),
       putBlob(
         thumbPresign.uploadUrl,
-        thumbBlob,
+        thumb.blob,
         "image/webp"
       ),
     ]);
 
+    await registerDerivative({
+      sourceUrl: originalUrl,
+      displayUrl: displayPresign.publicUrl,
+      thumbUrl: thumbPresign.publicUrl,
+      file,
+      width: sourceWidth,
+      height: sourceHeight,
+      displayBytes: display.blob.size,
+      thumbBytes: thumb.blob.size,
+    });
+
     return {
-      storedUrl: markVariantReady(originalUrl),
+      storedUrl: originalUrl,
       originalUrl,
       displayUrl: displayPresign.publicUrl,
       thumbUrl: thumbPresign.publicUrl,
       variantsReady: true,
     };
-  } catch (error) {
-    /*
-      원본 업로드까지는 성공했으므로 등록 자체를 막지는 않는다.
-      marker를 붙이지 않아 공개 페이지가 기존 Next 최적화 fallback을 사용한다.
-    */
-    console.error("[r2-image-bundle] variant generation failed", error);
-
-    return {
-      storedUrl: originalUrl,
-      originalUrl,
-      variantsReady: false,
-    };
+  } finally {
+    if (
+      "close" in source &&
+      typeof source.close === "function"
+    ) {
+      source.close();
+    }
   }
 }

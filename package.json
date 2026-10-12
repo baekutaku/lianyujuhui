@@ -7,7 +7,11 @@
     "build": "next build --webpack",
     "start": "next start -p 3005",
     "lint": "eslint",
-    "images:backfill": "node scripts/backfill-r2-image-variants.mjs"
+    "images:migrate-registry": "node scripts/migrate-image-derivative-registry.mjs",
+    "images:mirror-external": "node scripts/mirror-external-images.mjs",
+    "images:audit": "node scripts/image-architecture-audit.mjs",
+    "images:cleanup-registry": "node scripts/cleanup-image-derivative-registry.mjs",
+    "images:trace-failed": "node scripts/trace-failed-image-references.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1149.0",

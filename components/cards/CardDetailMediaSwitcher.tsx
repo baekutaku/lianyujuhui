@@ -8,6 +8,12 @@ import {
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from "react";
+import {
+  canonicalImageSource,
+} from "@/lib/media/image-source";
+import type {
+  ImageDerivativeObject,
+} from "@/lib/media/image-derivative-server";
 
 type GalleryImage = {
   id?: string | null;
@@ -32,50 +38,72 @@ type MainMode = "before" | "after" | "gallery";
 
 type ViewerItem = {
   key: string;
-  url: string;
+  sourceUrl: string;
   label: string;
   kind: "before" | "after" | "extra";
-  extraIndex?: number;
 };
 
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
 
 function clampZoom(value: number) {
-  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
+  return Math.min(
+    MAX_ZOOM,
+    Math.max(MIN_ZOOM, value)
+  );
 }
 
 export default function CardDetailMediaSwitcher({
   media,
+  derivatives = {},
 }: {
   media: CardMedia;
+  derivatives?: ImageDerivativeObject;
 }) {
-  const beforeUrl =
+  const beforeUrl = canonicalImageSource(
     media.beforeCover ||
-    media.beforeThumb ||
+      media.beforeThumb ||
+      media.afterCover ||
+      media.afterThumb ||
+      ""
+  );
+
+  const afterUrl = canonicalImageSource(
     media.afterCover ||
-    media.afterThumb ||
-    "";
+      media.afterThumb ||
+      media.beforeCover ||
+      media.beforeThumb ||
+      ""
+  );
 
-  const afterUrl =
-    media.afterCover ||
-    media.afterThumb ||
-    media.beforeCover ||
-    media.beforeThumb ||
-    "";
+  const hasAfter = Boolean(
+    media.afterCover || media.afterThumb
+  );
 
-  const hasAfter = Boolean(media.afterCover || media.afterThumb);
+  const [mode, setMode] =
+    useState<MainMode>("before");
 
-  const [mode, setMode] = useState<MainMode>("before");
-  const [galleryUrl, setGalleryUrl] = useState("");
+  const [galleryUrl, setGalleryUrl] =
+    useState("");
 
-  const [viewerOpen, setViewerOpen] = useState(false);
-  const [viewerIndex, setViewerIndex] = useState(0);
+  const [viewerOpen, setViewerOpen] =
+    useState(false);
+
+  const [viewerIndex, setViewerIndex] =
+    useState(0);
 
   const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState<Pan>({ x: 0, y: 0 });
+  const [pan, setPan] = useState<Pan>({
+    x: 0,
+    y: 0,
+  });
 
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const [derivativeMap, setDerivativeMap] =
+    useState<ImageDerivativeObject>(derivatives);
+
+  const dialogRef =
+    useRef<HTMLDialogElement | null>(null);
+
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -89,11 +117,14 @@ export default function CardDetailMediaSwitcher({
     const result: GalleryImage[] = [];
 
     for (const item of media.gallery ?? []) {
-      const url = String(item?.url || "").trim();
+      const url = canonicalImageSource(item?.url);
       if (!url || seen.has(url)) continue;
 
       seen.add(url);
-      result.push({ ...item, url });
+      result.push({
+        ...item,
+        url,
+      });
     }
 
     return result;
@@ -102,64 +133,196 @@ export default function CardDetailMediaSwitcher({
   const extraGallery = useMemo(
     () =>
       gallery.filter(
-        (item) => item.url !== beforeUrl && item.url !== afterUrl
+        (item) =>
+          item.url !== beforeUrl &&
+          item.url !== afterUrl
       ),
     [gallery, beforeUrl, afterUrl]
   );
 
-  /*
-    상세 페이지 UI에서는 진화 전/후와 기타 이미지를 분리해서 보여주되,
-    돋보기 안에서는 이 카드의 모든 이미지를 하나의 순서로 이어 본다.
-  */
-  const viewerItems = useMemo(() => {
-    const seen = new Set<string>();
-    const items: ViewerItem[] = [];
+  const allSourceUrls = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [
+            beforeUrl,
+            hasAfter ? afterUrl : "",
+            ...extraGallery.map((item) => item.url),
+          ].filter(Boolean)
+        )
+      ),
+    [beforeUrl, afterUrl, hasAfter, extraGallery]
+  );
 
-    if (beforeUrl && !seen.has(beforeUrl)) {
-      seen.add(beforeUrl);
-      items.push({
-        key: "before",
-        url: beforeUrl,
-        label: "진화 전",
-        kind: "before",
+  useEffect(() => {
+    const missing = allSourceUrls.filter(
+      (source) => !derivativeMap[source]
+    );
+
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+
+    fetch("/api/media/derivatives", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sources: missing,
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json();
+      })
+      .then((data) => {
+        if (
+          cancelled ||
+          !data?.derivatives
+        ) {
+          return;
+        }
+
+        setDerivativeMap((current) => ({
+          ...current,
+          ...data.derivatives,
+        }));
+      })
+      .catch((error) => {
+        console.warn(
+          "[CardDetailMediaSwitcher] derivative lookup failed",
+          error
+        );
       });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [allSourceUrls, derivativeMap]);
+
+  function derivativeRow(source: string) {
+    return derivativeMap[
+      canonicalImageSource(source)
+    ];
+  }
+
+  function displayFor(source: string) {
+    const clean = canonicalImageSource(source);
+    const row = derivativeRow(clean);
+
+    if (row?.status === "ready") {
+      return (
+        row.display_url ||
+        row.thumb_url ||
+        clean
+      );
     }
 
-    if (hasAfter && afterUrl && !seen.has(afterUrl)) {
-      seen.add(afterUrl);
-      items.push({
-        key: "after",
-        url: afterUrl,
-        label: "진화 후",
-        kind: "after",
-      });
+    return clean;
+  }
+
+  function thumbFor(source: string) {
+    const clean = canonicalImageSource(source);
+    const row = derivativeRow(clean);
+
+    if (row?.status === "ready") {
+      return (
+        row.thumb_url ||
+        row.display_url ||
+        clean
+      );
     }
 
-    extraGallery.forEach((item, index) => {
-      if (!item.url || seen.has(item.url)) return;
+    return clean;
+  }
 
-      seen.add(item.url);
-      items.push({
-        key: `extra-${item.id || index}`,
-        url: item.url,
-        label: `추가 이미지 ${index + 1}`,
-        kind: "extra",
-        extraIndex: index,
-      });
-    });
+  function originalFor(source: string) {
+    const clean = canonicalImageSource(source);
+    const row = derivativeRow(clean);
 
-    return items;
-  }, [beforeUrl, afterUrl, hasAfter, extraGallery]);
+    if (row?.status === "ready") {
+      return (
+        row.mirrored_original_url ||
+        clean
+      );
+    }
 
-  const imageUrl =
+    return clean;
+  }
+
+  const imageSourceUrl =
     mode === "gallery" && galleryUrl
       ? galleryUrl
       : mode === "after"
         ? afterUrl
         : beforeUrl;
 
-  const viewerItem = viewerItems[viewerIndex] ?? null;
-  const viewerUrl = viewerItem?.url || "";
+  const mainDisplayUrl =
+    displayFor(imageSourceUrl);
+
+  const viewerItems = useMemo(() => {
+    const seen = new Set<string>();
+    const items: ViewerItem[] = [];
+
+    if (beforeUrl && !seen.has(beforeUrl)) {
+      seen.add(beforeUrl);
+
+      items.push({
+        key: "before",
+        sourceUrl: beforeUrl,
+        label: "진화 전",
+        kind: "before",
+      });
+    }
+
+    if (
+      hasAfter &&
+      afterUrl &&
+      !seen.has(afterUrl)
+    ) {
+      seen.add(afterUrl);
+
+      items.push({
+        key: "after",
+        sourceUrl: afterUrl,
+        label: "진화 후",
+        kind: "after",
+      });
+    }
+
+    extraGallery.forEach((item, index) => {
+      if (
+        !item.url ||
+        seen.has(item.url)
+      ) {
+        return;
+      }
+
+      seen.add(item.url);
+
+      items.push({
+        key: `extra-${item.id || index}`,
+        sourceUrl: item.url,
+        label: `추가 이미지 ${index + 1}`,
+        kind: "extra",
+      });
+    });
+
+    return items;
+  }, [
+    beforeUrl,
+    afterUrl,
+    hasAfter,
+    extraGallery,
+  ]);
+
+  const viewerItem =
+    viewerItems[viewerIndex] ?? null;
+
+  const viewerUrl = viewerItem
+    ? originalFor(viewerItem.sourceUrl)
+    : "";
 
   function resetViewerTransform() {
     setZoom(1);
@@ -188,13 +351,25 @@ export default function CardDetailMediaSwitcher({
   }
 
   function openViewer() {
-    if (!imageUrl || viewerItems.length === 0) return;
+    if (
+      !imageSourceUrl ||
+      viewerItems.length === 0
+    ) {
+      return;
+    }
+
+    const currentSource =
+      canonicalImageSource(imageSourceUrl);
 
     const index = viewerItems.findIndex(
-      (item) => item.url === imageUrl
+      (item) =>
+        item.sourceUrl === currentSource
     );
 
-    setViewerIndex(index >= 0 ? index : 0);
+    setViewerIndex(
+      index >= 0 ? index : 0
+    );
+
     resetViewerTransform();
     setViewerOpen(true);
   }
@@ -204,7 +379,9 @@ export default function CardDetailMediaSwitcher({
 
     setViewerIndex((current) => {
       return (
-        (current + direction + viewerItems.length) %
+        (current +
+          direction +
+          viewerItems.length) %
         viewerItems.length
       );
     });
@@ -221,9 +398,14 @@ export default function CardDetailMediaSwitcher({
     }
   }
 
-  function handleWheel(event: ReactWheelEvent<HTMLDivElement>) {
+  function handleWheel(
+    event: ReactWheelEvent<HTMLDivElement>
+  ) {
     event.preventDefault();
-    changeZoom(zoom + (event.deltaY < 0 ? 0.2 : -0.2));
+
+    changeZoom(
+      zoom + (event.deltaY < 0 ? 0.2 : -0.2)
+    );
   }
 
   function handlePointerDown(
@@ -239,7 +421,9 @@ export default function CardDetailMediaSwitcher({
       panY: pan.y,
     };
 
-    event.currentTarget.setPointerCapture(event.pointerId);
+    event.currentTarget.setPointerCapture(
+      event.pointerId
+    );
   }
 
   function handlePointerMove(
@@ -247,11 +431,20 @@ export default function CardDetailMediaSwitcher({
   ) {
     const drag = dragRef.current;
 
-    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (
+      !drag ||
+      drag.pointerId !== event.pointerId
+    ) {
+      return;
+    }
 
     setPan({
-      x: drag.panX + (event.clientX - drag.startX),
-      y: drag.panY + (event.clientY - drag.startY),
+      x:
+        drag.panX +
+        (event.clientX - drag.startX),
+      y:
+        drag.panY +
+        (event.clientY - drag.startY),
     });
   }
 
@@ -260,12 +453,23 @@ export default function CardDetailMediaSwitcher({
   ) {
     const drag = dragRef.current;
 
-    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (
+      !drag ||
+      drag.pointerId !== event.pointerId
+    ) {
+      return;
+    }
 
     dragRef.current = null;
 
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
+    if (
+      event.currentTarget.hasPointerCapture(
+        event.pointerId
+      )
+    ) {
+      event.currentTarget.releasePointerCapture(
+        event.pointerId
+      );
     }
   }
 
@@ -273,9 +477,15 @@ export default function CardDetailMediaSwitcher({
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    if (viewerOpen && !dialog.open) {
+    if (
+      viewerOpen &&
+      !dialog.open
+    ) {
       dialog.showModal();
-    } else if (!viewerOpen && dialog.open) {
+    } else if (
+      !viewerOpen &&
+      dialog.open
+    ) {
       dialog.close();
     }
   }, [viewerOpen]);
@@ -283,7 +493,9 @@ export default function CardDetailMediaSwitcher({
   useEffect(() => {
     if (!viewerOpen) return;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (
+      event: KeyboardEvent
+    ) => {
       if (event.key === "ArrowLeft") {
         event.preventDefault();
         moveViewer(-1);
@@ -295,14 +507,20 @@ export default function CardDetailMediaSwitcher({
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
     };
   }, [viewerOpen, viewerItems.length]);
 
-  if (!imageUrl) {
+  if (!imageSourceUrl) {
     return (
       <div className="empty-box">
         등록된 카드 이미지가 없습니다.
@@ -319,7 +537,9 @@ export default function CardDetailMediaSwitcher({
               <button
                 type="button"
                 className={`card-detail-tab ${
-                  mode === "before" ? "is-active" : ""
+                  mode === "before"
+                    ? "is-active"
+                    : ""
                 }`}
                 onClick={showBefore}
               >
@@ -329,7 +549,9 @@ export default function CardDetailMediaSwitcher({
               <button
                 type="button"
                 className={`card-detail-tab ${
-                  mode === "after" ? "is-active" : ""
+                  mode === "after"
+                    ? "is-active"
+                    : ""
                 }`}
                 onClick={showAfter}
               >
@@ -357,7 +579,7 @@ export default function CardDetailMediaSwitcher({
           </button>
 
           <a
-            href={imageUrl}
+            href={originalFor(imageSourceUrl)}
             target="_blank"
             rel="noreferrer"
             className="card-detail-image-original-button"
@@ -380,12 +602,14 @@ export default function CardDetailMediaSwitcher({
         }`}
       >
         <img
-          src={imageUrl}
+          src={mainDisplayUrl}
           alt={
             mode === "gallery"
               ? `${media.title} 추가 이미지`
               : `${media.title} ${
-                  mode === "after" ? "진화 후" : "진화 전"
+                  mode === "after"
+                    ? "진화 후"
+                    : "진화 전"
                 }`
           }
           className={`card-detail-main-image${
@@ -401,38 +625,46 @@ export default function CardDetailMediaSwitcher({
         <div className="card-detail-extra-gallery">
           <div
             className={`card-detail-extra-grid${
-              extraGallery.length <= 4 ? " is-compact" : ""
+              extraGallery.length <= 4
+                ? " is-compact"
+                : ""
             }`}
             role="list"
           >
-            {extraGallery.map((item, index) => {
-              const active =
-                mode === "gallery" &&
-                galleryUrl === item.url;
+            {extraGallery.map(
+              (item, index) => {
+                const active =
+                  mode === "gallery" &&
+                  galleryUrl === item.url;
 
-              return (
-                <button
-                  key={`${item.id || "image"}-${index}-${item.url}`}
-                  type="button"
-                  className={`card-detail-extra-thumb${
-                    active ? " is-active" : ""
-                  }`}
-                  onClick={() => selectExtra(item.url)}
-                  aria-label={`${media.title} 추가 이미지 ${
-                    index + 1
-                  }`}
-                  aria-pressed={active}
-                  role="listitem"
-                >
-                  <img
-                    src={item.url}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={`${item.id || "image"}-${index}-${item.url}`}
+                    type="button"
+                    className={`card-detail-extra-thumb${
+                      active
+                        ? " is-active"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      selectExtra(item.url)
+                    }
+                    aria-label={`${media.title} 추가 이미지 ${
+                      index + 1
+                    }`}
+                    aria-pressed={active}
+                    role="listitem"
+                  >
+                    <img
+                      src={thumbFor(item.url)}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </button>
+                );
+              }
+            )}
           </div>
         </div>
       ) : null}
@@ -469,7 +701,9 @@ export default function CardDetailMediaSwitcher({
                 <button
                   type="button"
                   className="card-image-viewer-nav is-prev"
-                  onClick={() => moveViewer(-1)}
+                  onClick={() =>
+                    moveViewer(-1)
+                  }
                   aria-label="이전 이미지"
                 >
                   <span className="material-symbols-rounded">
@@ -480,7 +714,9 @@ export default function CardDetailMediaSwitcher({
                 <button
                   type="button"
                   className="card-image-viewer-nav is-next"
-                  onClick={() => moveViewer(1)}
+                  onClick={() =>
+                    moveViewer(1)
+                  }
                   aria-label="다음 이미지"
                 >
                   <span className="material-symbols-rounded">
@@ -492,21 +728,30 @@ export default function CardDetailMediaSwitcher({
 
             <div
               className={`card-image-viewer-stage${
-                zoom > 1 ? " is-zoomed" : ""
+                zoom > 1
+                  ? " is-zoomed"
+                  : ""
               }`}
               onWheel={handleWheel}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
+              onPointerDown={
+                handlePointerDown
+              }
+              onPointerMove={
+                handlePointerMove
+              }
               onPointerUp={endPointer}
               onPointerCancel={endPointer}
               onDoubleClick={() =>
-                changeZoom(zoom > 1 ? 1 : 2)
+                changeZoom(
+                  zoom > 1 ? 1 : 2
+                )
               }
             >
               <img
                 src={viewerUrl}
                 alt={`${media.title} ${
-                  viewerItem?.label || "원본 이미지"
+                  viewerItem?.label ||
+                  "원본 이미지"
                 }`}
                 draggable={false}
                 style={{
@@ -530,7 +775,9 @@ export default function CardDetailMediaSwitcher({
 
               <button
                 type="button"
-                onClick={() => changeZoom(zoom - 0.25)}
+                onClick={() =>
+                  changeZoom(zoom - 0.25)
+                }
                 disabled={zoom <= MIN_ZOOM}
                 aria-label="축소"
               >
@@ -539,11 +786,15 @@ export default function CardDetailMediaSwitcher({
                 </span>
               </button>
 
-              <span>{Math.round(zoom * 100)}%</span>
+              <span>
+                {Math.round(zoom * 100)}%
+              </span>
 
               <button
                 type="button"
-                onClick={() => changeZoom(zoom + 0.25)}
+                onClick={() =>
+                  changeZoom(zoom + 0.25)
+                }
                 disabled={zoom >= MAX_ZOOM}
                 aria-label="확대"
               >
@@ -554,7 +805,9 @@ export default function CardDetailMediaSwitcher({
 
               <button
                 type="button"
-                onClick={resetViewerTransform}
+                onClick={
+                  resetViewerTransform
+                }
                 aria-label="확대 초기화"
               >
                 <span className="material-symbols-rounded">
@@ -565,13 +818,16 @@ export default function CardDetailMediaSwitcher({
 
             <div className="card-image-viewer-hint">
               <span>
-                {viewerIndex + 1} / {viewerItems.length}
+                {viewerIndex + 1} /{" "}
+                {viewerItems.length}
                 {" · "}
-                {viewerItem?.label || "이미지"}
+                {viewerItem?.label ||
+                  "이미지"}
               </span>
 
               <span>
-                원본 비율 · 휠 확대 · 확대 후 드래그 · 더블클릭
+                원본 비율 · 휠 확대 · 확대 후
+                드래그 · 더블클릭
               </span>
             </div>
           </>

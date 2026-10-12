@@ -3,6 +3,8 @@ import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import CardsFilterModal from "@/components/cards/CardsFilterModal";
 import CardsSortModal from "@/components/cards/CardsSortModal";
+import { optimizedImageUrl } from "@/lib/media/optimized-image";
+import { getImageDerivativeObject, resolveImageDerivativeUrl } from "@/lib/media/image-derivative-server";
 
 type CardsPageProps = {
   searchParams?: Promise<{
@@ -508,6 +510,19 @@ const optionSource = includeIllustrations
   ? [...allCards, ...allIllustrations]
   : allCards;
 
+const cardListDerivativeSources = [
+  ...pagedCards.flatMap((card: any) => [
+    card.thumbnail_url,
+    card.cover_image_url,
+  ]),
+  ...Array.from(afterThumbMap.values()),
+];
+
+const cardListImageDerivatives =
+  await getImageDerivativeObject(
+    cardListDerivativeSources
+  );
+
 const yearOptions = Array.from(
   new Set(
     optionSource
@@ -788,16 +803,20 @@ function buildIllustrationToggleHref(nextEnabled: boolean) {
                   {beforeImageUrl ? (
                     <>
                       <img
-                        src={beforeImageUrl}
+                        src={resolveImageDerivativeUrl(beforeImageUrl, cardListImageDerivatives, "thumb")}
                         alt={card.title}
                         className="card-thumb-image card-thumb-image-before"
-                      />
+                      loading="lazy"
+                      decoding="async"
+                    />
                       {afterImageUrl ? (
                         <img
-                          src={afterImageUrl}
+                          src={resolveImageDerivativeUrl(afterImageUrl, cardListImageDerivatives, "thumb")}
                           alt={`${card.title} evolution after`}
                           className="card-thumb-image card-thumb-image-after"
-                        />
+                        loading="lazy"
+                        decoding="async"
+                      />
                       ) : null}
                     </>
                   ) : (
@@ -857,16 +876,20 @@ function buildIllustrationToggleHref(nextEnabled: boolean) {
                   {beforeImageUrl ? (
                     <>
                       <img
-                        src={beforeImageUrl}
+                        src={resolveImageDerivativeUrl(beforeImageUrl, cardListImageDerivatives, "thumb")}
                         alt={card.title}
                         className="card-thumb-image card-thumb-image-before"
-                      />
+                      loading="lazy"
+                      decoding="async"
+                    />
                       {afterImageUrl ? (
                         <img
-                          src={afterImageUrl}
+                          src={resolveImageDerivativeUrl(afterImageUrl, cardListImageDerivatives, "thumb")}
                           alt={`${card.title} evolution after`}
                           className="card-thumb-image card-thumb-image-after"
-                        />
+                        loading="lazy"
+                        decoding="async"
+                      />
                       ) : null}
                     </>
                   ) : (

@@ -2,8 +2,6 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import SmartEditorImageUpload from "@/components/editor/SmartEditorImageUpload";
-import { r2VariantUrl, stripVariantMarker } from "@/lib/media/r2-variant-path";
-
 declare global {
   interface Window {
     nhn?: any;
