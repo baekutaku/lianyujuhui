@@ -83,6 +83,7 @@ const CATEGORY_LABEL_MAP: Record<string, string> = {
 };
 
 const SORT_LABEL_MAP: Record<string, string> = {
+  release: "출시일 순",
   latest: "최신 등록순",
   oldest: "오래된 순",
   year_desc: "연도 높은 순",
@@ -162,7 +163,7 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
   const character = String(params?.character || "").trim();
   const year = String(params?.year || "").trim();
   const tag = String(params?.tag || "").trim();
-  const sort = String(params?.sort || "latest").trim();
+  const sort = String(params?.sort || "release").trim();
   const includeIllustrations = String(params?.illustrations || "") === "1";
   const page = Math.max(1, Number(String(params?.page || "1")) || 1);
   const ITEMS_PER_PAGE = 15;
@@ -224,7 +225,22 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
       }
 
       switch (sort) {
-        case "oldest":
+        case "release":
+          query = query
+            .order("release_date", {
+              ascending: false,
+              nullsFirst: false,
+            })
+            .order("created_at", {
+              ascending: false,
+              nullsFirst: false,
+            })
+            .order("title", {
+              ascending: true,
+            });
+          break;
+
+case "oldest":
           query = query
             .order("created_at", { ascending: true, nullsFirst: true })
             .order("release_date", { ascending: true, nullsFirst: true })
@@ -599,7 +615,14 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
           ] ?? -1;
 
         switch (sort) {
-          case "oldest":
+          case "release":
+            return (
+              bRelease - aRelease ||
+              bCreated - aCreated ||
+              aTitle.localeCompare(bTitle, "ko")
+            );
+
+case "oldest":
             return (
               aCreated - bCreated ||
               aRelease - bRelease ||
@@ -693,7 +716,14 @@ export default async function CardsPage({ searchParams }: CardsPageProps) {
               : -1;
 
           switch (sort) {
-            case "oldest":
+            case "release":
+              return (
+                bRelease - aRelease ||
+                bCreated - aCreated ||
+                aTitle.localeCompare(bTitle, "ko")
+              );
+
+case "oldest":
               return (
                 aCreated - bCreated ||
                 aRelease - bRelease ||
@@ -932,12 +962,13 @@ function buildIllustrationToggleHref(nextEnabled: boolean) {
             }}
           >
             <span className="meta-pill">
-              정렬: {SORT_LABEL_MAP[sort] ?? "최신 등록순"}
+              정렬: {SORT_LABEL_MAP[sort] ?? "출시일 순"}
             </span>
 
             <CardsSortModal
               defaultValue={sort}
               sortOptions={[
+                { value: "release", label: "출시일 순" },
                 { value: "latest", label: "최신 등록순" },
                 { value: "oldest", label: "오래된 순" },
                 { value: "year_desc", label: "연도 높은 순" },

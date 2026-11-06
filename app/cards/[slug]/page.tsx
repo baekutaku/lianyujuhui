@@ -187,7 +187,7 @@ export default async function CardDetailPage({
   const character = String(resolvedSearchParams?.character || "").trim();
   const year = String(resolvedSearchParams?.year || "").trim();
   const tag = String(resolvedSearchParams?.tag || "").trim();
-  const sort = String(resolvedSearchParams?.sort || "latest").trim();
+  const sort = String(resolvedSearchParams?.sort || "release").trim();
 
   const listParams = new URLSearchParams();
   if (q) listParams.set("q", q);
@@ -339,7 +339,14 @@ export default async function CardDetailPage({
       RARITY_SORT_ORDER[String(b.rarity || "").toLowerCase()] ?? -1;
 
     switch (sort) {
-      case "oldest":
+      case "release":
+        return (
+          bRelease - aRelease ||
+          bCreated - aCreated ||
+          aTitle.localeCompare(bTitle, "ko")
+        );
+
+case "oldest":
         return (
           aCreated - bCreated ||
           aRelease - bRelease ||
