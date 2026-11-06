@@ -2,6 +2,7 @@ export type MessageTextNode = {
   type: "text";
   side: "left" | "right";
   text: string;
+  originalText?: string;
 };
 
 export type MessageSystemNode = {
@@ -27,6 +28,7 @@ export type MessageAudioNode = {
 export type MessageChoiceOption = {
   id: string;
   label: string;
+  originalLabel?: string;
   result: MessageNode[];
 };
 
@@ -47,6 +49,7 @@ export type FlatMessageEntry =
       type: "text";
       side: "left" | "right";
       text: string;
+      originalText?: string;
     }
   | {
       type: "image";
@@ -82,6 +85,7 @@ export function createTextNode(
     type: "text",
     side,
     text: "",
+    originalText: "",
   };
 }
 
@@ -119,6 +123,7 @@ export function createChoiceOption(): MessageChoiceOption {
   return {
     id: createId(),
     label: "",
+    originalLabel: "",
     result: [],
   };
 }
@@ -161,6 +166,7 @@ export function buildEditorNodesFromStoredEntries(entries: any[]): MessageNode[]
           options: options.map((option: any) => ({
             id: option.id || createId(),
             label: option.label || "",
+            originalLabel: option.originalLabel || "",
             result: buildEditorNodesFromStoredEntries(option.result || []),
           })),
         } satisfies MessageChoiceNode;
@@ -173,6 +179,7 @@ export function buildEditorNodesFromStoredEntries(entries: any[]): MessageNode[]
             ? options.map((label: string) => ({
                 id: createId(),
                 label,
+                originalLabel: "",
                 result: [],
               }))
             : [createChoiceOption()],
@@ -184,6 +191,7 @@ export function buildEditorNodesFromStoredEntries(entries: any[]): MessageNode[]
         type: "text",
         side: entry.side === "right" ? "right" : "left",
         text: entry.text || "",
+        originalText: entry.originalText || "",
       } satisfies MessageTextNode;
     }
 

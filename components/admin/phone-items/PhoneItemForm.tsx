@@ -25,6 +25,8 @@ type PhoneItemFormProps = {
     subtype?: Subtype;
     server_key?: "kr" | "cn";
     is_published?: boolean;
+    release_year?: number | string;
+    release_date?: string;
 
     title?: string;
     slug?: string;
@@ -106,6 +108,7 @@ type PhoneItemFormProps = {
     moment_date_text?: string;
 
     moment_body?: string;
+    moment_original_body?: string;
     moment_summary?: string;
     moment_source?: string;
 
@@ -185,10 +188,12 @@ const DEFAULT_CHARACTER_NAME_MAP: Record<string, string> = {
 type MomentChoiceFormItem = {
   id: string;
   label: string;
+  originalLabel: string;
   replySpeakerKey: string;
   replySpeakerName: string;
   replyTargetName: string;
   replyContent: string;
+  replyOriginalContent: string;
   isHistory: boolean;
 };
 
@@ -225,10 +230,12 @@ function parseMomentChoiceFormItems(value?: string): MomentChoiceFormItem[] {
     return parsed.map((item: any, index: number) => ({
       id: item?.id ?? `choice-${index + 1}`,
       label: String(item?.label ?? ""),
+      originalLabel: String(item?.originalLabel ?? ""),
       replySpeakerKey: String(item?.replySpeakerKey ?? item?.speakerKey ?? ""),
       replySpeakerName: String(item?.replySpeakerName ?? item?.speakerName ?? ""),
       replyTargetName: String(item?.replyTargetName ?? "유연"),
       replyContent: String(item?.replyContent ?? ""),
+      replyOriginalContent: String(item?.replyOriginalContent ?? ""),
       isHistory: Boolean(item?.isHistory),
     }));
   } catch {
@@ -312,6 +319,8 @@ export default function PhoneItemForm({
   subtype: initialValues?.subtype ?? "call",
   server_key: initialValues?.server_key ?? "kr",
   is_published: initialValues?.is_published ?? true,
+  release_year: initialValues?.release_year?.toString?.() ?? "",
+  release_date: initialValues?.release_date ?? "",
 
   title: initialValues?.title ?? "",
   slug: initialValues?.slug ?? "",
@@ -364,6 +373,7 @@ moment_author_has_profile: initialValues?.moment_author_has_profile ?? true,
   moment_date_text: initialValues?.moment_date_text ?? "",
 
   moment_body: initialValues?.moment_body ?? "",
+  moment_original_body: initialValues?.moment_original_body ?? "",
   moment_summary: initialValues?.moment_summary ?? "",
   moment_source: initialValues?.moment_source ?? "",
 
@@ -444,6 +454,7 @@ type MomentReactionLineInput = {
   targetName: string;
   isReplyToMc: boolean;
   content: string;
+  originalContent: string;
 };
 
 function parseMomentReactionLines(raw: string): MomentReactionLineInput[] {
@@ -456,6 +467,7 @@ function parseMomentReactionLines(raw: string): MomentReactionLineInput[] {
       targetName: String(item?.targetName || DEFAULT_TARGET_NAME).trim() || DEFAULT_TARGET_NAME,
       isReplyToMc: Boolean(item?.isReplyToMc ?? false),
       content: String(item?.content || "").trim(),
+      originalContent: String(item?.originalContent || "").trim(),
     }));
   } catch {
     return [];
@@ -472,6 +484,7 @@ function createEmptyMomentReactionLine(
     targetName: DEFAULT_TARGET_NAME,
     isReplyToMc: false,
     content: "",
+    originalContent: "",
   };
 }
 
@@ -503,11 +516,13 @@ const initialMomentChoiceItems = useMemo(() => {
       parsed[index] ?? {
         id: `choice-${index + 1}`,
         label: "",
+        originalLabel: "",
         replySpeakerKey: momentAuthorKey,
         replySpeakerName:
           values.moment_author_name || getMomentDefaultName(momentAuthorKey),
         replyTargetName: "유연",
         replyContent: "",
+        replyOriginalContent: "",
         isHistory: false,
       };
 
@@ -556,6 +571,7 @@ const momentChoicePayload = useMemo(() => {
     .map((item, index) => ({
       id: item.id || `choice-${index + 1}`,
       label: item.label.trim(),
+      originalLabel: item.originalLabel.trim(),
       isHistory: item.isHistory,
       replySpeakerKey: item.replySpeakerKey,
       replySpeakerName:
@@ -563,6 +579,7 @@ const momentChoicePayload = useMemo(() => {
         getMomentDefaultName(item.replySpeakerKey),
       replyTargetName: item.replyTargetName.trim() || "유연",
       replyContent: item.replyContent.trim(),
+      replyOriginalContent: item.replyOriginalContent.trim(),
     }));
 }, [isMaleLeadMoment, momentChoiceItems]);
 
@@ -574,6 +591,7 @@ const momentReactionPayload = useMemo(() => {
       targetName: String(line.targetName || "").trim() || "유연",
       isReplyToMc: Boolean(line.isReplyToMc),
       content: String(line.content || "").trim(),
+      originalContent: String(line.originalContent || "").trim(),
     }))
     .filter((line) => line.content);
 }, [momentReactionLines]);
@@ -670,6 +688,7 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
     >
       {hiddenFields}
 
+      <div style={{ fontSize: 17, fontWeight: 800 }}>기본 정보</div>
       <div className="form-grid">
         <label className="form-field">
           <span>콘텐츠 타입</span>
@@ -703,6 +722,36 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
           />
         </label>
       </div>
+
+      <section className="content-card" style={{ padding: 16 }}>
+        <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 12 }}>
+          출시 정보
+        </div>
+        <div className="form-grid">
+          <label className="form-field">
+            <span>출시연도</span>
+            <input
+              name="release_year"
+              type="number"
+              min="1900"
+              max="2100"
+              defaultValue={values.release_year}
+              placeholder="예: 2021"
+            />
+          </label>
+          <label className="form-field">
+            <span>출시일 (선택)</span>
+            <input
+              name="release_date"
+              type="date"
+              defaultValue={values.release_date}
+            />
+          </label>
+        </div>
+        <div style={{ marginTop: 8, fontSize: 12, color: "#77808d" }}>
+          출시일만 입력하면 연도는 자동으로 계산됩니다. 날짜를 모르면 연도만 입력해도 됩니다.
+        </div>
+      </section>
 
       {subtype === "message" ? (
         <>
@@ -1030,16 +1079,6 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
       </label>
 
       <label className="form-field">
-        <span>연도</span>
-        <input
-          name="moment_year"
-          type="number"
-          defaultValue={values.moment_year}
-          placeholder="예: 2026"
-        />
-      </label>
-
-      <label className="form-field">
         <span>날짜 텍스트</span>
         <input
           name="moment_date_text"
@@ -1055,6 +1094,16 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
           rows={8}
           defaultValue={values.moment_body}
           placeholder="모멘트 본문"
+        />
+      </label>
+
+      <label className="form-field form-field-full">
+        <span>원문 (선택)</span>
+        <textarea
+          name="moment_original_body"
+          rows={7}
+          defaultValue={values.moment_original_body}
+          placeholder="중국어 원문 등. 비워두면 원문 버튼이 표시되지 않습니다."
         />
       </label>
 
@@ -1114,6 +1163,17 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
                   updateMomentChoiceItem(index, { label: e.target.value })
                 }
                 placeholder="예: 오늘은 조금 쉬어."
+              />
+            </label>
+
+            <label className="form-field">
+              <span>선택지 원문 (선택)</span>
+              <input
+                value={item.originalLabel}
+                onChange={(e) =>
+                  updateMomentChoiceItem(index, { originalLabel: e.target.value })
+                }
+                placeholder="선택지의 중국어 원문 등"
               />
             </label>
 
@@ -1177,6 +1237,20 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
                   })
                 }
                 placeholder="예: 네가 곁에 있다면, 난 아무거나 괜찮아."
+              />
+            </label>
+
+            <label className="form-field">
+              <span>답장 원문 (선택)</span>
+              <textarea
+                rows={3}
+                value={item.replyOriginalContent}
+                onChange={(e) =>
+                  updateMomentChoiceItem(index, {
+                    replyOriginalContent: e.target.value,
+                  })
+                }
+                placeholder="답장의 중국어 원문 등"
               />
             </label>
           </div>
@@ -1347,6 +1421,24 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
                     )
                   }
                   placeholder="반응 내용"
+                />
+              </label>
+
+              <label className="form-field">
+                <span>원문 (선택)</span>
+                <textarea
+                  rows={3}
+                  value={line.originalContent}
+                  onChange={(e) =>
+                    setMomentReactionLines((prev) =>
+                      prev.map((item, i) =>
+                        i === index
+                          ? { ...item, originalContent: e.target.value }
+                          : item
+                      )
+                    )
+                  }
+                  placeholder="반응의 중국어 원문 등"
                 />
               </label>
             </div>

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import PhoneItemForm from "@/components/admin/phone-items/PhoneItemForm";
-import { updatePhoneItem, deletePhoneItem } from "@/app/admin/actions";
+import { deletePhoneItem } from "@/app/admin/actions";
+import { updatePhoneItemAction } from "@/lib/admin/phone-items/actions";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -29,7 +30,7 @@ export default async function EditPhoneItemPage({ params }: PageProps) {
       </header>
 
       <PhoneItemForm
-        action={updatePhoneItem}
+        action={updatePhoneItemAction}
         submitLabel="휴대폰 콘텐츠 수정 저장"
         hiddenFields={
           <>
@@ -40,6 +41,8 @@ export default async function EditPhoneItemPage({ params }: PageProps) {
           subtype: item.subtype,
           server_key: "kr",
           is_published: item.is_published ?? true,
+          release_year: item.release_year ?? "",
+          release_date: item.release_date ?? "",
 
           title: item.title ?? "",
           slug: item.slug ?? "",
@@ -99,6 +102,7 @@ moment_year: item.content_json?.momentYear ?? item.release_year ?? "",
 moment_date_text: item.content_json?.momentDateText ?? "",
 
 moment_body: item.content_json?.momentBody ?? "",
+moment_original_body: item.content_json?.momentOriginalBody ?? "",
 moment_summary: item.content_json?.momentSummary ?? "",
 moment_source: item.content_json?.momentSource ?? "",
 

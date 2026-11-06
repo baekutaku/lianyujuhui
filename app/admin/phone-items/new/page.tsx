@@ -1,5 +1,5 @@
 import PhoneItemForm from "@/components/admin/phone-items/PhoneItemForm";
-import { createPhoneItem } from "@/app/admin/actions";
+import { createPhoneItemAction } from "@/lib/admin/phone-items/actions";
 
 type NewPhoneItemPageProps = {
   searchParams?: Promise<{
@@ -41,7 +41,7 @@ export default async function NewPhoneItemPage({
       </header>
 
       <PhoneItemForm
-        action={createPhoneItem}
+        action={createPhoneItemAction}
         submitLabel="저장"
         initialValues={{
           subtype,

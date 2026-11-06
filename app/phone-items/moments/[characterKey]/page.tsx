@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
@@ -39,6 +39,7 @@ type PageProps = {
     category?: string;
     reply?: string;
     year?: string;
+    sort?: string;
   }>;
 };
 
@@ -48,6 +49,7 @@ type MomentRow = {
   slug: string | null;
   created_at: string;
   release_year?: number | null;
+  release_date?: string | null;
   is_published?: boolean | null;
   content_json?: {
     authorKey?: string;
@@ -58,22 +60,26 @@ type MomentRow = {
     momentYear?: number | string;
     momentDateText?: string;
     momentBody?: string;
+    momentOriginalBody?: string;
     momentImageUrls?: string[];
     momentReplyLines?: Array<{
       speakerKey?: string;
       speakerName?: string;
       targetName?: string;
       content?: string;
+      originalContent?: string;
       isReplyToMc?: boolean;
     }>;
     momentChoiceOptions?: Array<{
       id?: string;
       label?: string;
+      originalLabel?: string;
       isHistory?: boolean;
       replySpeakerKey?: string;
       replySpeakerName?: string;
       replyTargetName?: string;
       replyContent?: string;
+      replyOriginalContent?: string;
     }>;
     momentSelectedOptionId?: string;
     isFavorite?: boolean;
@@ -92,8 +98,36 @@ function normalizeReplyFilter(value?: string): "all" | "replied" | "unreplied" {
   return "all";
 }
 
+
+type SortMode = "release" | "recent";
+
+function normalizeSortMode(value?: string): SortMode {
+  return value === "recent" ? "recent" : "release";
+}
+
+function dateValue(value?: string | null) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function compareByPhoneDate(
+  a: { release_year?: number | null; release_date?: string | null; created_at: string },
+  b: { release_year?: number | null; release_date?: string | null; created_at: string },
+  sortMode: SortMode
+) {
+  if (sortMode === "recent") {
+    return dateValue(b.created_at) - dateValue(a.created_at);
+  }
+  const yearDiff = (b.release_year ?? 0) - (a.release_year ?? 0);
+  if (yearDiff !== 0) return yearDiff;
+  const releaseDateDiff = dateValue(b.release_date) - dateValue(a.release_date);
+  if (releaseDateDiff !== 0) return releaseDateDiff;
+  return dateValue(b.created_at) - dateValue(a.created_at);
+}
+
 function getYearText(row: MomentRow) {
-  const raw = row.content_json?.momentYear ?? row.release_year;
+  const raw = row.release_year ?? row.content_json?.momentYear;
   if (typeof raw === "number") return String(raw);
   if (typeof raw === "string" && raw.trim()) return raw.trim();
   return "";
@@ -102,6 +136,9 @@ function getYearText(row: MomentRow) {
 function getDateText(row: MomentRow) {
   const raw = row.content_json?.momentDateText?.trim();
   if (raw) return raw;
+
+  const releaseDate = row.release_date?.trim();
+  if (releaseDate) return releaseDate;
 
   const createdAt = row.created_at?.trim();
   if (!createdAt) return "";
@@ -124,6 +161,7 @@ export default async function CharacterMomentsPage({
   const selectedCategories = parseCsvParam(resolvedSearchParams?.category);
   const selectedReply = normalizeReplyFilter(resolvedSearchParams?.reply);
   const selectedYears = parseCsvParam(resolvedSearchParams?.year);
+  const selectedSort = normalizeSortMode(resolvedSearchParams?.sort);
   const admin = await isAdmin();
   const viewerProfile = await getCurrentViewerProfile();
 const isViewerMoment = characterKey === "mc";
@@ -132,7 +170,7 @@ console.log("viewerProfile", viewerProfile);
   const { data, error } = await supabase
     .from("phone_items")
     .select(
-      "id, title, slug, created_at, release_year, is_published, content_json"
+      "id, title, slug, created_at, release_year, release_date, is_published, content_json"
     )
     .eq("subtype", "moment")
     .eq("is_published", true)
@@ -142,10 +180,12 @@ console.log("viewerProfile", viewerProfile);
     throw new Error("모멘트 데이터를 불러오지 못했습니다.");
   }
 
-  const rows = ((data as MomentRow[] | null) ?? []).filter((row) => {
-    const authorKey = row.content_json?.authorKey?.trim() || "other";
-    return authorKey === characterKey;
-  });
+  const rows = ((data as MomentRow[] | null) ?? [])
+    .filter((row) => {
+      const authorKey = row.content_json?.authorKey?.trim() || "other";
+      return authorKey === characterKey;
+    })
+    .sort((a, b) => compareByPhoneDate(a, b, selectedSort));
 
   const authorName = isViewerMoment
   ? viewerProfile.displayName
@@ -189,6 +229,7 @@ console.log("viewerProfile", viewerProfile);
       return {
         id: option.id?.trim() || `option-${index + 1}`,
         label: option.label?.trim() || `선택지 ${index + 1}`,
+        originalLabel: option.originalLabel?.trim() || "",
         isHistory: Boolean(option.isHistory ?? false),
         replySpeakerKey,
         replySpeakerName:
@@ -197,6 +238,7 @@ console.log("viewerProfile", viewerProfile);
             : option.replySpeakerName?.trim() || "",
         replyTargetName: replyTargetName || viewerProfile.displayName,
         replyContent: option.replyContent?.trim() || "",
+        replyOriginalContent: option.replyOriginalContent?.trim() || "",
       };
     })
   : [];
@@ -227,6 +269,7 @@ authorAvatarUrl:
         authorHasProfile: Boolean(row.content_json?.authorHasProfile),
         dateText: getDateText(row),
         body: row.content_json?.momentBody?.trim() || "",
+        originalBody: row.content_json?.momentOriginalBody?.trim() || "",
         imageUrls,
         replyLines,
         activeChoice,
@@ -327,6 +370,35 @@ authorAvatarUrl:
         />
 
         <div className="phone-content">
+          <div className="message-history-filter-row" style={{ marginBottom: 8, padding: "6px 12px 0", justifyContent: "flex-end", gap: 6 }}>
+            <Link href={`/phone-items/moments/${characterKey}`} className={`message-history-chip ${selectedSort === "release" ? "active" : ""}`}
+              style={{
+                background: selectedSort === "release" ? "#e6a3c5" : "rgba(255, 252, 255, 0.88)",
+                color: selectedSort === "release" ? "#ffffff" : "#9b7e94",
+                border: `1px solid ${selectedSort === "release" ? "#e6a3c5" : "#e6cfdd"}`,
+                boxShadow: selectedSort === "release" ? "0 2px 7px rgba(211, 134, 174, 0.20)" : "none",
+                borderRadius: 999,
+                padding: "5px 11px",
+                fontSize: 12,
+                fontWeight: 700,
+              }}>
+              출시순
+            </Link>
+            <Link href={`/phone-items/moments/${characterKey}?sort=recent`} className={`message-history-chip ${selectedSort === "recent" ? "active" : ""}`}
+              style={{
+                background: selectedSort === "recent" ? "#e6a3c5" : "rgba(255, 252, 255, 0.88)",
+                color: selectedSort === "recent" ? "#ffffff" : "#9b7e94",
+                border: `1px solid ${selectedSort === "recent" ? "#e6a3c5" : "#e6cfdd"}`,
+                boxShadow: selectedSort === "recent" ? "0 2px 7px rgba(211, 134, 174, 0.20)" : "none",
+                borderRadius: 999,
+                padding: "5px 11px",
+                fontSize: 12,
+                fontWeight: 700,
+              }}>
+              최근 등록순
+            </Link>
+          </div>
+
           <div className="moment-feed-list">
             {filteredItems.map((item) => (
               <MomentFeedPost key={item.id} item={item} />

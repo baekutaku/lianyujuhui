@@ -9,6 +9,45 @@ import {
 } from "@/lib/admin/phoneBulkParsers";
 import { CALL_HISTORY_CATEGORY_LABEL_MAP } from "@/lib/phone/call-history";
 
+type PhoneReleaseMeta = {
+  releaseYear: number | null;
+  releaseDate: string | null;
+};
+
+function parsePhoneReleaseMeta(formData: FormData): PhoneReleaseMeta {
+  const releaseDateRaw = String(formData.get("release_date") || "").trim();
+  const releaseYearRaw = String(formData.get("release_year") || "").trim();
+  let releaseYear = releaseYearRaw ? Number(releaseYearRaw) : null;
+
+  if (releaseYear === null && /^\d{4}-\d{2}-\d{2}$/.test(releaseDateRaw)) {
+    releaseYear = Number(releaseDateRaw.slice(0, 4));
+  }
+
+  if (
+    releaseYear !== null &&
+    (!Number.isInteger(releaseYear) || releaseYear < 1900 || releaseYear > 2100)
+  ) {
+    throw new Error("출시연도는 1900~2100 사이의 정수여야 합니다.");
+  }
+
+  if (releaseDateRaw && !/^\d{4}-\d{2}-\d{2}$/.test(releaseDateRaw)) {
+    throw new Error("출시일 형식이 올바르지 않습니다.");
+  }
+
+  return { releaseYear, releaseDate: releaseDateRaw || null };
+}
+
+async function syncPhoneReleaseMeta(phoneItemId: string, formData: FormData) {
+  const { releaseYear, releaseDate } = parsePhoneReleaseMeta(formData);
+  const { error } = await supabase
+    .from("phone_items")
+    .update({ release_year: releaseYear, release_date: releaseDate })
+    .eq("id", phoneItemId);
+
+  if (error) throw new Error(error.message);
+  return { releaseYear, releaseDate };
+}
+
 function slugifyTag(input: string) {
   return (
     input
@@ -513,7 +552,8 @@ async function createMomentPhoneItem(params: {
   formData: FormData;
 }): Promise<CreatedPhoneItem> {
   const serverKey = String(params.formData.get("server_key") || "kr").trim();
-  const releaseYear = new Date().getFullYear();
+  const releaseMeta = parsePhoneReleaseMeta(params.formData);
+  const releaseYear = releaseMeta.releaseYear;
 
   const authorKey = String(params.formData.get("moment_author_key") || "other").trim();
   const authorName = String(params.formData.get("moment_author_name") || "").trim();
@@ -530,6 +570,9 @@ async function createMomentPhoneItem(params: {
   const momentDateText = String(params.formData.get("moment_date_text") || "").trim();
 
   const momentBody = String(params.formData.get("moment_body") || "").trim();
+  const momentOriginalBody = String(
+    params.formData.get("moment_original_body") || ""
+  ).trim();
   const momentSummary = String(params.formData.get("moment_summary") || "").trim();
   const momentSource = String(params.formData.get("moment_source") || "").trim();
 
@@ -560,6 +603,7 @@ async function createMomentPhoneItem(params: {
     speakerName?: string;
     targetName?: string;
     content?: string;
+    originalContent?: string;
     isReplyToMc?: boolean;
   }>
 >(momentReplyLinesJson, "moment_reply_lines_json", []);
@@ -568,11 +612,13 @@ const momentChoiceOptions = parseJsonFieldOptional<
   Array<{
     id?: string;
     label?: string;
+    originalLabel?: string;
     isHistory?: boolean;
     replySpeakerKey?: string;
     replySpeakerName?: string;
     replyTargetName?: string;
     replyContent?: string;
+    replyOriginalContent?: string;
   }>
 >(momentChoiceOptionsJson, "moment_choice_options_json", []);
 
@@ -627,7 +673,8 @@ const selectedOptionId = historyChoice
       title: momentTitle || `${authorName || authorKey} 모멘트`,
       slug: finalSlug,
       subtype: "moment",
-      release_year: momentYearRaw ? Number(momentYearRaw) : releaseYear,
+      release_year: releaseYear ?? (momentYearRaw ? Number(momentYearRaw) : null),
+      release_date: releaseMeta.releaseDate,
       preview_text: momentSummary || momentBody.slice(0, 60),
       summary: momentSummary || momentBody.slice(0, 60),
       is_published: params.isPublished,
@@ -638,9 +685,10 @@ const selectedOptionId = historyChoice
         authorHasProfile,
         momentCategory,
         momentCategoryLabel: momentCategoryLabelMap[momentCategory] || "일상",
-        momentYear: momentYearRaw ? Number(momentYearRaw) : releaseYear,
+        momentYear: releaseYear ?? (momentYearRaw ? Number(momentYearRaw) : null),
         momentDateText,
         momentBody,
+        momentOriginalBody,
         momentSummary,
         momentSource,
         momentImageUrls,
@@ -954,8 +1002,14 @@ async function updateMomentPhoneItem(params: {
   const momentCategory = String(params.formData.get("moment_category") || "daily").trim();
   const momentYearRaw = String(params.formData.get("moment_year") || "").trim();
   const momentDateText = String(params.formData.get("moment_date_text") || "").trim();
+  const releaseMeta = parsePhoneReleaseMeta(params.formData);
+  const effectiveMomentYear =
+    releaseMeta.releaseYear ?? (momentYearRaw ? Number(momentYearRaw) : null);
 
   const momentBody = String(params.formData.get("moment_body") || "").trim();
+  const momentOriginalBody = String(
+    params.formData.get("moment_original_body") || ""
+  ).trim();
   const momentSummary = String(params.formData.get("moment_summary") || "").trim();
   const momentSource = String(params.formData.get("moment_source") || "").trim();
 
@@ -986,6 +1040,7 @@ async function updateMomentPhoneItem(params: {
     speakerName?: string;
     targetName?: string;
     content?: string;
+    originalContent?: string;
     isReplyToMc?: boolean;
   }>
 >(momentReplyLinesJson, "moment_reply_lines_json", []);
@@ -994,11 +1049,13 @@ const momentChoiceOptions = parseJsonFieldOptional<
   Array<{
     id?: string;
     label?: string;
+    originalLabel?: string;
     isHistory?: boolean;
     replySpeakerKey?: string;
     replySpeakerName?: string;
     replyTargetName?: string;
     replyContent?: string;
+    replyOriginalContent?: string;
   }>
 >(momentChoiceOptionsJson, "moment_choice_options_json", []);
 
@@ -1044,7 +1101,8 @@ const selectedOptionId = historyChoice
       title: momentTitle || `${authorName || authorKey} 모멘트`,
       slug: finalSlug,
       subtype: "moment",
-      release_year: momentYearRaw ? Number(momentYearRaw) : null,
+      release_year: effectiveMomentYear,
+      release_date: releaseMeta.releaseDate,
       preview_text: momentSummary || momentBody.slice(0, 60),
       summary: momentSummary || momentBody.slice(0, 60),
       is_published: params.isPublished,
@@ -1055,9 +1113,10 @@ const selectedOptionId = historyChoice
         authorHasProfile,
         momentCategory,
         momentCategoryLabel: momentCategoryLabelMap[momentCategory] || "일상",
-        momentYear: momentYearRaw ? Number(momentYearRaw) : null,
+        momentYear: effectiveMomentYear,
         momentDateText,
         momentBody,
+        momentOriginalBody,
         momentSummary,
         momentSource,
         momentImageUrls,
@@ -1229,6 +1288,8 @@ export async function createPhoneItemAction(formData: FormData) {
       throw new Error("지원하지 않는 subtype입니다.");
     }
 
+    await syncPhoneReleaseMeta(createdItem.id, formData);
+
     const tagLabelsRaw = String(formData.get("tag_labels") || "").trim();
     if (tagLabelsRaw && createdItem) {
       await syncPhoneItemTags(createdItem.id, parseTagLabels(tagLabelsRaw));
@@ -1310,7 +1371,9 @@ export async function updatePhoneItemAction(formData: FormData) {
       throw new Error("지원하지 않는 subtype입니다.");
     }
 
-   const tagLabelsRaw = String(formData.get("tag_labels") || "").trim();
+    await syncPhoneReleaseMeta(phoneItemId, formData);
+
+    const tagLabelsRaw = String(formData.get("tag_labels") || "").trim();
     await syncPhoneItemTags(phoneItemId, parseTagLabels(tagLabelsRaw));
 
     revalidatePhoneItemPaths(rawSlug, phoneItemId);

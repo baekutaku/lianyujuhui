@@ -1,21 +1,27 @@
+"use client";
+
 import Link from "next/link";
+import InlineOriginalText from "@/components/phone/InlineOriginalText";
 
 export type MomentReplyLine = {
   speakerKey?: string;
   speakerName?: string;
   targetName?: string;
   content?: string;
+  originalContent?: string;
   isReplyToMc?: boolean;
 };
 
 export type MomentChoice = {
   id: string;
   label: string;
+  originalLabel?: string;
   isHistory?: boolean;
   replySpeakerKey?: string;
   replySpeakerName?: string;
   replyTargetName?: string;
   replyContent?: string;
+  replyOriginalContent?: string;
 };
 
 export type MomentFeedItem = {
@@ -27,6 +33,7 @@ export type MomentFeedItem = {
   authorHasProfile: boolean;
   dateText: string;
   body: string;
+  originalBody?: string;
   imageUrls: string[];
   replyLines: MomentReplyLine[];
   activeChoice: MomentChoice | null;
@@ -57,6 +64,7 @@ type RenderLine = {
   speakerName: string;
   targetName?: string;
   content: string;
+  originalContent?: string;
   isReplyToMc?: boolean;
 };
 
@@ -70,6 +78,7 @@ function buildRenderLines(item: MomentFeedItem): RenderLine[] {
       kind: "choice",
       speakerName: item.activeChoice.replyTargetName?.trim() || item.authorName,
       content: item.activeChoice.label.trim(),
+      originalContent: item.activeChoice.originalLabel?.trim() || "",
       isReplyToMc: false,
     });
   }
@@ -80,6 +89,7 @@ function buildRenderLines(item: MomentFeedItem): RenderLine[] {
       speakerName: item.activeChoice.replySpeakerName?.trim() || "답장",
    targetName: item.activeChoice.replyTargetName?.trim() || item.authorName,
       content: item.activeChoice.replyContent.trim(),
+      originalContent: item.activeChoice.replyOriginalContent?.trim() || "",
       isReplyToMc: true,
     });
   }
@@ -93,6 +103,7 @@ function buildRenderLines(item: MomentFeedItem): RenderLine[] {
       speakerName: String(line.speakerName || "").trim() || "이름 없음",
       targetName: String(line.targetName || "").trim(),
       content,
+      originalContent: String(line.originalContent || "").trim(),
       isReplyToMc: Boolean(line.isReplyToMc),
     });
   }
@@ -141,8 +152,10 @@ function ReactionPrefix({
   );
 }
 
+
 export default function MomentFeedPost({ item }: MomentFeedPostProps) {
   const renderLines = buildRenderLines(item);
+  const originalBody = item.originalBody?.trim() || "";
 
   const profileHref =
     item.authorKey === "mc"
@@ -238,10 +251,16 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
       lineHeight: UI.bodyLineHeight,
       letterSpacing: "-0.015em",
       color: "#66606b",
-      whiteSpace: "pre-wrap",
     }}
   >
-    {item.body}
+    <InlineOriginalText
+      text={item.body}
+      originalText={originalBody}
+      iconColor="#ad91c6"
+      originalBackground="rgba(246, 243, 247, 0.86)"
+      originalColor="#766e78"
+      originalFontSize={14}
+    />
   </div>
 
   <div
@@ -292,7 +311,14 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
       {renderLines.map((line, index) => (
         <div key={`reaction-${index}`}>
           <ReactionPrefix line={line} />
-          <span>{line.content}</span>
+          <InlineOriginalText
+            text={line.content}
+            originalText={line.originalContent}
+            iconColor="#ad91c6"
+            originalBackground="rgba(255,255,255,0.55)"
+            originalColor={UI.replySub}
+            originalFontSize={12.5}
+          />
         </div>
       ))}
     </div>

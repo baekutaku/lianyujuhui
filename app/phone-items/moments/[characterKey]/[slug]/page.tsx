@@ -4,6 +4,7 @@ import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import MomentChoiceTrigger from "@/components/phone/moment/MomentChoiceTrigger";
+import InlineOriginalText from "@/components/phone/InlineOriginalText";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import { getCurrentViewerProfile } from "@/lib/phone/get-current-viewer-profile";
@@ -43,17 +44,20 @@ type MomentReplyLine = {
   speakerName?: string;
   targetName?: string;
   content?: string;
+  originalContent?: string;
   isReplyToMc?: boolean;
 };
 
 type MomentChoiceOption = {
   id: string;
   label: string;
+  originalLabel?: string;
   isHistory: boolean;
   replySpeakerKey: string;
   replySpeakerName: string;
   replyTargetName: string;
   replyContent: string;
+  replyOriginalContent?: string;
 };
 
 type MomentRow = {
@@ -71,6 +75,7 @@ type MomentRow = {
     momentCategoryLabel?: string;
     momentDateText?: string;
     momentBody?: string;
+    momentOriginalBody?: string;
     momentSummary?: string;
     momentSource?: string;
     momentImageUrls?: string[];
@@ -84,11 +89,13 @@ type MomentRow = {
     momentChoiceOptions?: Array<{
       id?: string;
       label?: string;
+      originalLabel?: string;
       isHistory?: boolean;
       replySpeakerKey?: string;
       replySpeakerName?: string;
       replyTargetName?: string;
       replyContent?: string;
+      replyOriginalContent?: string;
     }>;
     momentSelectedOptionId?: string;
     isFavorite?: boolean;
@@ -100,6 +107,7 @@ type RenderLine = {
   speakerName: string;
   targetName?: string;
   content: string;
+  originalContent?: string;
   isReplyToMc?: boolean;
 };
 
@@ -153,6 +161,7 @@ function buildRenderLines(
     lines.push({
       speakerName: activeChoice.replyTargetName.trim() || viewerDisplayName,
       content: activeChoice.label.trim(),
+      originalContent: activeChoice.originalLabel?.trim() || "",
       isReplyToMc: false,
     });
   }
@@ -162,6 +171,7 @@ function buildRenderLines(
       speakerName: activeChoice.replySpeakerName.trim() || "이름 없음",
       targetName: activeChoice.replyTargetName.trim() || viewerDisplayName,
       content: activeChoice.replyContent.trim(),
+      originalContent: activeChoice.replyOriginalContent?.trim() || "",
       isReplyToMc: true,
     });
   }
@@ -174,6 +184,7 @@ function buildRenderLines(
       speakerName: String(line.speakerName || "").trim() || "이름 없음",
       targetName: String(line.targetName || "").trim(),
       content,
+      originalContent: String(line.originalContent || "").trim(),
       isReplyToMc: Boolean(line.isReplyToMc),
     });
   }
@@ -267,6 +278,7 @@ const authorAvatarUrl =
 
   const dateText = getDateText(item);
   const body = item.content_json?.momentBody?.trim() || "";
+  const originalBody = item.content_json?.momentOriginalBody?.trim() || "";
   const summary = item.content_json?.momentSummary?.trim() || "";
   const source = item.content_json?.momentSource?.trim() || "";
 
@@ -302,6 +314,7 @@ const choiceOptions: MomentChoiceOption[] = Array.isArray(
       return {
         id: option.id?.trim() || `option-${index + 1}`,
         label: option.label?.trim() || `선택지 ${index + 1}`,
+        originalLabel: option.originalLabel?.trim() || "",
         isHistory: Boolean(option.isHistory ?? false),
         replySpeakerKey,
         replySpeakerName:
@@ -310,6 +323,7 @@ const choiceOptions: MomentChoiceOption[] = Array.isArray(
             : option.replySpeakerName?.trim() || "",
         replyTargetName: replyTargetName || viewerProfile.displayName,
         replyContent: option.replyContent?.trim() || "",
+        replyOriginalContent: option.replyOriginalContent?.trim() || "",
       };
     })
   : [];
@@ -443,10 +457,16 @@ const choiceOptions: MomentChoiceOption[] = Array.isArray(
       lineHeight: UI.bodyLineHeight,
       letterSpacing: "-0.015em",
       color: "#66606b",
-      whiteSpace: "pre-wrap",
     }}
   >
-    {body}
+    <InlineOriginalText
+      text={body}
+      originalText={originalBody}
+      iconColor="#ad91c6"
+      originalBackground="rgba(246, 243, 247, 0.86)"
+      originalColor="#766e78"
+      originalFontSize={14}
+    />
   </div>
 
   <div className="moment-date-text">{dateText}</div>
@@ -494,7 +514,14 @@ const choiceOptions: MomentChoiceOption[] = Array.isArray(
   isReplyToMc={line.isReplyToMc}
   viewerDisplayName={viewerProfile.displayName}
 />
-                          <span>{line.content}</span>
+                          <InlineOriginalText
+                            text={line.content}
+                            originalText={line.originalContent}
+                            iconColor="#ad91c6"
+                            originalBackground="rgba(255,255,255,0.55)"
+                            originalColor={UI.replySub}
+                            originalFontSize={12.5}
+                          />
                         </div>
                       ))}
                     </div>

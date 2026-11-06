@@ -23,7 +23,7 @@ type CategoryKey = (typeof CATEGORY_KEYS)[number];
 
 type PageProps = {
   params: Promise<{ characterKey: string }>;
-  searchParams?: Promise<{ category?: string }>;
+  searchParams?: Promise<{ category?: string; sort?: string }>;
 };
 
 type MessageHistoryRow = {
@@ -31,6 +31,8 @@ type MessageHistoryRow = {
   title: string | null;
   slug: string | null;
   created_at: string;
+  release_year?: number | null;
+  release_date?: string | null;
   is_published?: boolean | null;
   content_json?: {
     threadKey?: string;
@@ -59,6 +61,34 @@ function normalizeCategory(value?: string): CategoryKey {
   return "all";
 }
 
+
+type SortMode = "release" | "recent";
+
+function normalizeSortMode(value?: string): SortMode {
+  return value === "recent" ? "recent" : "release";
+}
+
+function dateValue(value?: string | null) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function compareByPhoneDate(
+  a: { release_year?: number | null; release_date?: string | null; created_at: string },
+  b: { release_year?: number | null; release_date?: string | null; created_at: string },
+  sortMode: SortMode
+) {
+  if (sortMode === "recent") {
+    return dateValue(b.created_at) - dateValue(a.created_at);
+  }
+  const yearDiff = (b.release_year ?? 0) - (a.release_year ?? 0);
+  if (yearDiff !== 0) return yearDiff;
+  const releaseDateDiff = dateValue(b.release_date) - dateValue(a.release_date);
+  if (releaseDateDiff !== 0) return releaseDateDiff;
+  return dateValue(b.created_at) - dateValue(a.created_at);
+}
+
 function extractPreview(entries: unknown): string {
   if (!Array.isArray(entries)) return "";
   for (const entry of entries) {
@@ -81,11 +111,12 @@ export default async function MessageHistoryPage({ params, searchParams }: PageP
   const { characterKey } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const selectedCategory = normalizeCategory(resolvedSearchParams?.category);
+  const selectedSort = normalizeSortMode(resolvedSearchParams?.sort);
   const admin = await isAdmin();
 
   const { data, error } = await supabase
     .from("phone_items")
-    .select("id, title, slug, created_at, content_json, is_published")
+    .select("id, title, slug, created_at, release_year, release_date, content_json, is_published")
     .eq("subtype", "message")
     .eq("is_published", true)
     .order("created_at", { ascending: false });
@@ -119,6 +150,8 @@ export default async function MessageHistoryPage({ params, searchParams }: PageP
   }
 
   if (!rows.length) notFound();
+
+  rows = [...rows].sort((a, b) => compareByPhoneDate(a, b, selectedSort));
 
   const characterName =
     rows[0]?.content_json?.characterName ||
@@ -194,10 +227,13 @@ export default async function MessageHistoryPage({ params, searchParams }: PageP
                   categoryKey === "all"
                     ? "전체"
                     : CATEGORY_LABEL_MAP[categoryKey] || categoryKey;
-                const href =
-                  categoryKey === "all"
-                    ? `/phone-items/messages/${characterKey}/history`
-                    : `/phone-items/messages/${characterKey}/history?category=${categoryKey}`;
+                const query = new URLSearchParams();
+                if (categoryKey !== "all") query.set("category", categoryKey);
+                if (selectedSort === "recent") query.set("sort", "recent");
+                const queryString = query.toString();
+                const href = `/phone-items/messages/${characterKey}/history${
+                  queryString ? `?${queryString}` : ""
+                }`;
                 return (
                   <Link
                     key={categoryKey}
@@ -208,6 +244,25 @@ export default async function MessageHistoryPage({ params, searchParams }: PageP
                   </Link>
                 );
               })}
+            </div>
+
+            <div className="message-history-filter-row" style={{ marginTop: 10 }}>
+              <Link
+                href={`/phone-items/messages/${characterKey}/history${
+                  selectedCategory === "all" ? "" : `?category=${selectedCategory}`
+                }`}
+                className={`message-history-chip ${selectedSort === "release" ? "active" : ""}`}
+              >
+                출시순
+              </Link>
+              <Link
+                href={`/phone-items/messages/${characterKey}/history?${
+                  selectedCategory === "all" ? "" : `category=${selectedCategory}&`
+                }sort=recent`}
+                className={`message-history-chip ${selectedSort === "recent" ? "active" : ""}`}
+              >
+                최근 등록순
+              </Link>
             </div>
 
             <div className="message-history-grid">

@@ -4,11 +4,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import InlineOriginalText from "@/components/phone/InlineOriginalText";
 
 type TextEntry = {
   type: "text";
   side: "left" | "right";
   text: string;
+  originalText?: string;
 };
 
 type ImageEntry = {
@@ -36,6 +38,7 @@ type ChoiceOption =
   | {
       id?: string;
       label: string;
+      originalLabel?: string;
       result?: MessageEntry[];
     };
 
@@ -68,12 +71,14 @@ function normalizeChoiceOption(option: ChoiceOption) {
   if (typeof option === "string") {
     return {
       label: option,
+      originalLabel: "",
       result: [] as MessageEntry[],
     };
   }
 
   return {
     label: option.label ?? "",
+    originalLabel: option.originalLabel ?? "",
     result: Array.isArray(option.result) ? option.result : [],
   };
 }
@@ -98,6 +103,20 @@ function SafeAvatar({
       className="thread-mini-avatar"
       onError={() => setCurrentSrc(fallbackSrc)}
     />
+  );
+}
+
+function TextBubble({ entry }: { entry: TextEntry }) {
+  return (
+    <div className="thread-bubble">
+      <InlineOriginalText
+        text={entry.text}
+        originalText={entry.originalText}
+        iconColor="#9a83c2"
+        originalBackground="rgba(255,255,255,0.62)"
+        originalColor="inherit"
+      />
+    </div>
   );
 }
 
@@ -235,14 +254,14 @@ function ThreadEntries({
                   fallbackSrc={DEFAULT_OTHER_AVATAR}
                 />
               </Link>
-              <div className="thread-bubble">{entry.text}</div>
+              <TextBubble entry={entry} />
             </div>
           );
         }
 
         return (
           <div key={index} className="thread-row right">
-            <div className="thread-bubble">{entry.text}</div>
+            <TextBubble entry={entry} />
             <Link href={myProfileHref} className="thread-mini-avatar-link">
               <SafeAvatar src={myAvatarUrl} fallbackSrc={DEFAULT_MY_AVATAR} />
             </Link>
@@ -315,7 +334,13 @@ function ChoiceBlock({
           </button>
 
           <div className="thread-bubble thread-choice-selected">
-            {selected.label}
+            <InlineOriginalText
+              text={selected.label}
+              originalText={selected.originalLabel}
+              iconColor="#9a83c2"
+              originalBackground="rgba(255,255,255,0.62)"
+              originalColor="inherit"
+            />
           </div>
 
           <Link href={myProfileHref} className="thread-mini-avatar-link">

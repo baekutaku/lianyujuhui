@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
@@ -27,6 +27,8 @@ type CallRow = {
   title: string | null;
   slug: string | null;
   created_at: string;
+  release_year?: number | null;
+  release_date?: string | null;
   subtype: string;
   is_published: boolean | null;
 content_json?: {
@@ -35,6 +37,10 @@ content_json?: {
   avatarUrl?: string;
   level?: number;
 } | null;
+};
+
+type PageProps = {
+  searchParams?: Promise<{ sort?: string }>;
 };
 
 type CallItem = {
@@ -50,12 +56,43 @@ type CallItem = {
   isVideo?: boolean;
 };
 
-export default async function CallsPage() {
+type SortMode = "release" | "recent";
+
+function normalizeSortMode(value?: string): SortMode {
+  return value === "recent" ? "recent" : "release";
+}
+
+function dateValue(value?: string | null) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function compareByPhoneDate(
+  a: { release_year?: number | null; release_date?: string | null; created_at: string },
+  b: { release_year?: number | null; release_date?: string | null; created_at: string },
+  sortMode: SortMode
+) {
+  if (sortMode === "recent") {
+    return dateValue(b.created_at) - dateValue(a.created_at);
+  }
+
+  const yearDiff = (b.release_year ?? 0) - (a.release_year ?? 0);
+  if (yearDiff !== 0) return yearDiff;
+
+  const releaseDateDiff = dateValue(b.release_date) - dateValue(a.release_date);
+  if (releaseDateDiff !== 0) return releaseDateDiff;
+
+  return dateValue(b.created_at) - dateValue(a.created_at);
+}
+export default async function CallsPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const selectedSort = normalizeSortMode(resolvedSearchParams.sort);
   const admin = await isAdmin();
 
   const { data, error } = await supabase
     .from("phone_items")
-    .select("id, title, slug, created_at, subtype, is_published, content_json")
+    .select("id, title, slug, created_at, release_year, release_date, subtype, is_published, content_json")
     .in("subtype", ["call", "video_call"])
     .eq("is_published", true)
     .order("created_at", { ascending: false });
@@ -66,7 +103,9 @@ export default async function CallsPage() {
 
   const rows = (data as CallRow[] | null) ?? [];
 
-  const items: CallItem[] = rows
+  const sortedRows = [...rows].sort((a, b) => compareByPhoneDate(a, b, selectedSort));
+
+  const items: CallItem[] = sortedRows
     .map((row) => {
       const characterKey = row.content_json?.characterKey?.trim() || "baiqi";
       const slug = row.slug?.trim() || "";
@@ -96,11 +135,7 @@ isVideo: row.subtype === "video_call",
     })
     .filter(Boolean) as CallItem[];
 
-  const latestBaiqi = items.find((item) => item.characterKey === "baiqi");
-
-  const orderedItems = latestBaiqi
-    ? [latestBaiqi, ...items.filter((item) => item.id !== latestBaiqi.id)]
-    : items;
+  const orderedItems = items;
 
   return (
     <main className="phone-page">
@@ -142,3 +177,6 @@ isVideo: row.subtype === "video_call",
     </main>
   );
 }
+
+
+

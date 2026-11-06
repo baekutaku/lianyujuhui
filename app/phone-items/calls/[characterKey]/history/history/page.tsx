@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
@@ -42,6 +42,7 @@ type PageProps = {
   }>;
   searchParams?: Promise<{
     category?: string;
+    sort?: string;
   }>;
 };
 
@@ -51,6 +52,8 @@ type PhoneCallRow = {
   slug: string | null;
   subtype: string;
   created_at: string;
+  release_year?: number | null;
+  release_date?: string | null;
   is_published?: boolean | null;
   content_json?: {
     characterKey?: string;
@@ -95,6 +98,35 @@ function normalizeCategory(value?: string): CategoryKey {
   return "all";
 }
 
+type SortMode = "release" | "recent";
+
+function normalizeSortMode(value?: string): SortMode {
+  return value === "recent" ? "recent" : "release";
+}
+
+function dateValue(value?: string | null) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function compareByPhoneDate(
+  a: { release_year?: number | null; release_date?: string | null; created_at: string },
+  b: { release_year?: number | null; release_date?: string | null; created_at: string },
+  sortMode: SortMode
+) {
+  if (sortMode === "recent") {
+    return dateValue(b.created_at) - dateValue(a.created_at);
+  }
+
+  const yearDiff = (b.release_year ?? 0) - (a.release_year ?? 0);
+  if (yearDiff !== 0) return yearDiff;
+
+  const releaseDateDiff = dateValue(b.release_date) - dateValue(a.release_date);
+  if (releaseDateDiff !== 0) return releaseDateDiff;
+
+  return dateValue(b.created_at) - dateValue(a.created_at);
+}
 function extractPreview(row: PhoneCallRow) {
   return (
     row.content_json?.body?.trim() ||
@@ -110,6 +142,7 @@ export default async function CharacterCallArchivePage({
 }: PageProps) {
   const { characterKey } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
+  const selectedSort = normalizeSortMode(resolvedSearchParams?.sort);
   const selectedCategory = normalizeCategory(resolvedSearchParams?.category);
 
   const characterLabel = CHARACTER_LABELS[characterKey];
@@ -119,7 +152,7 @@ export default async function CharacterCallArchivePage({
 
   const { data, error } = await supabase
     .from("phone_items")
-    .select("id, title, slug, created_at, subtype, content_json, is_published")
+    .select("id, title, slug, created_at, release_year, release_date, subtype, content_json, is_published")
     .in("subtype", ["call", "video_call"])
     .eq("is_published", true)
     .order("created_at", { ascending: false });
@@ -128,9 +161,9 @@ export default async function CharacterCallArchivePage({
     notFound();
   }
 
-  const rows = ((data as PhoneCallRow[] | null) ?? []).filter((row) => {
-    return (row.content_json?.characterKey ?? "baiqi") === characterKey;
-  });
+  const rows = ((data as PhoneCallRow[] | null) ?? [])
+    .filter((row) => (row.content_json?.characterKey ?? "baiqi") === characterKey)
+    .sort((a, b) => compareByPhoneDate(a, b, selectedSort));
 
   if (!rows.length) {
     notFound();
@@ -223,6 +256,21 @@ export default async function CharacterCallArchivePage({
               })}
             </div>
 
+            <div className="message-history-filter-row" style={{ marginTop: 10, marginBottom: 10 }}>
+              <Link
+                href={`/phone-items/calls/${characterKey}/history/history${selectedCategory === "all" ? "" : `?category=${selectedCategory}`}`}
+                className={`message-history-chip ${selectedSort === "release" ? "active" : ""}`}
+              >
+                출시순
+              </Link>
+              <Link
+                href={`/phone-items/calls/${characterKey}/history/history?${selectedCategory === "all" ? "" : `category=${selectedCategory}&`}sort=recent`}
+                className={`message-history-chip ${selectedSort === "recent" ? "active" : ""}`}
+              >
+                최근 등록순
+              </Link>
+            </div>
+
             <div className="message-history-grid">
               {items.map((item) => (
                 <div
@@ -303,3 +351,5 @@ export default async function CharacterCallArchivePage({
     </main>
   );
 }
+
+

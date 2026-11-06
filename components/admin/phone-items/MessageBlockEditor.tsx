@@ -201,6 +201,23 @@ export default function MessageBlockEditor({
                     }
                   />
                 </label>
+
+                <label className="form-field form-field-full">
+                  <span>원문 (선택)</span>
+                  <textarea
+                    rows={3}
+                    value={node.originalText ?? ""}
+                    placeholder="중국어 원문 등. 비워두면 원문 버튼이 표시되지 않습니다."
+                    onChange={(e) =>
+                      onChange(
+                        replaceAt(value, index, {
+                          ...node,
+                          originalText: e.target.value,
+                        })
+                      )
+                    }
+                  />
+                </label>
               </div>
             </div>
           );
@@ -475,6 +492,26 @@ export default function MessageBlockEditor({
                           })
                         );
                       }}
+                    />
+                  </label>
+
+                  <label className="form-field form-field-full">
+                    <span>선택지 원문 (선택)</span>
+                    <input
+                      value={option.originalLabel ?? ""}
+                      onChange={(e) => {
+                        const nextOptions = replaceAt(choiceNode.options, optionIndex, {
+                          ...option,
+                          originalLabel: e.target.value,
+                        });
+                        onChange(
+                          replaceAt(value, index, {
+                            ...choiceNode,
+                            options: nextOptions,
+                          })
+                        );
+                      }}
+                      placeholder="중국어 원문 등"
                     />
                   </label>
                 </div>

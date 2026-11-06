@@ -29,6 +29,7 @@ type PageProps = {
   searchParams?: Promise<{
     category?: string;
     year?: string;
+    sort?: string;
   }>;
 };
 
@@ -40,6 +41,7 @@ type MomentRow = {
   slug: string | null;
   created_at: string;
   release_year?: number | null;
+  release_date?: string | null;
   is_published?: boolean | null;
   content_json?: {
     authorKey?: string;
@@ -81,6 +83,34 @@ function safeNormalizeCategory(value?: string): CategoryKey {
   return "all";
 }
 
+
+type SortMode = "release" | "recent";
+
+function normalizeSortMode(value?: string): SortMode {
+  return value === "recent" ? "recent" : "release";
+}
+
+function dateValue(value?: string | null) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function compareByPhoneDate(
+  a: { release_year?: number | null; release_date?: string | null; created_at: string },
+  b: { release_year?: number | null; release_date?: string | null; created_at: string },
+  sortMode: SortMode
+) {
+  if (sortMode === "recent") {
+    return dateValue(b.created_at) - dateValue(a.created_at);
+  }
+  const yearDiff = (b.release_year ?? 0) - (a.release_year ?? 0);
+  if (yearDiff !== 0) return yearDiff;
+  const releaseDateDiff = dateValue(b.release_date) - dateValue(a.release_date);
+  if (releaseDateDiff !== 0) return releaseDateDiff;
+  return dateValue(b.created_at) - dateValue(a.created_at);
+}
+
 function getPreview(row: MomentRow) {
   const body = row.content_json?.momentBody?.trim();
   const summary = row.content_json?.momentSummary?.trim();
@@ -90,7 +120,7 @@ function getPreview(row: MomentRow) {
 }
 
 function getYearText(row: MomentRow) {
-  const raw = row.content_json?.momentYear ?? row.release_year;
+  const raw = row.release_year ?? row.content_json?.momentYear;
   if (typeof raw === "number") return String(raw);
   if (typeof raw === "string" && raw.trim()) return raw.trim();
   return "";
@@ -99,6 +129,9 @@ function getYearText(row: MomentRow) {
 function getDateText(row: MomentRow) {
   const raw = row.content_json?.momentDateText?.trim();
   if (raw) return raw;
+
+  const releaseDate = row.release_date?.trim();
+  if (releaseDate) return releaseDate;
 
   const createdAt = row.created_at?.trim();
   if (!createdAt) return "";
@@ -120,21 +153,24 @@ export default async function CharacterMomentHistoryPage({
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const selectedCategory = safeNormalizeCategory(resolvedSearchParams?.category);
   const selectedYear = (resolvedSearchParams?.year || "").trim();
+  const selectedSort = normalizeSortMode(resolvedSearchParams?.sort);
   const admin = await isAdmin();
 
   const { data, error } = await supabase
     .from("phone_items")
-    .select("id, title, slug, created_at, release_year, is_published, content_json")
+    .select("id, title, slug, created_at, release_year, release_date, is_published, content_json")
     .eq("subtype", "moment")
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 
   if (error) notFound();
 
-  const rows = ((data as MomentRow[] | null) ?? []).filter((row) => {
-    const authorKey = row.content_json?.authorKey?.trim() || "other";
-    return authorKey === characterKey;
-  });
+  const rows = ((data as MomentRow[] | null) ?? [])
+    .filter((row) => {
+      const authorKey = row.content_json?.authorKey?.trim() || "other";
+      return authorKey === characterKey;
+    })
+    .sort((a, b) => compareByPhoneDate(a, b, selectedSort));
 
   if (!rows.length) notFound();
 
@@ -283,6 +319,15 @@ export default async function CharacterMomentHistoryPage({
                 })}
               </div>
             ) : null}
+
+            <div className="message-history-filter-row" style={{ marginTop: 10, marginBottom: 10 }}>
+              <Link href={`/phone-items/moments/${characterKey}/history`} className={`message-history-chip ${selectedSort === "release" ? "active" : ""}`}>
+                출시순
+              </Link>
+              <Link href={`/phone-items/moments/${characterKey}/history?sort=recent`} className={`message-history-chip ${selectedSort === "recent" ? "active" : ""}`}>
+                최근 등록순
+              </Link>
+            </div>
 
             <div className="message-history-grid">
               {filteredItems.map((item) => (
