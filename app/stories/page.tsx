@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
 import StoriesFilterModal from "@/components/story/StoriesFilterModal";
@@ -298,6 +298,10 @@ function formatEventDate(event: EventCard) {
 
 function getEventSubtypeLabel(subtype: string | null) {
   if (!subtype) return "이벤트";
+  if (
+    subtype === "collaboration_event" ||
+    subtype === "collab_event"
+  ) return "콜라보";
 
   const map: Record<string, string> = {
     birthday_baiqi: "캐릭터 생일",
@@ -542,7 +546,8 @@ const admin = await isAdmin();
           .toLowerCase()
           .includes(loweredQ);
 
-        return titleMatch || summaryMatch;
+        const slugMatch = item.slug.toLowerCase().includes(loweredQ);
+    return titleMatch || summaryMatch || slugMatch;
       });
     }
 
@@ -583,17 +588,33 @@ const admin = await isAdmin();
     }
 
     events.sort((a, b) => {
-      const titleCompare = a.title.localeCompare(b.title, "ko");
-      const aDate = a.start_date ? new Date(a.start_date).getTime() : 0;
-      const bDate = b.start_date ? new Date(b.start_date).getTime() : 0;
+  const titleCompare = a.title.localeCompare(b.title, "ko");
+  const aYear = a.release_year ?? 0;
+  const bYear = b.release_year ?? 0;
+  const aDate = a.start_date ? new Date(a.start_date).getTime() : 0;
+  const bDate = b.start_date ? new Date(b.start_date).getTime() : 0;
 
-      if (sort === "title_asc") return titleCompare;
-      if (sort === "title_desc") return -titleCompare;
-      if (sort === "oldest") return aDate - bDate;
-      return bDate - aDate;
-    });
+  if (sort === "title_asc") {
+    if (titleCompare !== 0) return titleCompare;
+    if (aYear !== bYear) return bYear - aYear;
+    return bDate - aDate;
+  }
+  if (sort === "title_desc") {
+    if (titleCompare !== 0) return -titleCompare;
+    if (aYear !== bYear) return bYear - aYear;
+    return bDate - aDate;
+  }
+  if (sort === "oldest") {
+    if (aYear !== bYear) return aYear - bYear;
+    if (aDate !== bDate) return aDate - bDate;
+    return titleCompare;
+  }
+  if (aYear !== bYear) return bYear - aYear;
+  if (aDate !== bDate) return bDate - aDate;
+  return titleCompare;
+});
 
-    const eventTotalCount = events.length;
+    let eventTotalCount = events.length;
     const eventTotalPages = Math.max(
       1,
       Math.ceil(eventTotalCount / STORIES_PER_PAGE)
@@ -739,6 +760,14 @@ const admin = await isAdmin();
       characters: selectedCharacterKeys,
       sort,
     });
+
+  if (selectedTag) {
+    events = events.filter((event) => {
+      const tags = eventTagMap.get(event.id) ?? [];
+      return tags.includes(selectedTag);
+    });
+    eventTotalCount = events.length;
+  }
 
     return (
       <main className="stories-archive-page">
@@ -992,7 +1021,8 @@ const admin = await isAdmin();
                     </>
                   ) : null}
 
-                  <span className="meta-pill">
+                  <StoryArchiveViewToggle storageKey="story-archive-event-view" />
+<span className="meta-pill">
                     {eventTotalCount}개
                   </span>
                 </div>
@@ -1093,7 +1123,7 @@ const admin = await isAdmin();
                                     sort,
                                     page: 1,
                                   })}
-                                  className="story-inline-tag"
+                                  className="story-card-tag"
                                 >
                                   #{tag}
                                 </Link>
@@ -1851,7 +1881,7 @@ return (
 
     {tags.length > 0 ? (
       <div className="story-archive-tags-inline">
-        {tags.slice(0, 4).map((tag) => (
+        {tags.map((tag) => (
           <Link
             key={tag}
             href={buildStoriesHref({

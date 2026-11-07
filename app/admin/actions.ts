@@ -1989,6 +1989,42 @@ export async function deleteStoryBundle(formData: FormData) {
   redirect("/admin/stories");
 }
 
+async function syncEventEventRelationsBySlugs(eventId: string, slugs: string[]) {
+  const normalized = Array.from(new Set(slugs.map((slug) => slug.trim()).filter(Boolean)));
+
+  const { error: outgoingDeleteError } = await supabase
+    .from("item_relations")
+    .delete()
+    .eq("parent_type", "event")
+    .eq("parent_id", eventId)
+    .eq("child_type", "event")
+    .in("relation_type", ["event_event", "related_event"]);
+  if (outgoingDeleteError) throw new Error(`event-event 기존 연결 삭제 실패: ${outgoingDeleteError.message}`);
+
+  const { error: incomingDeleteError } = await supabase
+    .from("item_relations")
+    .delete()
+    .eq("parent_type", "event")
+    .eq("child_type", "event")
+    .eq("child_id", eventId)
+    .in("relation_type", ["event_event", "related_event"]);
+  if (incomingDeleteError) throw new Error(`event-event 기존 연결 삭제 실패: ${incomingDeleteError.message}`);
+  if (normalized.length === 0) return;
+
+  const { data: targets, error: targetError } = await supabase.from("events").select("id, slug").in("slug", normalized);
+  if (targetError) throw new Error(`event-event 대상 조회 실패: ${targetError.message}`);
+  const bySlug = new Map((targets ?? []).map((row) => [row.slug, row.id]));
+  const rows = normalized.map((slug, index) => {
+    const id = bySlug.get(slug);
+    if (!id || id === eventId) return null;
+    return { parent_type: "event", parent_id: id, child_type: "event", child_id: eventId, relation_type: "event_event", sort_order: index };
+  }).filter(Boolean);
+  if (rows.length > 0) {
+    const { error } = await supabase.from("item_relations").insert(rows);
+    if (error) throw new Error(`event-event 연결 저장 실패: ${error.message}`);
+  }
+}
+
 export async function createEventBundle(formData: FormData) {
   let createdEventId: string | null = null;
   let targetSlug = "";
@@ -1999,6 +2035,7 @@ export async function createEventBundle(formData: FormData) {
     await requireAdmin();
 
     const title = String(formData.get("title") || "").trim();
+    const requestedSlug = String(formData.get("slug") || "").trim();
     const subtype = String(formData.get("subtype") || "game_event").trim();
     const releaseYear = Number(formData.get("releaseYear") || 2025);
     const startDate = String(formData.get("startDate") || "").trim();
@@ -2017,6 +2054,7 @@ export async function createEventBundle(formData: FormData) {
 const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
     const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
     const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
     const linkedRelatedEventSlugs = parseSlugLines(formData.get("linkedRelatedEventSlugs"));
 
     const tagLabels = parseTagLabelsFromForm(formData);
@@ -2030,7 +2068,7 @@ const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
       throw new Error("releaseYear가 올바르지 않습니다.");
     }
 
-    const { slug, originKey, contentId } = buildEventKeys({
+    const generatedEventKeys = buildEventKeys({
       subtype,
       characterKey,
       title,
@@ -2038,8 +2076,15 @@ const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
       serverKey,
       startDate,
     });
+    const slug = requestedSlug || generatedEventKeys.slug;
+    const originKey = generatedEventKeys.originKey;
+    const contentId = generatedEventKeys.contentId;
 
     targetSlug = slug;
+
+    const { data: slugOwner, error: slugOwnerError } = await supabase.from("events").select("id").eq("slug", targetSlug).maybeSingle();
+    if (slugOwnerError) throw new Error(`slug 중복 확인 실패: ${slugOwnerError.message}`);
+    if (slugOwner) throw new Error("이미 사용 중인 이벤트 slug입니다.");
 
     const { data: existingEvent } = await supabase
       .from("events")
@@ -2199,6 +2244,8 @@ await syncIncomingRelationsBySlugs({
       slugs: linkedPhoneItemSlugs,
     });
 
+    await syncEventEventRelationsBySlugs(insertedEvent.id, linkedEventSlugs);
+
     await syncRelationsBySlugs({
       parentType: "event",
       parentId: insertedEvent.id,
@@ -2209,6 +2256,7 @@ await syncIncomingRelationsBySlugs({
 
     revalidatePath("/admin/events");
     revalidatePath("/events");
+    revalidatePath("/stories");
     revalidatePath(`/events/${encodeURIComponent(targetSlug)}`);
   } catch (error) {
     console.error("[createEventBundle] fatal error:", error);
@@ -2243,8 +2291,11 @@ await syncIncomingRelationsBySlugs({
 
 export async function updateEventBundle(formData: FormData) {
   const eventId = String(formData.get("eventId") || "").trim();
-  const slug = String(formData.get("slug") || "").trim();
-  const safeSlug = encodeURIComponent(slug);
+  const originalSlug = String(formData.get("originalSlug") || "").trim();
+  const requestedSlug = String(formData.get("slug") || "").trim();
+  const targetSlug = requestedSlug || originalSlug;
+  const safeOriginalSlug = encodeURIComponent(originalSlug);
+  const safeTargetSlug = encodeURIComponent(targetSlug);
   const submitIntent = String(formData.get("submitIntent") || "edit").trim();
 
   try {
@@ -2272,12 +2323,18 @@ export async function updateEventBundle(formData: FormData) {
     const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
     const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
     const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
+    const linkedEventSlugs = parseSlugLines(formData.get("linkedEventSlugs"));
 
     const tagLabels = parseTagLabelsFromForm(formData);
 
     if (!eventId) {
       throw new Error("eventId가 없습니다.");
     }
+
+    if (!targetSlug) throw new Error("slug가 비어 있습니다.");
+    const { data: slugOwner, error: slugOwnerError } = await supabase.from("events").select("id").eq("slug", targetSlug).neq("id", eventId).maybeSingle();
+    if (slugOwnerError) throw new Error(`slug 중복 확인 실패: ${slugOwnerError.message}`);
+    if (slugOwner) throw new Error("이미 사용 중인 이벤트 slug입니다.");
 
     const { data: currentEvent, error: currentEventError } = await supabase
       .from("events")
@@ -2317,6 +2374,7 @@ export async function updateEventBundle(formData: FormData) {
     const { error: eventError } = await supabase
       .from("events")
       .update({
+        slug: targetSlug,
         title,
         subtype,
         release_year: releaseYear,
@@ -2525,21 +2583,25 @@ export async function updateEventBundle(formData: FormData) {
       slugs: linkedPhoneItemSlugs,
     });
 
+    await syncEventEventRelationsBySlugs(eventId, linkedEventSlugs);
+
     revalidatePath("/admin/events");
     revalidatePath("/events");
-    revalidatePath(`/events/${safeSlug}`);
+    revalidatePath(`/events/${safeOriginalSlug}`);
+    revalidatePath(`/events/${safeTargetSlug}`);
+    revalidatePath("/stories");
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.";
 
-    redirect(`/admin/events/${safeSlug}/edit?error=${encodeURIComponent(message)}`);
+    redirect(`/admin/events/${safeOriginalSlug}/edit?error=${encodeURIComponent(message)}`);
   }
 
   if (submitIntent === "view") {
-    redirect(`/events/${safeSlug}`);
+    redirect(`/events/${safeTargetSlug}`);
   }
 
-  redirect(`/admin/events/${safeSlug}/edit?saved=1`);
+  redirect(`/admin/events/${safeTargetSlug}/edit?saved=1`);
 }
 
 

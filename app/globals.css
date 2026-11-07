@@ -17195,3 +17195,583 @@ dialog.card-image-viewer-dialog[open] {
   margin: 0;
 }
 
+
+/* EVENT CARD TAG LAYOUT V2 - 2026-11-07 */
+
+/* 이벤트 카드에서는 요약 비표시 */
+.story-archive-card-shell.is-event .story-archive-summary {
+  display: none !important;
+}
+
+/* 제목 아래 왼쪽 해시태그 */
+.story-archive-card-shell.is-event > .story-archive-tags-inline {
+  position: static !important;
+  inset: auto !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  flex-wrap: wrap !important;
+
+  width: auto !important;
+  gap: 5px !important;
+
+  margin: -4px 0 0 !important;
+  padding: 0 16px 14px !important;
+
+  text-align: left !important;
+}
+
+.story-archive-card-shell.is-event
+  > .story-archive-tags-inline
+  .story-card-tag {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* 작은 보기 = 썸네일 전용 */
+html.story-archive-compact
+  .story-archive-card-shell.is-event
+  > .story-archive-tags-inline {
+  display: none !important;
+}
+
+
+/* EVENT CARD TAG FLOAT FIX - 2026-11-07 */
+
+/* 이벤트 태그도 스토리 카드처럼 카드 내부 우측에 띄움 */
+.story-archive-card-shell.is-event {
+  position: relative !important;
+}
+
+.story-archive-card-shell.is-event > .story-archive-tags-inline {
+  position: absolute !important;
+  right: 16px !important;
+  bottom: 14px !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: 5 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap !important;
+  gap: 5px !important;
+
+  width: auto !important;
+  max-width: 48% !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.story-archive-card-shell.is-event
+  > .story-archive-tags-inline
+  .story-card-tag {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* 작은 보기에서는 정보 전체 숨김 */
+html.story-archive-compact
+  .story-archive-card-shell.is-event
+  > .story-archive-tags-inline {
+  display: none !important;
+}
+
+/* 모바일에서도 카드 밑으로 따로 밀어내지 않음 */
+@media (max-width: 768px) {
+  .story-archive-card-shell.is-event > .story-archive-tags-inline {
+    position: absolute !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    left: auto !important;
+    max-width: 55% !important;
+    margin: 0 !important;
+  }
+}
+
+
+/* EVENT TAGS - unlimited */
+.story-archive-card-shell.is-event > .story-archive-tags-inline {
+  max-width: 70% !important;
+  flex-wrap: wrap !important;
+  align-content: flex-end !important;
+}
+
+
+/* =========================================================
+   EVENT TAG CHIP FINAL - story card style reference
+========================================================= */
+
+.story-archive-card-shell.is-event {
+  position: relative !important;
+}
+
+/* 스토리처럼 카드 우측 하단에 플로팅 */
+.story-archive-card-shell.is-event > .story-archive-tags-inline {
+  position: absolute !important;
+  right: 16px !important;
+  bottom: 14px !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: 6 !important;
+
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 6px !important;
+
+  width: auto !important;
+  max-width: calc(100% - 32px) !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 실제 해시태그 칩 */
+.story-archive-card-shell.is-event
+  > .story-archive-tags-inline
+  .story-card-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  min-height: 22px !important;
+  padding: 0 8px !important;
+  margin: 0 !important;
+
+  border: 1px solid rgba(213, 174, 199, 0.48) !important;
+  border-radius: 999px !important;
+
+  background: rgba(255, 251, 253, 0.92) !important;
+  color: rgba(138, 91, 119, 0.84) !important;
+
+  box-shadow:
+    0 4px 10px rgba(174, 122, 155, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+
+  backdrop-filter: blur(7px) !important;
+  -webkit-backdrop-filter: blur(7px) !important;
+
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+
+  text-decoration: none !important;
+  white-space: nowrap !important;
+
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease !important;
+}
+
+.story-archive-card-shell.is-event
+  > .story-archive-tags-inline
+  .story-card-tag:hover {
+  background: rgba(249, 232, 241, 0.96) !important;
+  border-color: rgba(198, 142, 175, 0.66) !important;
+  color: rgba(117, 72, 99, 0.94) !important;
+
+  box-shadow:
+    0 5px 12px rgba(174, 122, 155, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+
+  transform: translateY(-1px);
+}
+
+/* 작은 보기에서는 스토리와 동일하게 숨김 */
+html.story-archive-compact
+  .story-archive-card-shell.is-event
+  > .story-archive-tags-inline {
+  display: none !important;
+}
+
+/* 모바일에서도 별도 줄로 내려가지 않고 카드 안에 유지 */
+@media (max-width: 768px) {
+  .story-archive-card-shell.is-event > .story-archive-tags-inline {
+    position: absolute !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    left: auto !important;
+    max-width: calc(100% - 24px) !important;
+    margin: 0 !important;
+  }
+
+  .story-archive-card-shell.is-event
+    > .story-archive-tags-inline
+    .story-card-tag {
+    min-height: 20px !important;
+    padding: 0 7px !important;
+    font-size: 9px !important;
+  }
+}
+
+
+/* =========================================================
+   EVENT TAG FINAL OVERRIDE - SAME AS STORY
+   ========================================================= */
+
+.story-archive-card-shell.is-event {
+  position: relative !important;
+}
+
+/* 태그 영역: 스토리와 동일하게 카드 오른쪽 아래 */
+.stories-archive-page .story-archive-card-shell.is-event .story-archive-tags-inline,
+.story-archive-card-shell.is-event .story-archive-tags-inline {
+  position: absolute !important;
+  right: 16px !important;
+  bottom: 14px !important;
+  left: auto !important;
+  top: auto !important;
+
+  z-index: 20 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap !important;
+
+  gap: 6px !important;
+
+  width: auto !important;
+  max-width: calc(100% - 32px) !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* 이벤트 태그 링크 = 기존 스토리 태그 스타일 그대로 */
+.stories-archive-page
+  .story-archive-card-shell.is-event
+  .story-archive-tags-inline
+  a.story-card-tag,
+.story-archive-card-shell.is-event
+  .story-archive-tags-inline
+  a.story-card-tag,
+.story-archive-card-shell.is-event
+  a.story-card-tag {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 22px !important;
+
+  margin: 0 !important;
+  padding: 0 8px !important;
+
+  border: 1px solid rgba(176, 203, 224, 0.5) !important;
+  border-radius: 999px !important;
+
+  background: rgba(255, 255, 255, 0.92) !important;
+  color: #53728b !important;
+
+  box-shadow: 0 4px 10px rgba(120, 153, 181, 0.14) !important;
+
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+
+  text-decoration: none !important;
+  white-space: nowrap !important;
+}
+
+.stories-archive-page
+  .story-archive-card-shell.is-event
+  .story-archive-tags-inline
+  a.story-card-tag:hover,
+.story-archive-card-shell.is-event
+  .story-archive-tags-inline
+  a.story-card-tag:hover {
+  background: var(--sky-100) !important;
+  border-color: var(--sky-500) !important;
+  color: #31526d !important;
+}
+
+/* 작은 보기에서는 태그 비표시 */
+html.story-archive-compact
+  .story-archive-card-shell.is-event
+  .story-archive-tags-inline {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .story-archive-card-shell.is-event .story-archive-tags-inline {
+    right: 12px !important;
+    bottom: 12px !important;
+    max-width: calc(100% - 24px) !important;
+  }
+}
+
+
+/* EVENT DETAIL TOPBAR SUMMARY FINAL - 2026-11-07 */
+
+.story-topbar.event-topbar-has-summary {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 38%) !important;
+  align-items: stretch !important;
+  gap: 28px !important;
+}
+
+.story-topbar.event-topbar-has-summary .story-topbar-main {
+  min-width: 0 !important;
+}
+
+/* 오른쪽 요약 */
+.event-topbar-summary {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+
+  min-width: 0 !important;
+  margin: 0 !important;
+
+  padding: 8px 4px 8px 26px !important;
+
+  border-left: 1px solid rgba(208, 198, 218, 0.55) !important;
+}
+
+.event-topbar-summary-label {
+  margin: 0 0 9px !important;
+
+  color: rgba(145, 126, 153, 0.58) !important;
+
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+
+  letter-spacing: 0.14em !important;
+}
+
+.event-topbar-summary-text {
+  max-width: 520px !important;
+  margin: 0 !important;
+
+  color: rgba(77, 70, 85, 0.76) !important;
+
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.75 !important;
+
+  word-break: keep-all !important;
+  overflow-wrap: break-word !important;
+}
+
+/* 예전 연결 사이드 영역은 계속 숨김 */
+.story-topbar.event-topbar-has-summary > .story-topbar-side {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .story-topbar.event-topbar-has-summary {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .event-topbar-summary {
+    padding: 15px 0 0 !important;
+
+    border-left: 0 !important;
+    border-top: 1px solid rgba(208, 198, 218, 0.5) !important;
+  }
+}
+
+
+/* =========================================================
+   EVENT SUMMARY - INSIDE TOPBAR CARD FINAL
+========================================================= */
+
+.story-topbar.event-topbar-has-summary {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(280px, 34%) !important;
+
+  align-items: center !important;
+  gap: 28px !important;
+
+  /* 카드 전체 안쪽 여백 */
+  padding: 18px 20px !important;
+}
+
+/* 왼쪽은 별도 카드처럼 보이지 않게 */
+.story-topbar.event-topbar-has-summary > .story-topbar-main {
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 같은 흰 카드 내부 오른쪽 */
+.story-topbar.event-topbar-has-summary > .event-topbar-summary {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+
+  align-self: stretch !important;
+
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 8px 0 8px 26px !important;
+
+  border-left: 1px solid rgba(208, 198, 218, 0.52) !important;
+
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.event-topbar-summary-label {
+  margin: 0 0 8px !important;
+
+  color: rgba(145, 126, 153, 0.58) !important;
+
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+}
+
+.event-topbar-summary-text {
+  margin: 0 !important;
+
+  color: rgba(77, 70, 85, 0.75) !important;
+
+  font-size: 12px !important;
+  line-height: 1.7 !important;
+
+  word-break: keep-all !important;
+}
+
+/* 기존 연결용 side는 숨김 유지 */
+.story-topbar.event-topbar-has-summary > .story-topbar-side {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .story-topbar.event-topbar-has-summary {
+    grid-template-columns: 1fr !important;
+    gap: 15px !important;
+  }
+
+  .story-topbar.event-topbar-has-summary > .event-topbar-summary {
+    padding: 14px 0 0 !important;
+    border-left: 0 !important;
+    border-top: 1px solid rgba(208, 198, 218, 0.5) !important;
+  }
+}
+
+
+/* =========================================================
+   EVENT SUMMARY REAL INSIDE CARD - FINAL
+========================================================= */
+
+/* 바깥 레이아웃은 한 덩어리 */
+.story-topbar-layout.event-topbar-has-summary {
+  display: block !important;
+  width: 100% !important;
+}
+
+/* 실제 흰 카드 내부를 좌/우 2열 */
+.story-topbar-layout.event-topbar-has-summary
+  > .story-topbar-main-panel {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(270px, 34%) !important;
+
+  align-items: center !important;
+  gap: 28px !important;
+
+  width: 100% !important;
+}
+
+/* 왼쪽 제목/메타/버튼 */
+.story-topbar-layout.event-topbar-has-summary
+  .story-topbar-main {
+  min-width: 0 !important;
+}
+
+/* 오른쪽 summary - 같은 흰 카드 내부 */
+.story-topbar-layout.event-topbar-has-summary
+  .event-topbar-summary {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+
+  align-self: stretch !important;
+
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 8px 0 8px 26px !important;
+
+  border-left: 1px solid rgba(208, 198, 218, 0.52) !important;
+
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.story-topbar-layout.event-topbar-has-summary
+  .event-topbar-summary-label {
+  margin: 0 0 8px !important;
+
+  color: rgba(145, 126, 153, 0.58) !important;
+
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.14em !important;
+}
+
+.story-topbar-layout.event-topbar-has-summary
+  .event-topbar-summary-text {
+  margin: 0 !important;
+
+  color: rgba(77, 70, 85, 0.76) !important;
+
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.7 !important;
+
+  word-break: keep-all !important;
+  overflow-wrap: break-word !important;
+}
+
+/* 예전 연결 사이드 패널은 계속 숨김 */
+.story-topbar-layout > .story-topbar-side {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .story-topbar-layout.event-topbar-has-summary
+    > .story-topbar-main-panel {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .story-topbar-layout.event-topbar-has-summary
+    .event-topbar-summary {
+    padding: 14px 0 0 !important;
+
+    border-left: 0 !important;
+    border-top: 1px solid rgba(208, 198, 218, 0.5) !important;
+  }
+}
+

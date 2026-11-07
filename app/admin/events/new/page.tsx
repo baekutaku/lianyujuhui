@@ -232,6 +232,18 @@ const CHUNK_SIZE = 100;
             <input name="title" required />
           </label>
 
+          <label className="form-field form-field-full">
+            <span>Slug</span>
+            <input
+              name="slug"
+              placeholder="비워두면 자동 생성"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+            />
+          </label>
+
           <label className="form-field">
             <span>카테고리</span>
             <select name="subtype" defaultValue="seasonal_event">
@@ -362,7 +374,14 @@ const CHUNK_SIZE = 100;
         />
 
         <div className="admin-subpanel">
-          <StoryVisibilityFields
+          <RelationPicker
+          label="연결 이벤트"
+          name="linkedEventSlugs"
+          candidates={eventCandidates}
+          characterOptions={[...CHARACTER_OPTIONS]}
+        />
+
+        <StoryVisibilityFields
             values={{
               visibility: "public",
               access_hint: "",

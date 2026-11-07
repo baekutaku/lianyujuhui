@@ -1,44 +1,61 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
 type ViewMode = "large" | "compact";
 
-const STORAGE_KEY = "story-archive-view-mode";
-const ROOT_CLASS = "story-archive-compact";
+type Props = {
+  storageKey?: string;
+};
 
-export default function StoryArchiveViewToggle() {
+export default function StoryArchiveViewToggle({
+  storageKey = "story-archive-event-view",
+}: Props) {
   const [mode, setMode] = useState<ViewMode>("large");
 
-  const applyMode = (next: ViewMode) => {
-    document.documentElement.classList.toggle(
-      ROOT_CLASS,
-      next === "compact"
-    );
-  };
-
   useEffect(() => {
-    const saved =
-      window.localStorage.getItem(STORAGE_KEY) === "compact"
+    const stored = window.localStorage.getItem(storageKey);
+
+    const nextMode: ViewMode =
+      stored === "compact" ||
+      (!stored &&
+        document.documentElement.classList.contains(
+          "story-archive-compact"
+        ))
         ? "compact"
         : "large";
 
-    setMode(saved);
-    applyMode(saved);
+    setMode(nextMode);
+
+    document.documentElement.classList.toggle(
+      "story-archive-compact",
+      nextMode === "compact"
+    );
 
     return () => {
-      document.documentElement.classList.remove(ROOT_CLASS);
+      document.documentElement.classList.remove(
+        "story-archive-compact"
+      );
     };
-  }, []);
+  }, [storageKey]);
 
-  const changeMode = (next: ViewMode) => {
-    setMode(next);
-    window.localStorage.setItem(STORAGE_KEY, next);
-    applyMode(next);
-  };
+  function changeMode(nextMode: ViewMode) {
+    setMode(nextMode);
+
+    window.localStorage.setItem(storageKey, nextMode);
+
+    document.documentElement.classList.toggle(
+      "story-archive-compact",
+      nextMode === "compact"
+    );
+  }
 
   return (
-    <div className="story-view-toggle" aria-label="스토리 보기 방식">
+    <div
+      className="story-view-toggle"
+      role="group"
+      aria-label="목록 보기 방식"
+    >
       <button
         type="button"
         className={`story-view-toggle-button ${
@@ -46,12 +63,11 @@ export default function StoryArchiveViewToggle() {
         }`}
         onClick={() => changeMode("large")}
         aria-pressed={mode === "large"}
-        title="크게 보기"
       >
-        <span className="material-symbols-rounded" aria-hidden="true">
+        <span className="material-symbols-rounded">
           view_agenda
         </span>
-        <span>크게</span>
+        크게
       </button>
 
       <button
@@ -61,12 +77,11 @@ export default function StoryArchiveViewToggle() {
         }`}
         onClick={() => changeMode("compact")}
         aria-pressed={mode === "compact"}
-        title="작게 보기"
       >
-        <span className="material-symbols-rounded" aria-hidden="true">
+        <span className="material-symbols-rounded">
           grid_view
         </span>
-        <span>작게</span>
+        작게
       </button>
     </div>
   );

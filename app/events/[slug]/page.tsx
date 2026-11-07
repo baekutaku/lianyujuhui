@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/utils/admin-auth";
@@ -7,6 +7,8 @@ import { hasEventAccess } from "@/lib/utils/event-access";
 import { deleteEventBundle } from "@/app/admin/actions";
 import { getPhoneItemHref } from "@/lib/utils/getPhoneItemHref";
 import StoryMediaSwitcher from "@/components/story/StoryMediaSwitcher";
+import StoryRelatedContent from "@/components/story/StoryRelatedContent";
+import StoryRelatedQuickAccess from "@/components/story/StoryRelatedQuickAccess";
 
 type EventPageProps = {
   params: Promise<{
@@ -46,7 +48,7 @@ function ProtectedEventGate({
         <div className="page-eyebrow">Protected Event</div>
         <h1 className="page-title">{title}</h1>
         <p className="page-desc">이 이벤트는 비밀번호가 있어야 열람할 수 있습니다.</p>
-      </section>
+</section>
 
       <section className="detail-panel" style={{ maxWidth: 560, margin: "0 auto" }}>
         <div style={{ display: "grid", gap: 16 }}>
@@ -284,7 +286,11 @@ export default async function EventDetailPage({
 
   return (
     <main>
-      <section className="story-topbar-layout">
+      <section
+        className={`story-topbar-layout ${
+          event.summary ? "event-topbar-has-summary" : ""
+        }`}
+      >
         <section className="detail-panel story-topbar-main-panel">
           <div className="story-topbar-main">
             <p className="page-eyebrow">Archive / Events</p>
@@ -371,126 +377,55 @@ export default async function EventDetailPage({
               ) : null}
             </div>
           </div>
+
+          {event.summary ? (
+            <aside className="event-topbar-summary">
+              <p className="event-topbar-summary-label">SUMMARY</p>
+              <p className="event-topbar-summary-text">
+                {event.summary}
+              </p>
+            </aside>
+          ) : null}
+
         </section>
 
         {hasConnections ? (
-          <aside className="story-topbar-side">
-            {relatedCards.length > 0 ? (
-              <details className="story-side-block story-side-disclosure">
-                <summary className="story-side-summary">
-                  <div className="story-side-title-row">
-                    <h2 className="story-side-title">연결된 카드</h2>
-                    <span className="story-side-count">{relatedCards.length}</span>
-                  </div>
-                  <span className="story-side-toggle" aria-hidden="true">
-                    ▾
-                  </span>
-                </summary>
+          
 
-                <div className="story-side-content">
-                  <div className="story-side-links">
-                    {relatedCards.map((card) => (
-                      <Link
-                        key={card.id}
-                        href={`/cards/${card.slug}`}
-                        className="story-side-chip"
-                        title={card.title}
-                      >
-                        {card.title}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </details>
-            ) : null}
-
-            {relatedStories.length > 0 ? (
-              <details className="story-side-block story-side-disclosure">
-                <summary className="story-side-summary">
-                  <div className="story-side-title-row">
-                    <h2 className="story-side-title">관련 스토리</h2>
-                    <span className="story-side-count">{relatedStories.length}</span>
-                  </div>
-                  <span className="story-side-toggle" aria-hidden="true">
-                    ▾
-                  </span>
-                </summary>
-
-                <div className="story-side-content">
-                  <div className="story-side-links">
-                    {relatedStories.map((story) => (
-                      <Link
-                        key={story.id}
-                        href={`/stories/${story.slug}`}
-                        className="story-side-chip"
-                        title={story.title}
-                      >
-                        {story.title}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </details>
-            ) : null}
-
-            {relatedPhoneItems.length > 0 ? (
-              <details className="story-side-block story-side-disclosure">
-                <summary className="story-side-summary">
-                  <div className="story-side-title-row">
-                    <h2 className="story-side-title">연결 휴대폰</h2>
-                    <span className="story-side-count">{relatedPhoneItems.length}</span>
-                  </div>
-                  <span className="story-side-toggle" aria-hidden="true">
-                    ▾
-                  </span>
-                </summary>
-
-                <div className="story-side-content">
-                  <div className="story-side-links">
-                    {relatedPhoneItems.map((item) => (
-                      <Link
-                        key={item.id}
-                        href={getPhoneItemHref(item)}
-                        className="story-side-chip"
-                        title={item.title}
-                      >
-                        {item.title}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </details>
-            ) : null}
-
-            {relatedEvents.length > 0 ? (
-              <details className="story-side-block story-side-disclosure">
-                <summary className="story-side-summary">
-                  <div className="story-side-title-row">
-                    <h2 className="story-side-title">관련 이벤트</h2>
-                    <span className="story-side-count">{relatedEvents.length}</span>
-                  </div>
-                  <span className="story-side-toggle" aria-hidden="true">
-                    ▾
-                  </span>
-                </summary>
-
-                <div className="story-side-content">
-                  <div className="story-side-links">
-                    {relatedEvents.map((relatedEvent) => (
-                      <Link
-                        key={relatedEvent.id}
-                        href={`/events/${relatedEvent.slug}`}
-                        className="story-side-chip"
-                        title={relatedEvent.title}
-                      >
-                        {relatedEvent.title}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </details>
-            ) : null}
-          </aside>
+        <aside className="story-topbar-side">
+          <div className="story-side-block">
+            <h3 className="story-side-title">연결 스토리</h3>
+            <div className="story-side-links">
+              {relatedStories.length > 0 ? relatedStories.map((story) => (
+                <Link key={story.id} href={`/stories/${story.slug}`} className="meta-pill">{story.title}</Link>
+              )) : <span className="detail-text">없음</span>}
+            </div>
+          </div>
+          <div className="story-side-block">
+            <h3 className="story-side-title">연결 카드</h3>
+            <div className="story-side-links">
+              {relatedCards.length > 0 ? relatedCards.map((card) => (
+                <Link key={card.id} href={`/cards/${card.slug}`} className="meta-pill">{card.title}</Link>
+              )) : <span className="detail-text">없음</span>}
+            </div>
+          </div>
+          <div className="story-side-block">
+            <h3 className="story-side-title">연결 휴대폰</h3>
+            <div className="story-side-links">
+              {relatedPhoneItems.length > 0 ? relatedPhoneItems.map((item) => (
+                <Link key={item.id} href={getPhoneItemHref(item)} className="meta-pill">{item.title}</Link>
+              )) : <span className="detail-text">없음</span>}
+            </div>
+          </div>
+          <div className="story-side-block">
+            <h3 className="story-side-title">연결 이벤트</h3>
+            <div className="story-side-links">
+              {relatedEvents.length > 0 ? relatedEvents.map((relatedEvent) => (
+                <Link key={relatedEvent.id} href={`/events/${relatedEvent.slug}`} className="meta-pill">{relatedEvent.title}</Link>
+              )) : <span className="detail-text">없음</span>}
+            </div>
+          </div>
+        </aside>
         ) : null}
       </section>
 
@@ -539,6 +474,57 @@ export default async function EventDetailPage({
           )}
         </div>
       </section>
+    
+
+      <div
+        id="story-related-content-anchor"
+        className="story-related-bottom-anchor"
+      >
+        <StoryRelatedContent
+        stories={relatedStories.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: `/stories/${item.slug}`,
+        }))}
+        cards={relatedCards.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: `/cards/${item.slug}`,
+        }))}
+        phoneItems={relatedPhoneItems.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: getPhoneItemHref(item),
+        }))}
+        events={relatedEvents.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: `/events/${item.slug}`,
+        }))}
+      />
+      </div>
+      <StoryRelatedQuickAccess
+        stories={relatedStories.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: `/stories/${item.slug}`,
+        }))}
+        cards={relatedCards.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: `/cards/${item.slug}`,
+        }))}
+        phoneItems={relatedPhoneItems.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: getPhoneItemHref(item),
+        }))}
+        events={relatedEvents.map((item) => ({
+          id: item.id,
+          title: item.title,
+          href: `/events/${item.slug}`,
+        }))}
+      />
     </main>
   );
 }

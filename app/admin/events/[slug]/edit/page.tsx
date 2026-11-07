@@ -290,6 +290,47 @@ const storyCandidates: RelationCandidate[] =
   })) ?? [];
 
   
+  const [{ data: eventRows }, { data: outgoingEventRelations }] = await Promise.all([
+    supabase
+      .from("events")
+      .select("id, title, slug, subtype, primary_character_id")
+      .neq("id", event.id)
+      .order("release_year", { ascending: false }),
+
+    supabase
+      .from("item_relations")
+      .select("child_id, sort_order")
+      .eq("parent_type", "event")
+      .eq("parent_id", event.id)
+      .eq("child_type", "event")
+      .in("relation_type", ["event_event", "related_event"])
+      .order("sort_order", { ascending: true }),
+  ]);
+
+  const eventCandidates: RelationCandidate[] =
+    (eventRows ?? []).map((item: any) => ({
+      slug: item.slug,
+      title: item.title,
+      subtype: item.subtype ?? null,
+      characterKey: characterKeyMap.get(item.primary_character_id) ?? null,
+    })) ?? [];
+
+  const eventIdToCandidate = new Map(
+    (eventRows ?? []).map((item: any) => [
+      item.id,
+      eventCandidates.find((candidate) => candidate.slug === item.slug),
+    ])
+  );
+
+  const linkedEventIds = new Set([
+    ...(relations ?? []).filter((rel: any) => rel.parent_type === "event").map((rel: any) => rel.parent_id),
+    ...(outgoingEventRelations ?? []).map((rel: any) => rel.child_id),
+  ]);
+
+  const initialEvents = Array.from(linkedEventIds)
+    .map((id) => eventIdToCandidate.get(id))
+    .filter(Boolean) as RelationCandidate[];
+
   const cardIdToCandidate = new Map(
     (cards ?? []).map((item: any) => [
       item.id,
@@ -378,13 +419,25 @@ const storyCandidates: RelationCandidate[] =
 
       <form action={updateEventBundle} className="form-panel">
         <input type="hidden" name="eventId" value={event.id} />
-        <input type="hidden" name="slug" value={event.slug} />
+        <input type="hidden" name="originalSlug" value={event.slug} />
         <input type="hidden" name="translationId" value={translation?.id ?? ""} />
 
         <div className="form-grid">
           <label className="form-field form-field-full">
             <span>제목</span>
             <input name="title" defaultValue={event.title} required />
+          </label>
+
+          <label className="form-field form-field-full">
+            <span>Slug</span>
+            <input
+              name="slug"
+              defaultValue={event.slug}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+            />
           </label>
 
           <label className="form-field">
@@ -539,6 +592,14 @@ const storyCandidates: RelationCandidate[] =
           characterOptions={[...CHARACTER_OPTIONS]}
           categoryOptions={[...PHONE_CATEGORY_OPTIONS]}
           subtypeOptions={[...PHONE_SUBTYPE_OPTIONS]}
+        />
+
+        <RelationPicker
+          label="연결 이벤트"
+          name="linkedEventSlugs"
+          candidates={eventCandidates}
+          initialSelected={initialEvents}
+          characterOptions={[...CHARACTER_OPTIONS]}
         />
 
         <div className="admin-subpanel">
