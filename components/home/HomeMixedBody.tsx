@@ -315,9 +315,11 @@ async function getLatestPhoneSection(): Promise<HomeSection> {
 async function getLatestEventSection(): Promise<HomeSection> {
   const { data: rows, error } = await supabase
     .from("events")
-    .select("id, title, slug, subtype, release_year, start_date, thumbnail_url, created_at")
+    .select("id, title, slug, subtype, release_year, start_date, thumbnail_url")
     .eq("is_published", true)
-    .order("created_at", { ascending: false })
+    .order("start_date", { ascending: false, nullsFirst: false })
+    .order("release_year", { ascending: false })
+    .order("title", { ascending: true })
     .limit(10);
 
   if (error) {
@@ -357,7 +359,7 @@ async function getLatestEventSection(): Promise<HomeSection> {
       title: row.title,
       href: `/events/${encodeURIComponent(row.slug)}`,
       thumb: row.thumbnail_url?.trim() || pickMediaThumb(grouped.get(row.id) ?? []),
-      meta: row.created_at?.slice(0, 10) ?? "",
+      meta: row.start_date?.slice(0, 10) || (row.release_year ? String(row.release_year) : ""),
     })),
   };
 }
