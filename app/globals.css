@@ -17121,3 +17121,42 @@ dialog.card-image-viewer-dialog[open] {
 
 
 
+
+
+/* ==========================================================
+   Fan archive / copyright notice
+   ========================================================== */
+
+.home-copyright-notice {
+  margin: 5px 0 0;
+  font-size: 8px;
+  line-height: 1.4;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.34);
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
+.guide-copyright-notice {
+  margin: 18px 0 14px;
+  padding: 12px 14px 0;
+  border-top: 1px solid rgba(130, 145, 170, 0.18);
+  color: #8b94a3;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.guide-copyright-notice strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #707b8d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.guide-copyright-notice p {
+  margin: 0 0 5px;
+}
+

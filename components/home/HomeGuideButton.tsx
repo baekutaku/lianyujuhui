@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -61,14 +61,11 @@ export default function HomeGuideButton() {
         <div className="home-guide-modal-body">
           <div className="home-guide-info-box">
             <p>
-              본 아카이브 사이트는 백기유연 CP 중심 백업공간이며,
-              일부 자료는 미업로드·미번역 상태일 수 있습니다.
-              현재 사이트도 완성되어 있지는 않습니다.
+              본 아카이브 사이트는 백기유연 CP 중심의 개인 백업 공간이며, 일부 자료는 미업로드·미번역 상태일 수 있습니다. 현재 사이트도 계속 정리 및 보완 중입니다.
             </p>
 
             <p>
-              비전문가가 AI를 사용해서 만든 공간이기 때문에
-              서버가 불안정해 URL 이미지 삽입이 가능한 폼을 사용하고 있습니다.
+              비전문가가 AI를 활용해 제작한 개인 사이트이므로 기능이나 표시 등에 오류가 있을 수 있습니다. 외부 이미지의 경우 서버 안정성을 위해 URL 방식으로 불러오는 자료가 일부 있습니다.
             </p>
 
             <p>
@@ -89,7 +86,18 @@ export default function HomeGuideButton() {
               비밀번호를 요구하는 방식은 아닙니다.
             </p>
 
-            <p className="home-guide-info-alert">
+            <div className="guide-copyright-notice">
+  <strong>비공식 팬 아카이브 안내</strong>
+  <p>
+    본 사이트는 《러브앤프로듀서》의 비공식 개인 팬 아카이브이며,
+    공식 서비스 및 운영사와 관계가 없습니다.
+  </p>
+  <p>
+    게임 이미지·영상·음원·텍스트 등 원작 콘텐츠의 저작권 및 관련 권리는
+    叠纸游戏(Papergames) 및 각 권리자에게 있습니다.
+  </p>
+</div>
+<p className="home-guide-info-alert">
               단, 공식이 아닌 내용을 올리실 경우
               공식이 아니라는 점을 반드시 명시해주세요.
             </p>

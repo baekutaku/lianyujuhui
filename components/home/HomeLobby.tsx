@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -185,6 +185,10 @@ export default function HomeLobby({
             <strong>연모고 동창회</strong>
             <span className="game-start-touch">TOUCH TO START</span>
             <span className="game-start-note">백기 중심 KR · CN 아카이브</span>
+
+        <p className="home-copyright-notice">
+          비공식 팬 아카이브 · 게임 및 관련 콘텐츠의 권리는 각 권리자에게 있습니다.
+        </p>
           </button>
         ) : (
           <>
@@ -326,3 +330,4 @@ export default function HomeLobby({
     </section>
   );
 }
+
