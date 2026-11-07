@@ -17160,3 +17160,38 @@ dialog.card-image-viewer-dialog[open] {
   margin: 0 0 5px;
 }
 
+
+/* 통화 상세 - 번역문 문단 간격 정리 */
+.call-detail-translation .call-detail-rich-body {
+  line-height: 1.65;
+}
+
+.call-detail-translation .call-detail-rich-body p {
+  margin: 0 0 7px;
+}
+
+.call-detail-translation .call-detail-rich-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* 에디터에서 생성된 빈 문단 제거 */
+.call-detail-translation .call-detail-rich-body p:has(> br:only-child) {
+  display: none;
+}
+
+/* 통화 번역 - 작성한 줄간격 그대로 표시 */
+.call-detail-translation .call-detail-rich-body {
+  line-height: 1.65;
+}
+
+.call-detail-translation .call-detail-rich-body p {
+  margin: 0;
+}
+
+.call-detail-translation .call-detail-rich-body p:empty,
+.call-detail-translation .call-detail-rich-body p:has(> br:only-child) {
+  display: block;
+  height: 1em;
+  margin: 0;
+}
+
