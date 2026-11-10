@@ -17775,3 +17775,272 @@ html.story-archive-compact
   }
 }
 
+
+/* PHONE IMAGE UPLOADER - 2026-11-10 */
+
+.phone-image-field {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.phone-image-field-title {
+  color: #6f6877;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.phone-image-field-help {
+  margin: -4px 0 0;
+  color: #a099aa;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.phone-image-file-input {
+  display: none;
+}
+
+.phone-image-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+
+  min-height: 86px;
+  padding: 14px 16px;
+
+  border: 1px dashed rgba(184, 171, 205, 0.72);
+  border-radius: 16px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(249, 242, 250, 0.75),
+      rgba(238, 247, 253, 0.75)
+    );
+
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+
+.phone-image-dropzone.is-dragging {
+  border-color: rgba(193, 132, 188, 0.95);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(247, 225, 244, 0.95),
+      rgba(229, 242, 253, 0.95)
+    );
+
+  transform: translateY(-1px);
+}
+
+.phone-image-dropzone.is-uploading {
+  opacity: 0.65;
+}
+
+.phone-image-drop-copy {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.phone-image-drop-copy > .material-symbols-rounded {
+  display: grid;
+  place-items: center;
+
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #987797;
+
+  font-size: 21px;
+}
+
+.phone-image-drop-copy strong,
+.phone-image-drop-copy small {
+  display: block;
+}
+
+.phone-image-drop-copy strong {
+  color: #746778;
+  font-size: 12px;
+}
+
+.phone-image-drop-copy small {
+  margin-top: 3px;
+  color: #a095a3;
+  font-size: 10px;
+}
+
+.phone-image-pick-button {
+  flex: 0 0 auto;
+
+  min-height: 36px;
+  padding: 0 14px;
+
+  border: 1px solid rgba(211, 190, 217, 0.9);
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.94);
+  color: #79697d;
+
+  font-size: 10px;
+  font-weight: 900;
+
+  cursor: pointer;
+}
+
+.phone-image-pick-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.phone-image-url-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.phone-image-url-row > .material-symbols-rounded {
+  color: #a899aa;
+  font-size: 17px;
+}
+
+.phone-image-url-row input {
+  width: 100%;
+}
+
+.phone-image-url-row button {
+  min-height: 36px;
+  padding: 0 13px;
+
+  border: 1px solid rgba(218, 203, 223, 0.9);
+  border-radius: 999px;
+
+  background: rgba(250, 246, 251, 0.94);
+  color: #806f83;
+
+  font-size: 10px;
+  font-weight: 900;
+
+  cursor: pointer;
+}
+
+.phone-image-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.phone-image-preview-card {
+  min-width: 0;
+  overflow: hidden;
+
+  border: 1px solid rgba(224, 215, 227, 0.9);
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.phone-image-preview-image {
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: rgba(239, 235, 242, 0.8);
+}
+
+.phone-image-preview-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.phone-image-preview-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 6px;
+  padding: 7px 8px;
+}
+
+.phone-image-preview-bottom span {
+  overflow: hidden;
+
+  color: #8e8190;
+  font-size: 9px;
+  font-weight: 700;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-image-preview-bottom button {
+  border: 0;
+  background: transparent;
+
+  color: #ae7582;
+
+  font-size: 9px;
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.phone-image-empty {
+  display: grid;
+  place-items: center;
+
+  min-height: 54px;
+
+  border: 1px solid rgba(229, 221, 231, 0.8);
+  border-radius: 13px;
+
+  background: rgba(250, 248, 251, 0.6);
+
+  color: #aca2ad;
+  font-size: 10px;
+}
+
+.phone-image-error {
+  margin: 0;
+  color: #bd6874;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .phone-image-preview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .phone-image-dropzone {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .phone-image-pick-button {
+    width: 100%;
+  }
+
+  .phone-image-url-row {
+    grid-template-columns: 22px minmax(0, 1fr);
+  }
+
+  .phone-image-url-row button {
+    grid-column: 2;
+  }
+}
+

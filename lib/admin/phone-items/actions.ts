@@ -1303,7 +1303,46 @@ export async function createPhoneItemAction(formData: FormData) {
     redirect(`/admin/phone-items/new?error=${encodeURIComponent(message)}`);
   }
 
-  redirect(`/admin/phone-items/${createdItem.id}/edit`);
+  const createdSubtype =
+    String(formData.get("subtype") || "").trim();
+
+  if (createdSubtype === "message") {
+    const characterKey =
+      String(formData.get("character_key") || "").trim() ||
+      "baiqi";
+
+    redirect(
+      `/phone-items/messages/${encodeURIComponent(
+        characterKey
+      )}/${encodeURIComponent(createdItem.slug)}`
+    );
+  }
+
+  if (createdSubtype === "moment") {
+    redirect("/phone-items/moments");
+  }
+
+  if (
+    createdSubtype === "call" ||
+    createdSubtype === "video_call"
+  ) {
+    redirect("/phone-items/calls");
+  }
+
+  if (createdSubtype === "article") {
+    const publisherSlug =
+      String(
+        formData.get("article_publisher_slug") || ""
+      ).trim() || "news-preview";
+
+    redirect(
+      `/phone-items/articles/${encodeURIComponent(
+        publisherSlug
+      )}/${encodeURIComponent(createdItem.slug)}`
+    );
+  }
+
+  redirect("/admin/phone-items");
 }
 
 export async function updatePhoneItemAction(formData: FormData) {

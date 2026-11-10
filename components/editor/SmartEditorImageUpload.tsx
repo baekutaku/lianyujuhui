@@ -10,7 +10,7 @@ type Props = {
 
 const MAX_FILE_SIZE = 30 * 1024 * 1024;
 
-async function uploadEditorImage(file: File) {
+export async function uploadEditorImage(file: File) {
   if (!file.type.startsWith("image/")) {
     throw new Error(`${file.name}: 이미지 파일이 아닙니다.`);
   }

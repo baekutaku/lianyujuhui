@@ -1,5 +1,7 @@
 "use client";
 
+import PhoneImageField from "@/components/admin/phone-items/PhoneImageField";
+
 import { useMemo, useState } from "react";
 import {
   type MessageChoiceNode,
@@ -278,20 +280,23 @@ export default function MessageBlockEditor({
                   </select>
                 </label>
 
-                <label className="form-field form-field-full">
-                  <span>이미지 URL</span>
-                  <input
-                    value={node.url}
-                    onChange={(e) =>
+                <div className="form-field form-field-full">
+                  <PhoneImageField
+                    label="이미지"
+                    initialUrls={
+                      node.url ? [node.url] : []
+                    }
+                    onUrlsChange={(nextUrls) =>
                       onChange(
                         replaceAt(value, index, {
                           ...node,
-                          url: e.target.value,
+                          url: nextUrls[0] ?? "",
                         })
                       )
                     }
+                    help="이 이미지 메시지 위치에 표시될 이미지"
                   />
-                </label>
+                </div>
 
                 <label className="form-field form-field-full">
                   <span>캡션</span>

@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { parseMessageBulk } from "@/lib/admin/phoneBulkParsers";
 import MessageBlockEditor from "@/components/admin/phone-items/MessageBlockEditor";
+import PhoneImageField from "@/components/admin/phone-items/PhoneImageField";
 import {
   type MessageNode,
   buildEditorNodesFromStoredEntries,
@@ -1125,16 +1126,18 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
         />
       </label>
 
-      <label className="form-field form-field-full">
-        <span>이미지 URL 목록</span>
-        <textarea
+      <div className="form-field form-field-full">
+        <PhoneImageField
+          label="모멘트 이미지"
           name="moment_image_urls_text"
-          rows={5}
-          defaultValue={values.moment_image_urls_text}
-          placeholder={`/images/moments/baiqi-1.jpg\n/images/moments/baiqi-2.jpg`}
-          style={{ fontFamily: "monospace" }}
+          multiple
+          initialUrls={(values.moment_image_urls_text || "")
+            .split(/\r?\n/)
+            .map((value) => value.trim())
+            .filter(Boolean)}
+          help="여러 장 업로드 가능 · 드래그앤드롭 / 파일 선택 / URL 직접 입력"
         />
-      </label>
+      </div>
     </div>
 
     {isMaleLeadMoment && (
@@ -1729,14 +1732,18 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
         />
       </label>
 
-      <label className="form-field form-field-full">
-        <span>대표 이미지 URL</span>
-        <input
+      <div className="form-field form-field-full">
+        <PhoneImageField
+          label="대표 이미지"
           name="article_image_url"
-          defaultValue={initialValues?.article_image_url ?? ""}
-          placeholder="/phone/article/rainbow.png"
+          initialUrls={
+            initialValues?.article_image_url
+              ? [initialValues.article_image_url]
+              : []
+          }
+          help="대표 이미지 1장 · 드래그앤드롭 / 파일 선택 / URL 직접 입력"
         />
-      </label>
+      </div>
 
       <label className="form-field form-field-full">
         <span>기사 내용</span>
