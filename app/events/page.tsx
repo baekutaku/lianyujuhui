@@ -119,10 +119,6 @@ export default async function EventsPage() {
                         <span className="meta-pill">end: {event.end_date}</span>
                       ) : null}
                     </div>
-
-                    <div className="story-list-footer">
-                      <span className="mini-button">상세 보기</span>
-                    </div>
                   </div>
                 </Link>
               </li>

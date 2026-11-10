@@ -18044,3 +18044,9 @@ html.story-archive-compact
   }
 }
 
+
+/* EVENT CARD - remove redundant detail link */
+.story-archive-card-shell.is-event .story-list-footer {
+  display: none !important;
+}
+
