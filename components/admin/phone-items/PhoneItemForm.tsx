@@ -502,11 +502,18 @@ const [momentAuthorAvatarUrl, setMomentAuthorAvatarUrl] = useState(
 );
 
 
-const isMaleLeadMoment = CHARACTER_OPTIONS.some(
-  (item) => item.key === momentAuthorKey
-);
 const isMcMoment = momentAuthorKey === "mc";
-const isNpcMoment = !isMaleLeadMoment && !isMcMoment;
+
+const isNpcMoment =
+  momentAuthorKey === "other" ||
+  momentAuthorKey === "npc";
+
+const isMaleLeadMoment =
+  !isMcMoment &&
+  !isNpcMoment &&
+  CHARACTER_OPTIONS.some(
+    (item) => item.key === momentAuthorKey
+  );
 
 const initialMomentChoiceItems = useMemo(() => {
   const parsed = parseMomentChoiceFormItems(values.moment_choice_options_json);
