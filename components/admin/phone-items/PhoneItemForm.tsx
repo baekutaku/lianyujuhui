@@ -604,6 +604,10 @@ const handleMomentAuthorKeyChange = (nextKey: string) => {
 
   setMomentAuthorKey(nextKey);
 
+  if (nextKey !== "other") {
+    setMomentAuthorAvatarUrl("");
+  }
+
   if (!currentName || defaultNames.includes(currentName)) {
     setMomentAuthorName(getMomentDefaultName(nextKey));
   }
@@ -1026,31 +1030,52 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
         />
       </label>
 
-      <label className="form-field form-field-full">
-        <span>작성자 프사</span>
-        <input
-          name="moment_author_avatar_url"
-          value={momentAuthorAvatarUrl}
-          onChange={(e) => setMomentAuthorAvatarUrl(e.target.value)}
-          placeholder="비워두면 기본 프사 / NPC는 직접 입력"
-        />
-        {resolvedMomentAvatarPreview ? (
-          <div style={{ marginTop: "10px" }}>
-            <img
-              src={resolvedMomentAvatarPreview}
-              alt="avatar preview"
-              style={{
-                width: "88px",
-                height: "88px",
-                borderRadius: "999px",
-                objectFit: "cover",
-                border: "1px solid #d7e0ec",
-                background: "#fff",
-              }}
-            />
-          </div>
-        ) : null}
-      </label>
+      {isNpcMoment ? (
+        <div className="form-field form-field-full">
+          <PhoneImageField
+            label="작성자 프사"
+            name="moment_author_avatar_url"
+            initialUrls={
+              momentAuthorAvatarUrl
+                ? [momentAuthorAvatarUrl]
+                : []
+            }
+            onUrlsChange={(nextUrls) =>
+              setMomentAuthorAvatarUrl(
+                nextUrls[0] ?? ""
+              )
+            }
+            help="NPC/기타 작성자 프로필 이미지 · 드래그앤드롭 / 파일 선택 / URL 직접 입력"
+          />
+        </div>
+      ) : (
+        <div className="form-field form-field-full">
+          <span>작성자 프사</span>
+
+          <input
+            type="hidden"
+            name="moment_author_avatar_url"
+            value=""
+          />
+
+          {resolvedMomentAvatarPreview ? (
+            <div style={{ marginTop: "10px" }}>
+              <img
+                src={resolvedMomentAvatarPreview}
+                alt="avatar preview"
+                style={{
+                  width: "88px",
+                  height: "88px",
+                  borderRadius: "999px",
+                  objectFit: "cover",
+                  border: "1px solid #d7e0ec",
+                  background: "#fff",
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
+      )}
 
       <label className="form-field form-field-full">
         <span>제목</span>
