@@ -4,6 +4,7 @@ import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 import StoryMainMetaFields from "@/components/admin/stories/StoryMainMetaFields";
 import StoryVisibilityFields from "@/components/admin/stories/StoryVisibilityFields";
 import StoryTranslationFields from "@/components/admin/stories/StoryTranslationFields";
+import PhoneImageField from "@/components/admin/phone-items/PhoneImageField";
 import RelationPicker, {
   type RelationCandidate,
 } from "@/components/admin/relations/RelationPicker";
@@ -323,10 +324,14 @@ const eventCandidates: RelationCandidate[] =
             />
           </label>
 
-          <label className="form-field form-field-full">
-            <span>커버 이미지 URL</span>
-            <input name="coverImageUrl" placeholder="https://..." />
-          </label>
+          <div className="form-field form-field-full">
+        <PhoneImageField
+          label="대표 이미지 / 썸네일"
+          name="coverImageUrl"
+          initialUrls={[]}
+          help="스토리 대표 이미지 · 드래그앤드롭 / 파일 선택 / URL 직접 입력"
+        />
+      </div>
 
           <StoryTranslationFields />
         </div>

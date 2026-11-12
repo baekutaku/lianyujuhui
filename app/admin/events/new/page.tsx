@@ -6,6 +6,7 @@ import RelationPicker, {
   type RelationCandidate,
 } from "@/components/admin/relations/RelationPicker";
 import { supabase } from "@/lib/supabase/server";
+import PhoneImageField from "@/components/admin/phone-items/PhoneImageField";
 
 function safeDecode(value: string) {
   try {
@@ -322,10 +323,14 @@ const CHUNK_SIZE = 100;
             />
           </label>
 
-          <label className="form-field form-field-full">
-            <span>썸네일 URL</span>
-            <input name="thumbnailUrl" placeholder="https://..." />
-          </label>
+          <div className="form-field form-field-full">
+        <PhoneImageField
+          label="썸네일 이미지"
+          name="thumbnailUrl"
+          initialUrls={[]}
+          help="이벤트 썸네일 · 드래그앤드롭 / 파일 선택 / URL 직접 입력"
+        />
+      </div>
 
           <label className="form-field form-field-full">
             <span>번역 제목</span>
