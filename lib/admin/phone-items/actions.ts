@@ -1230,6 +1230,311 @@ const youtubeUrlCn = String(params.formData.get("youtube_url_cn") || "").trim();
   };
 }
 
+
+function parsePhoneRelationLines(
+  value: FormDataEntryValue | null
+) {
+  return Array.from(
+    new Set(
+      String(value || "")
+        .split(/\r?\n/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+async function deletePhoneRelationGroup(params: {
+  parentType: string;
+  parentId: string;
+  childType: string;
+  childId?: string;
+  relationType: string;
+}) {
+  let query = supabase
+    .from("item_relations")
+    .delete()
+    .eq("parent_type", params.parentType)
+    .eq("parent_id", params.parentId)
+    .eq("child_type", params.childType)
+    .eq("relation_type", params.relationType);
+
+  if (params.childId) {
+    query = query.eq("child_id", params.childId);
+  }
+
+  const { error } = await query;
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+async function syncCardPhoneRelations(
+  phoneItemId: string,
+  slugs: string[]
+) {
+  const { error: deleteError } = await supabase
+    .from("item_relations")
+    .delete()
+    .eq("parent_type", "card")
+    .eq("child_type", "phone_item")
+    .eq("child_id", phoneItemId)
+    .eq("relation_type", "card_phone");
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
+  if (!slugs.length) return;
+
+  const { data: cards, error } = await supabase
+    .from("cards")
+    .select("id, slug")
+    .in("slug", slugs);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const found = cards ?? [];
+  const foundSlugs = new Set(
+    found.map((item) => item.slug)
+  );
+
+  const missing = slugs.filter(
+    (slug) => !foundSlugs.has(slug)
+  );
+
+  if (missing.length) {
+    throw new Error(
+      `card slug를 찾을 수 없습니다:\n${missing.join("\n")}`
+    );
+  }
+
+  const orderMap = new Map(
+    slugs.map((slug, index) => [slug, index])
+  );
+
+  const rows = found.map((card) => ({
+    parent_type: "card",
+    parent_id: card.id,
+    child_type: "phone_item",
+    child_id: phoneItemId,
+    relation_type: "card_phone",
+    sort_order: orderMap.get(card.slug) ?? 0,
+  }));
+
+  const { error: insertError } = await supabase
+    .from("item_relations")
+    .insert(rows);
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+
+  slugs.forEach((slug) => {
+    revalidatePath(
+      `/cards/${encodeURIComponent(slug)}`
+    );
+  });
+}
+
+async function syncPhoneOutgoingBySlugs(params: {
+  phoneItemId: string;
+  childType: "story" | "event";
+  table: "stories" | "events";
+  relationType: "phone_story" | "phone_event";
+  slugs: string[];
+}) {
+  const { error: deleteError } = await supabase
+    .from("item_relations")
+    .delete()
+    .eq("parent_type", "phone_item")
+    .eq("parent_id", params.phoneItemId)
+    .eq("child_type", params.childType)
+    .eq("relation_type", params.relationType);
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
+  if (!params.slugs.length) return;
+
+  const { data: children, error } = await supabase
+    .from(params.table)
+    .select("id, slug")
+    .in("slug", params.slugs);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const found = children ?? [];
+  const foundSlugs = new Set(
+    found.map((item) => item.slug)
+  );
+
+  const missing = params.slugs.filter(
+    (slug) => !foundSlugs.has(slug)
+  );
+
+  if (missing.length) {
+    throw new Error(
+      `${params.childType} slug를 찾을 수 없습니다:\n${missing.join("\n")}`
+    );
+  }
+
+  const orderMap = new Map(
+    params.slugs.map((slug, index) => [
+      slug,
+      index,
+    ])
+  );
+
+  const rows = found.map((item) => ({
+    parent_type: "phone_item",
+    parent_id: params.phoneItemId,
+    child_type: params.childType,
+    child_id: item.id,
+    relation_type: params.relationType,
+    sort_order: orderMap.get(item.slug) ?? 0,
+  }));
+
+  const { error: insertError } = await supabase
+    .from("item_relations")
+    .insert(rows);
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+
+  params.slugs.forEach((slug) => {
+    revalidatePath(
+      `/${params.table}/${encodeURIComponent(slug)}`
+    );
+  });
+}
+
+async function syncPhonePhoneRelations(
+  phoneItemId: string,
+  ids: string[]
+) {
+  const { error: deleteError } = await supabase
+    .from("item_relations")
+    .delete()
+    .eq("parent_type", "phone_item")
+    .eq("parent_id", phoneItemId)
+    .eq("child_type", "phone_item")
+    .eq("relation_type", "phone_phone");
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
+  const uniqueIds = ids.filter(
+    (id) => id && id !== phoneItemId
+  );
+
+  if (!uniqueIds.length) return;
+
+  const { data: phoneItems, error } = await supabase
+    .from("phone_items")
+    .select("id")
+    .in("id", uniqueIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const foundIds = new Set(
+    (phoneItems ?? []).map((item) => item.id)
+  );
+
+  const missing = uniqueIds.filter(
+    (id) => !foundIds.has(id)
+  );
+
+  if (missing.length) {
+    throw new Error(
+      `phone item id를 찾을 수 없습니다:\n${missing.join("\n")}`
+    );
+  }
+
+  const rows = uniqueIds.map((id, index) => ({
+    parent_type: "phone_item",
+    parent_id: phoneItemId,
+    child_type: "phone_item",
+    child_id: id,
+    relation_type: "phone_phone",
+    sort_order: index,
+  }));
+
+  const { error: insertError } = await supabase
+    .from("item_relations")
+    .insert(rows);
+
+  if (insertError) {
+    throw new Error(insertError.message);
+  }
+}
+
+async function syncPhoneItemRelationsFromForm(
+  phoneItemId: string,
+  formData: FormData
+) {
+  if (formData.has("linkedCardSlugs")) {
+    await syncCardPhoneRelations(
+      phoneItemId,
+      parsePhoneRelationLines(
+        formData.get("linkedCardSlugs")
+      )
+    );
+  }
+
+  if (formData.has("linkedStorySlugs")) {
+    await syncPhoneOutgoingBySlugs({
+      phoneItemId,
+      childType: "story",
+      table: "stories",
+      relationType: "phone_story",
+      slugs: parsePhoneRelationLines(
+        formData.get("linkedStorySlugs")
+      ),
+    });
+  }
+
+  if (formData.has("linkedEventSlugs")) {
+    await syncPhoneOutgoingBySlugs({
+      phoneItemId,
+      childType: "event",
+      table: "events",
+      relationType: "phone_event",
+      slugs: parsePhoneRelationLines(
+        formData.get("linkedEventSlugs")
+      ),
+    });
+  }
+
+  if (formData.has("linkedPhoneItemIds")) {
+    await syncPhonePhoneRelations(
+      phoneItemId,
+      parsePhoneRelationLines(
+        formData.get("linkedPhoneItemIds")
+      )
+    );
+  }
+
+  revalidatePath("/admin/cards");
+  revalidatePath("/admin/stories");
+  revalidatePath("/admin/events");
+  revalidatePath("/admin/phone-items");
+  revalidatePath("/cards");
+  revalidatePath("/stories");
+  revalidatePath("/events");
+  revalidatePath("/phone-items");
+}
+
 export async function createPhoneItemAction(formData: FormData) {
   let createdItem: { id: string; slug: string } | null = null;
 
@@ -1294,6 +1599,11 @@ export async function createPhoneItemAction(formData: FormData) {
     if (tagLabelsRaw && createdItem) {
       await syncPhoneItemTags(createdItem.id, parseTagLabels(tagLabelsRaw));
     }
+
+    await syncPhoneItemRelationsFromForm(
+      createdItem.id,
+      formData
+    );
 
     revalidatePhoneItemPaths(createdItem.slug, createdItem.id);
   } catch (error) {
@@ -1414,6 +1724,11 @@ export async function updatePhoneItemAction(formData: FormData) {
 
     const tagLabelsRaw = String(formData.get("tag_labels") || "").trim();
     await syncPhoneItemTags(phoneItemId, parseTagLabels(tagLabelsRaw));
+
+    await syncPhoneItemRelationsFromForm(
+      phoneItemId,
+      formData
+    );
 
     revalidatePhoneItemPaths(rawSlug, phoneItemId);
   } catch (error) {

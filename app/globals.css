@@ -18050,3 +18050,100 @@ html.story-archive-compact
   display: none !important;
 }
 
+
+/* PHONE ADMIN RELATION PICKER WIDTH FIX */
+.phone-item-admin-form {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.phone-item-admin-form > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.phone-item-admin-form .form-grid {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.phone-item-admin-form .form-grid > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.phone-item-admin-form .form-field {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.phone-item-admin-form .form-field input,
+.phone-item-admin-form .form-field select,
+.phone-item-admin-form .form-field textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.phone-item-admin-form > .detail-panel {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.phone-item-admin-form .detail-panel .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.phone-item-admin-form .link-card {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.phone-item-admin-form .link-card > div:first-child {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.phone-item-admin-form .link-card > div:first-child > div {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+  .phone-item-admin-form .form-grid,
+  .phone-item-admin-form .detail-panel .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* RELATION PICKER - clickable candidate card */
+.relation-picker-candidate {
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.relation-picker-candidate:hover {
+  background: rgba(244, 249, 253, 0.96);
+  border-color: rgba(155, 190, 217, 0.8);
+  transform: translateY(-1px);
+}
+
+.relation-picker-candidate:focus-visible {
+  outline: 2px solid rgba(137, 181, 214, 0.7);
+  outline-offset: 2px;
+}
+

@@ -1,4 +1,5 @@
 import PhoneItemForm from "@/components/admin/phone-items/PhoneItemForm";
+import PhoneRelationFields from "@/components/admin/phone-items/PhoneRelationFields";
 import { createPhoneItemAction } from "@/lib/admin/phone-items/actions";
 
 type NewPhoneItemPageProps = {
@@ -43,6 +44,7 @@ export default async function NewPhoneItemPage({
       <PhoneItemForm
         action={createPhoneItemAction}
         submitLabel="저장"
+        relationFields={<PhoneRelationFields />}
         initialValues={{
           subtype,
           server_key: serverKey,

@@ -22,6 +22,7 @@ type PhoneItemFormProps = {
   action: (formData: FormData) => void | Promise<void>;
   submitLabel?: string;
   hiddenFields?: ReactNode;
+  relationFields?: ReactNode;
   initialValues?: {
     subtype?: Subtype;
     server_key?: "kr" | "cn";
@@ -314,6 +315,7 @@ export default function PhoneItemForm({
   action,
   submitLabel = "저장",
   hiddenFields,
+  relationFields,
   initialValues,
 }: PhoneItemFormProps) {
   const values = {
@@ -695,7 +697,7 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
   return (
     <form
       action={action}
-      className="form-panel"
+      className="form-panel phone-item-admin-form"
       style={{ display: "grid", gap: "20px" }}
     >
       {hiddenFields}
@@ -1920,6 +1922,8 @@ const [messageEditorEntries, setMessageEditorEntries] = useState<MessageNode[]>(
           />
         </label>
       </div>
+
+      {relationFields}
 
       <button type="submit" className="primary-button">
         {submitLabel}

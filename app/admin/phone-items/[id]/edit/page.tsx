@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import PhoneItemForm from "@/components/admin/phone-items/PhoneItemForm";
+import PhoneRelationFields from "@/components/admin/phone-items/PhoneRelationFields";
 import { deletePhoneItem } from "@/app/admin/actions";
 import { updatePhoneItemAction } from "@/lib/admin/phone-items/actions";
 
@@ -32,6 +33,9 @@ export default async function EditPhoneItemPage({ params }: PageProps) {
       <PhoneItemForm
         action={updatePhoneItemAction}
         submitLabel="휴대폰 콘텐츠 수정 저장"
+        relationFields={
+          <PhoneRelationFields phoneItemId={item.id} />
+        }
         hiddenFields={
           <>
             <input type="hidden" name="phoneItemId" value={item.id} />

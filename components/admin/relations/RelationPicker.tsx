@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 export type RelationCandidate = {
+  id?: string;
   slug: string;
   title: string;
   subtype?: string | null;
@@ -24,6 +25,7 @@ type RelationPickerProps = {
   subtypeOptions?: SelectOption[];
   characterOptions?: SelectOption[];
   categoryOptions?: SelectOption[];
+  serializeBy?: "slug" | "id";
 };
 
 
@@ -35,12 +37,19 @@ export default function RelationPicker({
   subtypeOptions = [],
   characterOptions = [],
   categoryOptions = [],
+  serializeBy = "slug",
 }: RelationPickerProps) {
   const [query, setQuery] = useState("");
   const [subtype, setSubtype] = useState("all");
   const [character, setCharacter] = useState("all");
   const [category, setCategory] = useState("all");
   const [selected, setSelected] = useState<RelationCandidate[]>(initialSelected);
+
+  function getCandidateKey(item: RelationCandidate) {
+    return serializeBy === "id"
+      ? item.id || item.slug
+      : item.slug;
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -65,7 +74,9 @@ const matchesQuery =
     .toLowerCase()
     .includes(q);
 
-      const notSelected = !selected.some((s) => s.slug === item.slug);
+      const notSelected = !selected.some(
+        (s) => getCandidateKey(s) === getCandidateKey(item)
+      );
 
       return (
         matchesSubtype &&
@@ -75,20 +86,43 @@ const matchesQuery =
         notSelected
       );
     });
-  }, [candidates, query, selected, subtype, character, category]);
+  }, [
+    candidates,
+    query,
+    selected,
+    subtype,
+    character,
+    category,
+    serializeBy,
+  ]);
 
 
-  const serialized = selected.map((item) => item.slug).join("\n");
+  const serialized = selected
+    .map((item) => getCandidateKey(item))
+    .join("\n");
 
   function addItem(item: RelationCandidate) {
     setSelected((prev) => {
-      if (prev.some((x) => x.slug === item.slug)) return prev;
+      const key = getCandidateKey(item);
+
+      if (
+        prev.some(
+          (current) => getCandidateKey(current) === key
+        )
+      ) {
+        return prev;
+      }
+
       return [...prev, item];
     });
   }
 
-  function removeItem(slug: string) {
-    setSelected((prev) => prev.filter((item) => item.slug !== slug));
+  function removeItem(key: string) {
+    setSelected((prev) =>
+      prev.filter(
+        (item) => getCandidateKey(item) !== key
+      )
+    );
   }
 
   function moveItem(index: number, direction: -1 | 1) {
@@ -209,13 +243,27 @@ const matchesQuery =
       >
         {filtered.map((item) => (
           <div
-            key={item.slug}
-            className="link-card"
+            key={getCandidateKey(item)}
+            className="link-card relation-picker-candidate"
+            role="button"
+            tabIndex={0}
+            aria-label={`추가: ${item.title}`}
+            onClick={() => addItem(item)}
+            onKeyDown={(event) => {
+              if (
+                event.key === "Enter" ||
+                event.key === " "
+              ) {
+                event.preventDefault();
+                addItem(item);
+              }
+            }}
             style={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               gap: "12px",
+              cursor: "pointer",
             }}
           >
             <div style={{ minWidth: 0 }}>
@@ -245,7 +293,10 @@ const matchesQuery =
               type="button"
               className="nav-link"
               style={{ border: "none", background: "transparent", cursor: "pointer" }}
-              onClick={() => addItem(item)}
+              onClick={(event) => {
+                event.stopPropagation();
+                addItem(item);
+              }}
             >
               추가
             </button>
@@ -278,7 +329,7 @@ const matchesQuery =
       >
         {selected.map((item, index) => (
           <div
-            key={item.slug}
+            key={getCandidateKey(item)}
             className="link-card"
             style={{
               display: "flex",
@@ -325,7 +376,7 @@ const matchesQuery =
                 type="button"
                 className="nav-link"
                 style={{ border: "none", background: "transparent", cursor: "pointer" }}
-                onClick={() => removeItem(item.slug)}
+                onClick={() => removeItem(getCandidateKey(item))}
               >
                 삭제
               </button>
