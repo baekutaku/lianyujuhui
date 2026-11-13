@@ -257,7 +257,7 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
       text={item.body}
       originalText={originalBody}
       iconColor="#ad91c6"
-      originalBackground="rgba(246, 243, 247, 0.86)"
+      originalBackground="transparent"
       originalColor="#766e78"
       originalFontSize={14}
     />
@@ -315,7 +315,7 @@ export default function MomentFeedPost({ item }: MomentFeedPostProps) {
             text={line.content}
             originalText={line.originalContent}
             iconColor="#ad91c6"
-            originalBackground="rgba(255,255,255,0.55)"
+            originalBackground="transparent"
             originalColor={UI.replySub}
             originalFontSize={12.5}
           />
