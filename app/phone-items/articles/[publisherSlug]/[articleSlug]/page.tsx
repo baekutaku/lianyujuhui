@@ -101,7 +101,7 @@ export default async function PhoneArticleDetailPage({ params }: PageProps) {
     : [];
 
   return (
-    <main className="phone-page">
+    <main className="phone-page phone-page-article-detail">
       <PhoneShell>
         <PhoneTopBar
           title={publisherName}
@@ -112,22 +112,11 @@ export default async function PhoneArticleDetailPage({ params }: PageProps) {
           rightSlot={
             <Link
               href={`/phone-items/articles/${publisherSlug}`}
-              className="phone-topbar-icon-button"
+              className="article-topbar-history-button"
               aria-label="히스토리"
               title="히스토리"
             >
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  padding: "6px 10px",
-                  borderRadius: 8,
-                  background: "rgba(122, 204, 178, 0.85)",
-                  color: "white",
-                }}
-              >
-                히스토리
-              </span>
+              히스토리
             </Link>
           }
         />

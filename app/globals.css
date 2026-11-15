@@ -18305,3 +18305,158 @@ html.story-archive-compact
   }
 }
 
+
+/* =========================================================
+   ARTICLE DETAIL - TOP HISTORY BUTTON
+========================================================= */
+
+.phone-topbar-articles .phone-topbar-right {
+  width: 96px !important;
+  min-width: 96px !important;
+  overflow: visible !important;
+}
+
+.article-topbar-history-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: auto !important;
+  min-width: 62px !important;
+  height: 32px !important;
+
+  padding: 0 11px !important;
+
+  border: 0 !important;
+  border-radius: 9px !important;
+
+  background: rgba(122, 204, 178, 0.88) !important;
+  color: #fff !important;
+
+  box-shadow: none !important;
+
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+
+  text-decoration: none !important;
+  writing-mode: horizontal-tb !important;
+
+  transform: none !important;
+}
+
+.article-topbar-history-button:hover {
+  background: rgba(108, 193, 166, 0.96) !important;
+}
+
+@media (max-width: 768px) {
+  .article-topbar-history-button {
+    min-width: 58px !important;
+    height: 30px !important;
+    padding: 0 9px !important;
+    font-size: 10px !important;
+  }
+}
+
+
+
+/* =========================================================
+   ARTICLE HISTORY BUTTON FORCE FIX - 2026-11-15
+========================================================= */
+
+.phone-page-article-detail .phone-topbar {
+  grid-template-columns:
+    86px minmax(0, 1fr) 86px !important;
+}
+
+.phone-page-article-detail .phone-topbar-right {
+  width: 86px !important;
+  min-width: 86px !important;
+  max-width: 86px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+
+  overflow: visible !important;
+}
+
+.phone-page-article-detail
+.article-topbar-history-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  flex: 0 0 66px !important;
+
+  width: 66px !important;
+  min-width: 66px !important;
+  max-width: 66px !important;
+
+  height: 32px !important;
+  min-height: 32px !important;
+
+  padding: 0 8px !important;
+
+  box-sizing: border-box !important;
+
+  border: 0 !important;
+  border-radius: 9px !important;
+
+  background: rgba(122, 204, 178, 0.90) !important;
+  color: #ffffff !important;
+
+  box-shadow: none !important;
+
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+
+  text-indent: 0 !important;
+  text-decoration: none !important;
+
+  overflow: visible !important;
+
+  transform: none !important;
+}
+
+.phone-page-article-detail
+.article-topbar-history-button:hover {
+  background: rgba(108, 193, 166, 0.98) !important;
+}
+
+@media (max-width: 768px) {
+  .phone-page-article-detail .phone-topbar {
+    grid-template-columns:
+      80px minmax(0, 1fr) 80px !important;
+  }
+
+  .phone-page-article-detail .phone-topbar-right {
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+  }
+
+  .phone-page-article-detail
+  .article-topbar-history-button {
+    flex-basis: 62px !important;
+    width: 62px !important;
+    min-width: 62px !important;
+    max-width: 62px !important;
+
+    height: 30px !important;
+    min-height: 30px !important;
+
+    padding: 0 6px !important;
+    font-size: 10px !important;
+  }
+}

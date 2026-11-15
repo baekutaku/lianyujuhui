@@ -3,6 +3,7 @@ import PhoneShell from "@/components/phone/PhoneShell";
 import PhoneTopBar from "@/components/phone/PhoneTopBar";
 import PhoneTabNav from "@/components/phone/PhoneTabNav";
 import { supabase } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/utils/admin-auth";
 
 type ArticleItemRow = {
   id: string;
@@ -34,6 +35,34 @@ const ARTICLE_PUBLISHERS = [
 ] as const;
 
 export default async function PhoneArticlesPage() {
+  const admin = await isAdmin();
+
+  const adminSlot = admin ? (
+    <div className="history-top-admin">
+      <Link
+        href="/admin/phone-items/new?subtype=article"
+        className="history-top-admin-btn"
+        aria-label="기사 추가"
+        title="기사 추가"
+      >
+        <span className="material-symbols-rounded">
+          add
+        </span>
+      </Link>
+
+      <Link
+        href="/admin/phone-items"
+        className="history-top-admin-btn"
+        aria-label="휴대폰 관리"
+        title="휴대폰 관리"
+      >
+        <span className="material-symbols-rounded">
+          settings
+        </span>
+      </Link>
+    </div>
+  ) : null;
+
   const { data: items, error } = await supabase
     .from("phone_items")
     .select("id, slug, title, created_at, is_published, content_json")
@@ -85,7 +114,11 @@ export default async function PhoneArticlesPage() {
   return (
     <main className="phone-page">
       <PhoneShell>
-        <PhoneTopBar title="핫이슈" subtitle="뉴스 목록" />
+        <PhoneTopBar
+          title="핫이슈"
+          subtitle="뉴스 목록"
+          rightSlot={adminSlot}
+        />
        <div
   className="phone-content"
   style={{
