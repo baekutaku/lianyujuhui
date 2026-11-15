@@ -147,6 +147,24 @@ const SORT_LABEL_MAP: Record<string, string> = {
   title_desc: "제목 내림차순",
 };
 
+const STORY_SUBTYPE_LABEL_MAP: Record<string, string> = {
+  main_story: "메인스토리",
+  behind_story: "막후의 장",
+  card_story: "데이트",
+  asmr: "너의 곁에",
+  side_story: "외전",
+  xiyue_story: "서월국",
+  myhome_story: "마이홈",
+  company_project: "촬영장 / 회사 프로젝트",
+};
+
+function getStorySubtypeLabel(
+  subtype: string | null | undefined
+) {
+  if (!subtype) return "미분류";
+  return STORY_SUBTYPE_LABEL_MAP[subtype] ?? subtype;
+}
+
 function toSingleString(value: SearchParamValue) {
   if (Array.isArray(value)) return String(value[0] ?? "").trim();
   return String(value ?? "").trim();
@@ -868,11 +886,14 @@ const hasConnections =
       <h1 className="story-page-title">{story.title}</h1>
 
        <div className="meta-row story-top-meta">
-        <span className="meta-pill">유형: {story.subtype ?? "미분류"}</span>
-        <span className="meta-pill">연도: {story.release_year ?? "미정"}</span>
         <span className="meta-pill">
-          정렬: {SORT_LABEL_MAP[sort] ?? "최신순"}
+          {getStorySubtypeLabel(story.subtype)}
         </span>
+        {story.release_year ? (
+          <span className="meta-pill">
+            {story.release_year}
+          </span>
+        ) : null}
         {storyTagLabels.map((tag) => (
           <Link
             key={tag}

@@ -18147,3 +18147,161 @@ html.story-archive-compact
   outline-offset: 2px;
 }
 
+
+/* =========================================================
+   STORY / EVENT DETAIL TOP - SOFT EDITORIAL UI
+   2026-11-15
+========================================================= */
+
+.story-topbar-main-panel {
+  padding: 26px 20px 20px !important;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.22),
+      rgba(244, 249, 255, 0.18)
+    ) !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(119, 102, 132, 0.10) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.story-topbar-main .page-eyebrow {
+  margin: 0 0 10px !important;
+  color: rgba(104, 91, 112, 0.44) !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+}
+
+.story-page-title {
+  margin: 0 !important;
+  max-width: 1180px !important;
+  color: rgba(68, 51, 72, 0.94) !important;
+  font-size: clamp(30px, 3.2vw, 47px) !important;
+  line-height: 1.12 !important;
+  letter-spacing: -0.035em !important;
+  font-weight: 500 !important;
+  word-break: keep-all !important;
+}
+
+/* 메타 */
+.story-top-meta {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  margin-top: 16px !important;
+}
+
+.story-top-meta .meta-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  min-height: auto !important;
+  padding: 3px 8px !important;
+
+  border: 0 !important;
+  border-radius: 6px !important;
+
+  background: rgba(121, 151, 178, 0.07) !important;
+  box-shadow: none !important;
+
+  color: rgba(79, 103, 124, 0.72) !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  line-height: 1.5 !important;
+}
+
+/* 이동 버튼 */
+.story-top-actions {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  margin-top: 14px !important;
+}
+
+.story-top-actions .story-action-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  min-height: 30px !important;
+  padding: 0 9px !important;
+
+  border: 0 !important;
+  border-radius: 6px !important;
+
+  background: transparent !important;
+  box-shadow: none !important;
+
+  color: rgba(75, 66, 82, 0.70) !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease !important;
+}
+
+.story-top-actions .story-action-button:hover {
+  background: rgba(255, 255, 255, 0.48) !important;
+  color: rgba(59, 50, 67, 0.96) !important;
+}
+
+/* 목록으로만 아주 약한 버튼감 유지 */
+.story-top-actions .story-action-button:first-child {
+  background: rgba(255, 255, 255, 0.38) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(112, 96, 124, 0.08) !important;
+}
+
+/* 비활성 이전/다음 */
+.story-top-actions span.story-action-button {
+  color: rgba(92, 83, 99, 0.26) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 관리자 버튼도 너무 튀지 않게 */
+.story-top-actions .story-action-button:not(.story-action-muted) {
+  background: rgba(121, 151, 178, 0.08) !important;
+  color: rgba(73, 91, 109, 0.78) !important;
+}
+
+/* 모바일 */
+@media (max-width: 768px) {
+  .story-topbar-main-panel {
+    padding: 20px 14px 16px !important;
+  }
+
+  .story-page-title {
+    font-size: clamp(25px, 7vw, 34px) !important;
+    line-height: 1.16 !important;
+  }
+
+  .story-top-meta {
+    margin-top: 13px !important;
+    gap: 5px !important;
+  }
+
+  .story-top-meta .meta-pill {
+    padding: 3px 7px !important;
+    font-size: 9.5px !important;
+  }
+
+  .story-top-actions {
+    margin-top: 12px !important;
+    gap: 3px !important;
+  }
+
+  .story-top-actions .story-action-button {
+    min-height: 29px !important;
+    padding: 0 7px !important;
+    font-size: 9.5px !important;
+  }
+}
+

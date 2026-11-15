@@ -1138,82 +1138,213 @@ const admin = await isAdmin();
 
                 {eventTotalPages > 1 ? (
                   <nav
-                    className="story-pagination"
+                    className="cards-pagination"
                     aria-label="이벤트 페이지 이동"
                   >
-                    <Link
-                      href={buildStoriesHref({
-                        tab: "event",
-                        sub,
-                        tag: selectedTag || undefined,
-                        q,
-                        years: selectedYears,
-                        characters: selectedCharacterKeys,
-                        scope: "",
-                        sort,
-                        page: Math.max(1, eventCurrentPage - 1),
-                      })}
-                      className={`story-page-btn ${
-                        eventCurrentPage <= 1 ? "is-disabled" : ""
-                      }`}
-                      aria-disabled={eventCurrentPage <= 1}
-                    >
-                      이전
-                    </Link>
+                    {eventCurrentPage === 1 ? (
+                      <span className="cards-pagination-button is-disabled">
+                        ←
+                      </span>
+                    ) : (
+                      <Link
+                        href={buildStoriesHref({
+                          tab: "event",
+                          sub:
+                            sub !== "all"
+                              ? sub
+                              : undefined,
+                          tag:
+                            selectedTag ||
+                            undefined,
+                          q,
+                          years:
+                            selectedYears,
+                          characters:
+                            selectedCharacterKeys,
+                          scope: "",
+                          sort,
+                          page:
+                            eventCurrentPage - 1,
+                        })}
+                        className="cards-pagination-button"
+                        aria-label="이전 페이지"
+                      >
+                        ←
+                      </Link>
+                    )}
 
-                    <div className="story-page-numbers">
-                      {eventVisiblePages.map((pageNumber) => (
-                        <Link
-                          key={pageNumber}
-                          href={buildStoriesHref({
-                            tab: "event",
-                            sub,
-                            tag: selectedTag || undefined,
-                            q,
-                            years: selectedYears,
-                            characters:
-                              selectedCharacterKeys,
-                            scope: "",
-                            sort,
-                            page: pageNumber,
-                          })}
-                          className={`story-page-number ${
-                            pageNumber === eventCurrentPage
-                              ? "is-active"
-                              : ""
-                          }`}
-                        >
-                          {pageNumber}
-                        </Link>
-                      ))}
+                    <div className="cards-pagination-numbers">
+                      {getVisiblePages(
+                        eventTotalPages,
+                        eventCurrentPage
+                      ).map((pageNumber) => {
+                        const isActive =
+                          pageNumber ===
+                          eventCurrentPage;
+
+                        return (
+                          <Link
+                            key={pageNumber}
+                            href={buildStoriesHref({
+                              tab: "event",
+                              sub:
+                                sub !== "all"
+                                  ? sub
+                                  : undefined,
+                              tag:
+                                selectedTag ||
+                                undefined,
+                              q,
+                              years:
+                                selectedYears,
+                              characters:
+                                selectedCharacterKeys,
+                              scope: "",
+                              sort,
+                              page:
+                                pageNumber,
+                            })}
+                            className={
+                              "cards-pagination-number" +
+                              (isActive
+                                ? " is-active"
+                                : "")
+                            }
+                            aria-current={
+                              isActive
+                                ? "page"
+                                : undefined
+                            }
+                          >
+                            {pageNumber}
+                          </Link>
+                        );
+                      })}
                     </div>
 
-                    <Link
-                      href={buildStoriesHref({
-                        tab: "event",
-                        sub,
-                        tag: selectedTag || undefined,
-                        q,
-                        years: selectedYears,
-                        characters: selectedCharacterKeys,
-                        scope: "",
-                        sort,
-                        page: Math.min(
-                          eventTotalPages,
-                          eventCurrentPage + 1
-                        ),
-                      })}
-                      className={`story-page-btn ${
-                        eventCurrentPage >= eventTotalPages
-                          ? "is-disabled"
-                          : ""
-                      }`}
-                      aria-disabled={
-                        eventCurrentPage >= eventTotalPages
-                      }
+                    {eventCurrentPage ===
+                    eventTotalPages ? (
+                      <span className="cards-pagination-button is-disabled">
+                        →
+                      </span>
+                    ) : (
+                      <Link
+                        href={buildStoriesHref({
+                          tab: "event",
+                          sub:
+                            sub !== "all"
+                              ? sub
+                              : undefined,
+                          tag:
+                            selectedTag ||
+                            undefined,
+                          q,
+                          years:
+                            selectedYears,
+                          characters:
+                            selectedCharacterKeys,
+                          scope: "",
+                          sort,
+                          page:
+                            eventCurrentPage + 1,
+                        })}
+                        className="cards-pagination-button"
+                        aria-label="다음 페이지"
+                      >
+                        →
+                      </Link>
+                    )}
+
+                    <form
+                      method="get"
+                      action="/stories"
+                      className="cards-page-jump"
                     >
-                      다음
-                    </Link>
+                      <input
+                        type="hidden"
+                        name="tab"
+                        value="event"
+                      />
+
+                      {sub !== "all" ? (
+                        <input
+                          type="hidden"
+                          name="sub"
+                          value={sub}
+                        />
+                      ) : null}
+
+                      {selectedTag ? (
+                        <input
+                          type="hidden"
+                          name="tag"
+                          value={selectedTag}
+                        />
+                      ) : null}
+
+                      {q ? (
+                        <input
+                          type="hidden"
+                          name="q"
+                          value={q}
+                        />
+                      ) : null}
+
+                      {selectedYears.map(
+                        (yearValue) => (
+                          <input
+                            key={
+                              "event-jump-year-" +
+                              yearValue
+                            }
+                            type="hidden"
+                            name="year"
+                            value={yearValue}
+                          />
+                        )
+                      )}
+
+                      {selectedCharacterKeys.map(
+                        (characterKey) => (
+                          <input
+                            key={
+                              "event-jump-character-" +
+                              characterKey
+                            }
+                            type="hidden"
+                            name="character"
+                            value={characterKey}
+                          />
+                        )
+                      )}
+
+                      {sort ? (
+                        <input
+                          type="hidden"
+                          name="sort"
+                          value={sort}
+                        />
+                      ) : null}
+
+                      <input
+                        className="cards-page-jump-input"
+                        type="number"
+                        name="page"
+                        min={1}
+                        max={eventTotalPages}
+                        defaultValue={
+                          eventCurrentPage
+                        }
+                        aria-label="이동할 페이지 번호"
+                      />
+
+                      <button
+                        type="submit"
+                        className="cards-page-jump-button"
+                      >
+                        이동
+                      </button>
+                    </form>
                   </nav>
                 ) : null}
               </>
@@ -1909,73 +2040,207 @@ return (
               </ul>
 
               {totalPages > 1 ? (
-                <nav className="story-pagination" aria-label="스토리 페이지 이동">
-                  <Link
-                    href={buildStoriesHref({
-  tab: activeTab.key,
-  sub: sub !== "all" ? sub : undefined,
-  q,
-  years: selectedYears,
-  characters: rawSelectedCharacterKeys,
-  scope,
-  sort,
-  page: Math.max(1, currentPage - 1),
-})}
-                    className={`story-page-btn ${currentPage <= 1 ? "is-disabled" : ""}`}
-                    aria-disabled={currentPage <= 1}
-                  >
-                    이전
-                  </Link>
+                <nav
+                  className="cards-pagination"
+                  aria-label="스토리 페이지 이동"
+                >
+                  {currentPage === 1 ? (
+                    <span className="cards-pagination-button is-disabled">
+                      ←
+                    </span>
+                  ) : (
+                    <Link
+                      href={buildStoriesHref({
+                        tab: activeTab.key,
+                        sub:
+                          sub !== "all"
+                            ? sub
+                            : undefined,
+                        tag:
+                          selectedTag ||
+                          undefined,
+                        q,
+                        years: selectedYears,
+                        characters:
+                          selectedCharacterKeys,
+                        scope,
+                        sort,
+                        page:
+                          currentPage - 1,
+                      })}
+                      className="cards-pagination-button"
+                      aria-label="이전 페이지"
+                    >
+                      ←
+                    </Link>
+                  )}
 
-                  <div className="story-page-numbers">
-                    {visiblePages.map((pageNumber, index) => {
-                      const prevPage = visiblePages[index - 1];
-                      const showGap = prevPage && pageNumber - prevPage > 1;
+                  <div className="cards-pagination-numbers">
+                    {visiblePages.map(
+                      (pageNumber) => {
+                        const isActive =
+                          pageNumber ===
+                          currentPage;
 
-                      return (
-                        <span key={pageNumber} className="story-page-number-wrap">
-                          {showGap ? <span className="story-page-gap">…</span> : null}
-
+                        return (
                           <Link
-                          href={buildStoriesHref({
-  tab: activeTab.key,
-  sub: sub !== "all" ? sub : undefined,
-  q,
-  years: selectedYears,
-  characters: rawSelectedCharacterKeys,
-  scope,
-  sort,
-  page: pageNumber,
-})}
-                            className={`story-page-btn ${
-                              currentPage === pageNumber ? "is-active" : ""
-                            }`}
+                            key={pageNumber}
+                            href={buildStoriesHref({
+                              tab:
+                                activeTab.key,
+                              sub:
+                                sub !== "all"
+                                  ? sub
+                                  : undefined,
+                              tag:
+                                selectedTag ||
+                                undefined,
+                              q,
+                              years:
+                                selectedYears,
+                              characters:
+                                selectedCharacterKeys,
+                              scope,
+                              sort,
+                              page:
+                                pageNumber,
+                            })}
+                            className={`cards-pagination-number${isActive ? " is-active" : ""}`}
+                            aria-current={
+                              isActive
+                                ? "page"
+                                : undefined
+                            }
                           >
                             {pageNumber}
                           </Link>
-                        </span>
-                      );
-                    })}
+                        );
+                      }
+                    )}
                   </div>
 
-                  <Link
-               href={buildStoriesHref({
-  tab: activeTab.key,
-  sub: sub !== "all" ? sub : undefined,
-  q,
-  years: selectedYears,
-  characters: rawSelectedCharacterKeys,
-  scope,
-  sort,
-  page: Math.min(totalPages, currentPage + 1),
-})}
-                    className={`story-page-btn ${
-                      currentPage >= totalPages ? "is-disabled" : ""
-                    }`}
-                    aria-disabled={currentPage >= totalPages}
+                  {currentPage === totalPages ? (
+                    <span className="cards-pagination-button is-disabled">
+                      →
+                    </span>
+                  ) : (
+                    <Link
+                      href={buildStoriesHref({
+                        tab: activeTab.key,
+                        sub:
+                          sub !== "all"
+                            ? sub
+                            : undefined,
+                        tag:
+                          selectedTag ||
+                          undefined,
+                        q,
+                        years: selectedYears,
+                        characters:
+                          selectedCharacterKeys,
+                        scope,
+                        sort,
+                        page:
+                          currentPage + 1,
+                      })}
+                      className="cards-pagination-button"
+                      aria-label="다음 페이지"
+                    >
+                      →
+                    </Link>
+                  )}
+
+                  <form
+                    method="get"
+                    action="/stories"
+                    className="cards-page-jump"
                   >
-                    다음
-                  </Link>
+
+                <input
+                  type="hidden"
+                  name="tab"
+                  value={activeTab.key}
+                />
+
+                {sub !== "all" ? (
+                  <input
+                    type="hidden"
+                    name="sub"
+                    value={sub}
+                  />
+                ) : null}
+
+                {selectedTag ? (
+                  <input
+                    type="hidden"
+                    name="tag"
+                    value={selectedTag}
+                  />
+                ) : null}
+
+                {q ? (
+                  <input
+                    type="hidden"
+                    name="q"
+                    value={q}
+                  />
+                ) : null}
+
+                {selectedYears.map((yearValue) => (
+                  <input
+                    key={`jump-year-${yearValue}`}
+                    type="hidden"
+                    name="year"
+                    value={yearValue}
+                  />
+                ))}
+
+                {selectedCharacterKeys.map(
+                  (characterKey) => (
+                    <input
+                      key={`jump-character-${characterKey}`}
+                      type="hidden"
+                      name="character"
+                      value={characterKey}
+                    />
+                  )
+                )}
+
+                {scope ? (
+                  <input
+                    type="hidden"
+                    name="scope"
+                    value={scope}
+                  />
+                ) : null}
+
+                {sort ? (
+                  <input
+                    type="hidden"
+                    name="sort"
+                    value={sort}
+                  />
+                ) : null}
+
+                    <input
+                      className="cards-page-jump-input"
+                      type="number"
+                      name="page"
+                      min={1}
+                      max={totalPages}
+                      defaultValue={
+                        currentPage
+                      }
+                      aria-label="이동할 페이지 번호"
+                    />
+
+                    <button
+                      type="submit"
+                      className="cards-page-jump-button"
+                    >
+                      이동
+                    </button>
+                  </form>
                 </nav>
               ) : null}
             </>

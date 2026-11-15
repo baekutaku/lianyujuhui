@@ -31,6 +31,23 @@ function safeDecodeSlug(value: string) {
   }
 }
 
+const EVENT_SUBTYPE_LABEL_MAP: Record<string, string> = {
+  birthday_baiqi: "캐릭터 생일",
+  birthday_mc: "유저 생일",
+  anniversary_event: "N주년",
+  seasonal_event: "시즌 이벤트",
+  return_event: "복귀 이벤트",
+  game_event: "게임 이벤트",
+  collaboration_event: "콜라보",
+};
+
+function getEventSubtypeLabel(
+  subtype: string | null | undefined
+) {
+  if (!subtype) return "이벤트";
+  return EVENT_SUBTYPE_LABEL_MAP[subtype] ?? subtype;
+}
+
 function ProtectedEventGate({
   slug,
   title,
@@ -297,10 +314,23 @@ export default async function EventDetailPage({
             <h1 className="story-page-title">{event.title}</h1>
 
             <div className="meta-row story-top-meta">
-              <span className="meta-pill">type: {event.subtype}</span>
-              <span className="meta-pill">year: {event.release_year}</span>
-              {event.start_date ? <span className="meta-pill">start: {event.start_date}</span> : null}
-              {event.end_date ? <span className="meta-pill">end: {event.end_date}</span> : null}
+              <span className="meta-pill">
+                {getEventSubtypeLabel(event.subtype)}
+              </span>
+
+              {event.release_year ? (
+                <span className="meta-pill">
+                  {event.release_year}
+                </span>
+              ) : null}
+
+              {event.start_date ? (
+                <span className="meta-pill">
+                  {event.end_date
+                    ? `${event.start_date} ~ ${event.end_date}`
+                    : event.start_date}
+                </span>
+              ) : null}
               {event.visibility === "protected" ? (
                 <span className="meta-pill">비밀번호 필요</span>
               ) : null}
