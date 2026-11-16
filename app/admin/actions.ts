@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -939,6 +939,147 @@ function parseSlugLines(value: FormDataEntryValue | null) {
     .filter(Boolean);
 }
 
+
+function parseStoryPvValues(
+  value: FormDataEntryValue | null
+) {
+  const raw = String(value ?? "").trim();
+
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+
+    if (Array.isArray(parsed)) {
+      return Array.from(
+        new Set(
+          parsed
+            .map((item) => String(item ?? "").trim())
+            .filter(Boolean)
+        )
+      );
+    }
+  } catch {}
+
+  return Array.from(
+    new Set(
+      raw
+        .split(/[\r\n,]+/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+async function syncStoryGalleryImages(
+  storyId: string,
+  title: string,
+  urls: string[]
+) {
+  const cleanUrls = Array.from(
+    new Set(
+      urls
+        .map((url) => url.trim())
+        .filter(Boolean)
+    )
+  );
+
+  const { error: deleteError } = await supabase
+    .from("media_assets")
+    .delete()
+    .eq("parent_type", "story")
+    .eq("parent_id", storyId)
+    .eq("media_type", "image")
+    .eq("usage_type", "story_gallery");
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
+  if (cleanUrls.length === 0) return;
+
+  const { error } = await supabase
+    .from("media_assets")
+    .insert(
+      cleanUrls.map((url, index) => ({
+        parent_type: "story",
+        parent_id: storyId,
+        media_type: "image",
+        usage_type: "story_gallery",
+        url,
+        title: `${title} 이미지 ${index + 1}`,
+        is_primary: false,
+        sort_order: 20 + index,
+      }))
+    );
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+async function syncStoryIllustrationRelations(
+  storyId: string,
+  illustrationIds: string[]
+) {
+  const cleanIds = Array.from(
+    new Set(
+      illustrationIds
+        .map((id) => id.trim())
+        .filter(Boolean)
+    )
+  );
+
+  const { error: deleteError } = await supabase
+    .from("item_relations")
+    .delete()
+    .eq("parent_type", "story")
+    .eq("parent_id", storyId)
+    .eq("child_type", "illustration")
+    .eq("relation_type", "story_illustration");
+
+  if (deleteError) {
+    throw new Error(deleteError.message);
+  }
+
+  if (cleanIds.length === 0) return;
+
+  const { data: validRows, error: lookupError } =
+    await supabase
+      .from("illustrations")
+      .select("id")
+      .in("id", cleanIds);
+
+  if (lookupError) {
+    throw new Error(lookupError.message);
+  }
+
+  const validIds = new Set(
+    (validRows ?? []).map((row) => row.id)
+  );
+
+  const rows = cleanIds
+    .filter((id) => validIds.has(id))
+    .map((id, index) => ({
+      parent_type: "story",
+      parent_id: storyId,
+      child_type: "illustration",
+      child_id: id,
+      relation_type: "story_illustration",
+      sort_order: index + 1,
+    }));
+
+  if (rows.length === 0) return;
+
+  const { error } = await supabase
+    .from("item_relations")
+    .insert(rows);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 async function deleteTypedRelations(itemType: "card" | "story" | "event" | "phone_item", itemId: string) {
   const { error: parentError } = await supabase
     .from("item_relations")
@@ -1508,6 +1649,16 @@ export async function createStoryBundle(formData: FormData) {
     const youtubeUrlKr = String(formData.get("youtubeUrlKr") || "").trim();
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
 
+    const storyGalleryImageUrls =
+      parseStoryPvValues(
+        formData.get("storyGalleryImageUrls")
+      );
+
+    const linkedIllustrationIds =
+      parseStoryPvValues(
+        formData.get("linkedIllustrationIds")
+      );
+
     const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
     const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
     const linkedPhoneItemSlugs = parseSlugLines(formData.get("linkedPhoneItemSlugs"));
@@ -1642,6 +1793,17 @@ export async function createStoryBundle(formData: FormData) {
       sortOrder: coverImageUrl ? 2 : 1,
     });
 
+    await syncStoryGalleryImages(
+      insertedStory.id,
+      title,
+      storyGalleryImageUrls
+    );
+
+    await syncStoryIllustrationRelations(
+      insertedStory.id,
+      linkedIllustrationIds
+    );
+
     await syncStoryStoryRelationsBySlugs(insertedStory.id, linkedStorySlugs);
 
     await syncIncomingRelationsBySlugs({
@@ -1670,6 +1832,7 @@ export async function createStoryBundle(formData: FormData) {
 
     revalidatePath("/admin/stories");
     revalidatePath("/stories");
+    revalidatePath("/extra/pv");
     revalidatePath(`/stories/${encodeURIComponent(insertedStory.slug)}`);
   } catch (error) {
     const message =
@@ -1690,6 +1853,14 @@ export async function createStoryBundle(formData: FormData) {
   if (returnTab) returnQuery.set("tab", returnTab);
   if (returnSub && returnSub !== "all") returnQuery.set("sub", returnSub);
   const returnSuffix = returnQuery.toString() ? `?${returnQuery.toString()}` : "";
+
+  if (
+    String(
+      formData.get("subtype") || ""
+    ).trim() === "promo_video"
+  ) {
+    redirect("/extra/pv");
+  }
 
   redirect(`/stories/${safeSuccessSlug}${returnSuffix}`);
 }
@@ -1745,6 +1916,16 @@ export async function updateStoryBundle(formData: FormData) {
 
     const coverMediaId = String(formData.get("coverMediaId") || "").trim();
     const coverImageUrl = String(formData.get("coverImageUrl") || "").trim();
+
+    const storyGalleryImageUrls =
+      parseStoryPvValues(
+        formData.get("storyGalleryImageUrls")
+      );
+
+    const linkedIllustrationIds =
+      parseStoryPvValues(
+        formData.get("linkedIllustrationIds")
+      );
 
     const linkedCardSlugs = parseSlugLines(formData.get("linkedCardSlugs"));
     const linkedStorySlugs = parseSlugLines(formData.get("linkedStorySlugs"));
@@ -1904,7 +2085,18 @@ export async function updateStoryBundle(formData: FormData) {
       }
     }
 
-   await syncStoryStoryRelationsBySlugs(storyId, linkedStorySlugs);
+   await syncStoryGalleryImages(
+      storyId,
+      title,
+      storyGalleryImageUrls
+    );
+
+    await syncStoryIllustrationRelations(
+      storyId,
+      linkedIllustrationIds
+    );
+
+    await syncStoryStoryRelationsBySlugs(storyId, linkedStorySlugs);
 
     await syncIncomingRelationsBySlugs({
       childType: "story",
@@ -1932,6 +2124,7 @@ export async function updateStoryBundle(formData: FormData) {
 
     revalidatePath("/admin/stories");
     revalidatePath("/stories");
+    revalidatePath("/extra/pv");
     revalidatePath(`/stories/${safeOriginalSlug}`);
     revalidatePath(`/stories/${safeTargetSlug}`);
     revalidatePath(`/admin/stories/${safeOriginalSlug}/edit`);
@@ -1952,6 +2145,14 @@ export async function updateStoryBundle(formData: FormData) {
   if (returnTab) returnQuery.set("tab", returnTab);
   if (returnSub && returnSub !== "all") returnQuery.set("sub", returnSub);
   const returnSuffix = returnQuery.toString() ? `?${returnQuery.toString()}` : "";
+
+  if (
+    String(
+      formData.get("subtype") || ""
+    ).trim() === "promo_video"
+  ) {
+    redirect("/extra/pv");
+  }
 
   redirect(`/stories/${safeTargetSlug}${returnSuffix}`);
 }

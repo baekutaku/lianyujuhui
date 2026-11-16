@@ -89,7 +89,7 @@ const STORY_TAB_OPTIONS = [
     subtypes: ["card_story"],
     desc: "카드 연계 데이트 스토리",
   },
-  {
+{
     key: "event",
     label: "이벤트 · 기념일",
     subtypes: [],
@@ -1359,7 +1359,8 @@ const admin = await isAdmin();
   let allPublishedStoriesQuery = supabase
     .from("stories")
     .select("id, subtype, release_year, visibility")
-    .eq("is_published", true);
+    .eq("is_published", true)
+    .neq("subtype", "promo_video");
 
   if (!admin) {
     allPublishedStoriesQuery = allPublishedStoriesQuery.neq("visibility", "private");
@@ -1400,7 +1401,8 @@ const admin = await isAdmin();
     .select(
       "id, title, slug, subtype, release_year, release_date, summary, primary_character_id, part_no, chapter_no, visibility"
     )
-    .eq("is_published", true);
+    .eq("is_published", true)
+    .neq("subtype", "promo_video");
 
   if (!admin) {
     query = query.neq("visibility", "private");

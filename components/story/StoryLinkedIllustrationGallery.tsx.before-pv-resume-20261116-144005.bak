@@ -1,0 +1,78 @@
+import { supabase } from "@/lib/supabase/server";
+
+type Props = {
+  storyId: string;
+};
+
+export default async function StoryLinkedIllustrationGallery({
+  storyId,
+}: Props) {
+  const { data: relations } = await supabase
+    .from("item_relations")
+    .select("child_id, sort_order")
+    .eq("parent_type", "story")
+    .eq("parent_id", storyId)
+    .eq("child_type", "illustration")
+    .eq("relation_type", "story_illustration")
+    .order("sort_order", { ascending: true });
+
+  const illustrationIds = (relations ?? [])
+    .map((item: any) => item.child_id)
+    .filter(Boolean);
+
+  if (illustrationIds.length === 0) {
+    return null;
+  }
+
+  const { data: illustrations } = await supabase
+    .from("illustrations")
+    .select("id, title, image_url")
+    .in("id", illustrationIds);
+
+  const illustrationMap = new Map(
+    (illustrations ?? []).map((item: any) => [
+      item.id,
+      item,
+    ])
+  );
+
+  const ordered = illustrationIds
+    .map((id: string) => illustrationMap.get(id))
+    .filter(Boolean)
+    .filter(
+      (item: any) =>
+        Boolean(String(item.image_url || "").trim())
+    );
+
+  if (ordered.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="story-pv-linked-section">
+      <div className="story-pv-gallery-label">
+        연결 일러스트
+      </div>
+
+      <div className="story-pv-gallery">
+        {ordered.map((item: any) => (
+          <figure
+            key={item.id}
+            className="story-pv-gallery-item"
+          >
+            <img
+              src={item.image_url}
+              alt={item.title || "연결 일러스트"}
+            />
+
+            {item.title ? (
+              <figcaption>
+                {item.title}
+              </figcaption>
+            ) : null}
+          </figure>
+        ))}
+      </div>
+    </section>
+  );
+}

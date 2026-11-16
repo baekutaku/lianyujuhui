@@ -5,18 +5,31 @@ import HomeLobby from "@/components/home/HomeLobby";
 export const revalidate = 60;
 
 // 홈 일러스트 풀. 나중에 백기 중심 이미지 URL만 넣으면 랜덤 로비 배경으로 사용됩니다.
-const heroImages = [
+const LEGACY_HERO_IMAGES = [
   "https://lianyujuhui.ivyro.net/data/file/pic/3553024586_ojVXpgCP_4d95c7745a8dc657d729f07a2e87839e4bd16757.jpg",
   "https://lianyujuhui.ivyro.net/data/file/pic/3553024586_cY85vLGD_92725175f100fb07e6de1c870635c59e337d93b2.jpg",
   "https://lianyujuhui.ivyro.net/data/editor/2601/8fb0c6d84c29941dd6950c3779c934de_1768844981_1157.jpg",
 ];
 
-function getRandomHeroImage() {
-  return heroImages[Math.floor(Math.random() * heroImages.length)] ?? heroImages[0];
+function getRandomHeroImage(images: string[]) {
+  const pool =
+    images.length > 0
+      ? images
+      : LEGACY_HERO_IMAGES;
+
+  return (
+    pool[Math.floor(Math.random() * pool.length)] ??
+    LEGACY_HERO_IMAGES[0]
+  );
 }
 
 export default async function HomePage() {
-  const [{ data: siteUpdates }, { data: latestMainStory }, { data: featuredEvent }] =
+  const [
+    { data: siteUpdates },
+    { data: latestMainStory },
+    { data: featuredEvent },
+    { data: homeHeroImages },
+  ] =
     await Promise.all([
       supabase
         .from("site_updates")
@@ -42,6 +55,13 @@ export default async function HomePage() {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+    
+      supabase
+        .from("home_hero_images")
+        .select("image_url")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
     ]);
 
   const mainStoryPreview = latestMainStory
@@ -74,7 +94,11 @@ export default async function HomePage() {
         updates={siteUpdates ?? []}
         lead={
           <HomeLobby
-            heroImage={getRandomHeroImage()}
+            heroImage={getRandomHeroImage(
+              (homeHeroImages ?? [])
+                .map((item: { image_url: string | null }) => item.image_url)
+                .filter((value): value is string => Boolean(value))
+            )}
             updates={siteUpdates ?? []}
             mainStory={mainStoryPreview}
             featuredEvent={eventPreview}

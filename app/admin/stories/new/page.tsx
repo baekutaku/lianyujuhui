@@ -1,4 +1,4 @@
-import { createStoryBundle } from "@/app/admin/actions";
+﻿import { createStoryBundle } from "@/app/admin/actions";
 import { supabase } from "@/lib/supabase/server";
 import StoryFormEnhancer from "@/components/admin/stories/StoryFormEnhancer";
 import StoryMainMetaFields from "@/components/admin/stories/StoryMainMetaFields";
@@ -335,16 +335,14 @@ const eventCandidates: RelationCandidate[] =
 
           <StoryTranslationFields />
         </div>
-
-        <RelationPicker
+<RelationPicker
           label="연결 카드"
           name="linkedCardSlugs"
           candidates={cardCandidates}
           characterOptions={[...CHARACTER_OPTIONS]}
           categoryOptions={[...CARD_CATEGORY_OPTIONS]}
         />
-
-        <RelationPicker
+<RelationPicker
           label="연결 휴대폰"
           name="linkedPhoneItemSlugs"
           candidates={phoneCandidates}

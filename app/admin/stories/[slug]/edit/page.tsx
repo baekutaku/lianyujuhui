@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase/server";
 import { updateStoryBundle, deleteStoryBundle } from "@/app/admin/actions";
@@ -572,8 +572,7 @@ const initialStories = Array.from(
     krBody={translationKr?.body ?? ""}
   />
 </div>
-
-        <RelationPicker
+<RelationPicker
           label="연결 카드"
           name="linkedCardSlugs"
           candidates={cardCandidates}
@@ -581,8 +580,7 @@ const initialStories = Array.from(
           characterOptions={[...CHARACTER_OPTIONS]}
           categoryOptions={[...CARD_CATEGORY_OPTIONS]}
         />
-
-        <RelationPicker
+<RelationPicker
           label="연결 휴대폰"
           name="linkedPhoneItemSlugs"
           candidates={phoneCandidates}

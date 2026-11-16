@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { Analytics } from "@vercel/analytics/next";
 import { isAdmin } from "@/lib/utils/admin-auth";
@@ -25,6 +25,7 @@ const primaryNav = [
   { href: "/cards", label: "카드", icon: "style" },
   { href: "/phone-items", label: "휴대폰", icon: "smartphone" },
   { href: "/maker", label: "커스텀", icon: "edit_square" },
+  { href: "/extra", label: "기타", icon: "inventory_2" },
 ] as const;
 
 export default async function SiteLayout({
@@ -72,7 +73,7 @@ export default async function SiteLayout({
                         <span>{item.label}</span>
                       </Link>
                     ))}
-                  </nav>
+</nav>
 
                   {admin ? (
                     <nav className="sidebar-nav sidebar-admin-nav">
@@ -81,6 +82,10 @@ export default async function SiteLayout({
                         <span className="material-symbols-rounded">campaign</span>
                         <span>업데이트</span>
                       </Link>
+                    <Link href="/admin/home-hero" className="nav-link nav-link-game is-admin">
+                      <span className="material-symbols-rounded">photo_library</span>
+                      <span>홈 이미지</span>
+                    </Link>
                       <Link href="/characters" className="nav-link nav-link-game is-admin">
                         <span className="material-symbols-rounded">person</span>
                         <span>캐릭터</span>
@@ -122,3 +127,5 @@ export default async function SiteLayout({
     </html>
   );
 }
+
+

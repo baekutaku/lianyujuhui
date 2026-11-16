@@ -53,7 +53,7 @@ const leftRail: LobbyShortcut[] = [
     label: "백기",
     sub: "그를 만나러 가기",
     icon: "favorite",
-    href: "/characters/baiqi",
+    href: "/extra/touch-room",
   },
   {
     id: "phone",
@@ -86,13 +86,7 @@ const rightRail: LobbyShortcut[] = [
     icon: "collections_bookmark",
     href: "#archive-stream",
   },
-  {
-    id: "event",
-    label: "이벤트",
-    sub: "진행 · 과거 이벤트",
-    icon: "celebration",
-    href: "/events",
-  },
+
 ];
 
 const bottomDock = [
@@ -193,7 +187,7 @@ export default function HomeLobby({
         ) : (
           <>
             <header className="game-home-topbar">
-              <Link href="/characters/baiqi" className="game-profile-chip">
+              <Link href="/phone-items/me/baiqi" className="game-profile-chip">
                 <span className="game-profile-avatar">
                   <img src="/images/home/home-card-02.jpg" alt="백기" />
                 </span>
@@ -330,4 +324,10 @@ export default function HomeLobby({
     </section>
   );
 }
+
+
+
+
+
+
 

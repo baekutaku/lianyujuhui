@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,7 +8,7 @@ const MENU_ITEMS = [
   { href: "/stories", label: "스토리", icon: "menu_book" },
   { href: "/cards", label: "카드", icon: "style" },
   { href: "/phone-items", label: "휴대폰", icon: "smartphone" },
-  { href: "/maker", label: "커스텀", icon: "edit_square" },
+  { href: "/extra", label: "기타", icon: "inventory_2" },
 ] as const;
 
 export default function FloatingMobileMenu() {
@@ -39,3 +39,6 @@ export default function FloatingMobileMenu() {
     </nav>
   );
 }
+
+
+

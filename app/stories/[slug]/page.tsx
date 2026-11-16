@@ -108,7 +108,7 @@ const STORY_TAB_OPTIONS = [
     label: "너의 곁에",
     subtypes: ["asmr"],
   },
-  {
+{
     key: "event",
     label: "이벤트 / 기념일",
     subtypes: [],

@@ -1,0 +1,1436 @@
+﻿import fs from "node:fs";
+import path from "node:path";
+
+function read(file) {
+  return fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n");
+}
+
+function write(file, text) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, text, "utf8");
+}
+
+const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+const backup = `.home-hero-backup-${stamp}`;
+fs.mkdirSync(backup, { recursive: true });
+
+for (const file of [
+  "app/page.tsx",
+  "app/layout.tsx",
+  "app/api/admin/r2/editor-presign/route.ts",
+]) {
+  if (fs.existsSync(file)) {
+    const dest = path.join(backup, file.replace(/[\\/]/g, "__"));
+    fs.copyFileSync(file, dest);
+  }
+}
+
+/* =========================================================
+   1. 기존 홈 이미지 URL 추출
+========================================================= */
+
+const homeFile = "app/page.tsx";
+let home = read(homeFile);
+
+const heroMatch =
+  home.match(/const\s+heroImages\s*=\s*\[([\s\S]*?)\];/);
+
+let oldHeroUrls = [];
+
+if (heroMatch) {
+  oldHeroUrls = [
+    ...heroMatch[1].matchAll(
+      /["'`](https?:\/\/[^"'`]+)["'`]/g
+    ),
+  ].map((m) => m[1]);
+}
+
+if (!oldHeroUrls.length) {
+  oldHeroUrls = [
+    "https://lianyujuhui.ivyro.net/data/file/pic/3553024586_ojVXpgCP_4d95c7745a8dc657d729f07a2e87839e4bd16757.jpg",
+    "https://lianyujuhui.ivyro.net/data/file/pic/3553024586_cY85vLGD_92725175f100fb07e6de1c870635c59e337d93b2.jpg",
+    "https://lianyujuhui.ivyro.net/data/editor/2601/8fb0c6d84c29941dd6950c3779c934de_1768844981_1157.jpg",
+  ];
+}
+
+console.log("[FOUND] 기존 대문 이미지:", oldHeroUrls.length);
+
+/* =========================================================
+   2. Supabase migration
+========================================================= */
+
+const sqlValues = oldHeroUrls
+  .map(
+    (url, i) =>
+      `('${url.replace(/'/g, "''")}', 'external', null, ${i}, true)`
+  )
+  .join(",\n  ");
+
+write(
+  "supabase/migrations/20261116070000_home_hero_images.sql",
+`create extension if not exists pgcrypto;
+
+create table if not exists public.home_hero_images (
+  id uuid primary key default gen_random_uuid(),
+  image_url text not null unique,
+  source_type text not null default 'external'
+    check (source_type in ('external', 'r2')),
+  object_key text,
+  sort_order integer not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists home_hero_images_sort_idx
+  on public.home_hero_images(sort_order, created_at);
+
+alter table public.home_hero_images enable row level security;
+
+drop policy if exists "public read active home hero images"
+  on public.home_hero_images;
+
+create policy "public read active home hero images"
+  on public.home_hero_images
+  for select
+  to anon, authenticated
+  using (is_active = true);
+
+insert into public.home_hero_images
+  (image_url, source_type, object_key, sort_order, is_active)
+values
+  ${sqlValues}
+on conflict (image_url) do nothing;
+`
+);
+
+console.log("[CREATED] migration");
+
+/* =========================================================
+   3. Server Actions
+========================================================= */
+
+write(
+  "app/admin/home-hero/actions.ts",
+`"use server";
+
+import { revalidatePath } from "next/cache";
+import { isAdmin } from "@/lib/utils/admin-auth";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+
+type AddHeroInput = {
+  imageUrl: string;
+  sourceType: "external" | "r2";
+  objectKey?: string | null;
+};
+
+async function requireHomeHeroAdmin() {
+  const admin = await isAdmin();
+
+  if (!admin) {
+    throw new Error("관리자 권한이 필요합니다.");
+  }
+}
+
+function revalidateHero() {
+  revalidatePath("/");
+  revalidatePath("/admin/home-hero");
+}
+
+export async function addHomeHeroImage(input: AddHeroInput) {
+  await requireHomeHeroAdmin();
+
+  const imageUrl = String(input.imageUrl || "").trim();
+
+  if (!/^https?:\\/\\//i.test(imageUrl)) {
+    throw new Error("올바른 이미지 URL이 아닙니다.");
+  }
+
+  const { data: last } = await supabaseAdmin
+    .from("home_hero_images")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data, error } = await supabaseAdmin
+    .from("home_hero_images")
+    .insert({
+      image_url: imageUrl,
+      source_type: input.sourceType,
+      object_key:
+        input.sourceType === "r2"
+          ? String(input.objectKey || "").trim() || null
+          : null,
+      sort_order: Number(last?.sort_order ?? -1) + 1,
+      is_active: true,
+    })
+    .select(
+      "id, image_url, source_type, object_key, sort_order, is_active, created_at"
+    )
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidateHero();
+
+  return data;
+}
+
+export async function setHomeHeroActive(
+  id: string,
+  isActive: boolean
+) {
+  await requireHomeHeroAdmin();
+
+  const { error } = await supabaseAdmin
+    .from("home_hero_images")
+    .update({
+      is_active: isActive,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidateHero();
+}
+
+export async function reorderHomeHeroImages(ids: string[]) {
+  await requireHomeHeroAdmin();
+
+  for (let i = 0; i < ids.length; i += 1) {
+    const { error } = await supabaseAdmin
+      .from("home_hero_images")
+      .update({
+        sort_order: i,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", ids[i]);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  revalidateHero();
+}
+
+export async function deleteHomeHeroRecord(id: string) {
+  await requireHomeHeroAdmin();
+
+  const { data: row, error: findError } =
+    await supabaseAdmin
+      .from("home_hero_images")
+      .select("id, source_type, object_key")
+      .eq("id", id)
+      .single();
+
+  if (findError || !row) {
+    throw new Error(
+      findError?.message || "이미지를 찾지 못했습니다."
+    );
+  }
+
+  const { error } = await supabaseAdmin
+    .from("home_hero_images")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidateHero();
+
+  return {
+    objectKey:
+      row.source_type === "r2"
+        ? row.object_key
+        : null,
+  };
+}
+`
+);
+
+console.log("[CREATED] home hero actions");
+
+/* =========================================================
+   4. Client Manager
+========================================================= */
+
+write(
+  "components/admin/home/HomeHeroManager.tsx",
+`"use client";
+
+import {
+  useRef,
+  useState,
+  type DragEvent,
+} from "react";
+import { useRouter } from "next/navigation";
+import { uploadEditorImage } from "@/components/editor/SmartEditorImageUpload";
+import {
+  addHomeHeroImage,
+  deleteHomeHeroRecord,
+  reorderHomeHeroImages,
+  setHomeHeroActive,
+} from "@/app/admin/home-hero/actions";
+
+export type HomeHeroItem = {
+  id: string;
+  image_url: string;
+  source_type: "external" | "r2";
+  object_key: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+};
+
+type Props = {
+  initialItems: HomeHeroItem[];
+};
+
+function objectKeyFromUrl(url: string) {
+  try {
+    return new URL(url).pathname.replace(/^\\/+/, "");
+  } catch {
+    return "";
+  }
+}
+
+async function deleteR2Object(objectKey: string) {
+  const response = await fetch(
+    "/api/admin/r2/editor-presign",
+    {
+      method: "DELETE",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ objectKey }),
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok || !data.ok) {
+    throw new Error(
+      data.error || "R2 파일 삭제에 실패했습니다."
+    );
+  }
+}
+
+export default function HomeHeroManager({
+  initialItems,
+}: Props) {
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const [items, setItems] =
+    useState<HomeHeroItem[]>(initialItems);
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [dragId, setDragId] =
+    useState<string | null>(null);
+
+  async function uploadFiles(files: File[]) {
+    const imageFiles = files.filter((file) =>
+      file.type.startsWith("image/")
+    );
+
+    if (!imageFiles.length) return;
+
+    setBusy(true);
+
+    try {
+      for (const file of imageFiles) {
+        const uploadedUrl =
+          await uploadEditorImage(file);
+
+        const objectKey =
+          objectKeyFromUrl(uploadedUrl);
+
+        try {
+          const created =
+            await addHomeHeroImage({
+              imageUrl: uploadedUrl,
+              sourceType: "r2",
+              objectKey,
+            });
+
+          setItems((current) => [
+            ...current,
+            created as HomeHeroItem,
+          ]);
+        } catch (error) {
+          if (objectKey) {
+            try {
+              await deleteR2Object(objectKey);
+            } catch {
+              // DB 등록 실패 시 R2 정리까지 실패해도
+              // 원래 오류를 우선 표시한다.
+            }
+          }
+
+          throw error;
+        }
+      }
+
+      router.refresh();
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "업로드 실패"
+      );
+    } finally {
+      setBusy(false);
+
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+    }
+  }
+
+  async function addUrl() {
+    const value = url.trim();
+
+    if (!value) return;
+
+    setBusy(true);
+
+    try {
+      const created =
+        await addHomeHeroImage({
+          imageUrl: value,
+          sourceType: "external",
+        });
+
+      setItems((current) => [
+        ...current,
+        created as HomeHeroItem,
+      ]);
+
+      setUrl("");
+      router.refresh();
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "URL 추가 실패"
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeItem(item: HomeHeroItem) {
+    if (
+      !window.confirm(
+        "이 대문 이미지를 삭제할까요?\\n\\nR2 업로드 이미지라면 R2 원본 파일도 함께 삭제됩니다."
+      )
+    ) {
+      return;
+    }
+
+    setBusy(true);
+
+    try {
+      const result =
+        await deleteHomeHeroRecord(item.id);
+
+      setItems((current) =>
+        current.filter(
+          (candidate) =>
+            candidate.id !== item.id
+        )
+      );
+
+      if (result.objectKey) {
+        try {
+          await deleteR2Object(
+            result.objectKey
+          );
+        } catch (error) {
+          alert(
+            "DB에서는 삭제됐지만 R2 파일 삭제에 실패했습니다.\\n" +
+              (error instanceof Error
+                ? error.message
+                : "")
+          );
+        }
+      }
+
+      router.refresh();
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "삭제 실패"
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function toggleItem(
+    item: HomeHeroItem
+  ) {
+    const next = !item.is_active;
+
+    setItems((current) =>
+      current.map((candidate) =>
+        candidate.id === item.id
+          ? {
+              ...candidate,
+              is_active: next,
+            }
+          : candidate
+      )
+    );
+
+    try {
+      await setHomeHeroActive(
+        item.id,
+        next
+      );
+
+      router.refresh();
+    } catch (error) {
+      setItems((current) =>
+        current.map((candidate) =>
+          candidate.id === item.id
+            ? {
+                ...candidate,
+                is_active:
+                  item.is_active,
+              }
+            : candidate
+        )
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "상태 변경 실패"
+      );
+    }
+  }
+
+  async function dropOn(
+    targetId: string
+  ) {
+    if (
+      !dragId ||
+      dragId === targetId
+    ) {
+      setDragId(null);
+      return;
+    }
+
+    const next = [...items];
+
+    const from = next.findIndex(
+      (item) => item.id === dragId
+    );
+    const to = next.findIndex(
+      (item) => item.id === targetId
+    );
+
+    if (from < 0 || to < 0) {
+      setDragId(null);
+      return;
+    }
+
+    const [moving] =
+      next.splice(from, 1);
+
+    next.splice(to, 0, moving);
+
+    const reordered = next.map(
+      (item, index) => ({
+        ...item,
+        sort_order: index,
+      })
+    );
+
+    setItems(reordered);
+    setDragId(null);
+
+    try {
+      await reorderHomeHeroImages(
+        reordered.map((item) => item.id)
+      );
+
+      router.refresh();
+    } catch (error) {
+      setItems(items);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "순서 저장 실패"
+      );
+    }
+  }
+
+  function onDropFiles(
+    event: DragEvent<HTMLDivElement>
+  ) {
+    event.preventDefault();
+
+    const files =
+      Array.from(
+        event.dataTransfer.files || []
+      );
+
+    void uploadFiles(files);
+  }
+
+  return (
+    <div className="home-hero-admin">
+      <section
+        className="home-hero-dropzone"
+        onDragOver={(event) =>
+          event.preventDefault()
+        }
+        onDrop={onDropFiles}
+        onClick={() =>
+          inputRef.current?.click()
+        }
+      >
+        <span className="material-symbols-rounded">
+          add_photo_alternate
+        </span>
+
+        <strong>
+          이미지를 여기에 드래그
+        </strong>
+
+        <span>
+          또는 클릭해서 파일 선택
+        </span>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          disabled={busy}
+          onChange={(event) =>
+            void uploadFiles(
+              Array.from(
+                event.target.files || []
+              )
+            )
+          }
+        />
+      </section>
+
+      <section className="home-hero-url-row">
+        <input
+          type="url"
+          value={url}
+          disabled={busy}
+          placeholder="https://... 이미지 URL"
+          onChange={(event) =>
+            setUrl(event.target.value)
+          }
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void addUrl();
+            }
+          }}
+        />
+
+        <button
+          type="button"
+          className="primary-button"
+          disabled={busy || !url.trim()}
+          onClick={() => void addUrl()}
+        >
+          URL 추가
+        </button>
+      </section>
+
+      <div className="home-hero-admin-note">
+        카드를 드래그하면 표시 순서를 바꿀 수 있습니다.
+        활성 이미지 중 하나가 홈 대문에 랜덤으로 표시됩니다.
+      </div>
+
+      <div className="home-hero-admin-grid">
+        {items.map((item) => (
+          <article
+            key={item.id}
+            className={
+              "home-hero-admin-card" +
+              (item.is_active
+                ? ""
+                : " is-disabled") +
+              (dragId === item.id
+                ? " is-dragging"
+                : "")
+            }
+            draggable={!busy}
+            onDragStart={() =>
+              setDragId(item.id)
+            }
+            onDragEnd={() =>
+              setDragId(null)
+            }
+            onDragOver={(event) =>
+              event.preventDefault()
+            }
+            onDrop={() =>
+              void dropOn(item.id)
+            }
+          >
+            <div className="home-hero-drag-handle">
+              <span className="material-symbols-rounded">
+                drag_indicator
+              </span>
+              드래그
+            </div>
+
+            <div className="home-hero-admin-preview">
+              <img
+                src={item.image_url}
+                alt=""
+              />
+
+              {!item.is_active ? (
+                <span className="home-hero-hidden-badge">
+                  숨김
+                </span>
+              ) : null}
+            </div>
+
+            <div className="home-hero-admin-meta">
+              <span>
+                {item.source_type ===
+                "r2"
+                  ? "R2 업로드"
+                  : "외부 URL"}
+              </span>
+
+              <span>
+                순서 {item.sort_order + 1}
+              </span>
+            </div>
+
+            <div className="home-hero-admin-url">
+              {item.image_url}
+            </div>
+
+            <div className="home-hero-admin-actions">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void toggleItem(item)
+                }
+              >
+                {item.is_active
+                  ? "숨기기"
+                  : "사용하기"}
+              </button>
+
+              <button
+                type="button"
+                className="is-danger"
+                disabled={busy}
+                onClick={() =>
+                  void removeItem(item)
+                }
+              >
+                삭제
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {!items.length ? (
+        <div className="empty-box">
+          등록된 대문 이미지가 없습니다.
+        </div>
+      ) : null}
+    </div>
+  );
+}
+`
+);
+
+console.log("[CREATED] HomeHeroManager");
+
+/* =========================================================
+   5. Admin Page
+========================================================= */
+
+write(
+  "app/admin/home-hero/page.tsx",
+`import Link from "next/link";
+import { redirect } from "next/navigation";
+import { isAdmin } from "@/lib/utils/admin-auth";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import HomeHeroManager, {
+  type HomeHeroItem,
+} from "@/components/admin/home/HomeHeroManager";
+
+export default async function AdminHomeHeroPage() {
+  const admin = await isAdmin();
+
+  if (!admin) {
+    redirect("/admin/login");
+  }
+
+  const { data, error } =
+    await supabaseAdmin
+      .from("home_hero_images")
+      .select(
+        "id, image_url, source_type, object_key, sort_order, is_active, created_at"
+      )
+      .order("sort_order", {
+        ascending: true,
+      })
+      .order("created_at", {
+        ascending: true,
+      });
+
+  return (
+    <main>
+      <header className="page-header">
+        <div className="page-eyebrow">
+          Admin / Home
+        </div>
+
+        <h1 className="page-title">
+          홈 대문 일러스트
+        </h1>
+
+        <p className="page-desc">
+          홈 로비 배경 이미지를 업로드하거나 URL로 추가하고
+          순서·노출 여부를 관리합니다.
+        </p>
+      </header>
+
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          marginBottom: 20,
+        }}
+      >
+        <Link
+          href="/admin"
+          className="nav-link"
+        >
+          관리자 홈
+        </Link>
+
+        <Link
+          href="/"
+          className="nav-link"
+        >
+          홈 확인
+        </Link>
+      </div>
+
+      {error ? (
+        <div className="error-box">
+          {error.message}
+        </div>
+      ) : (
+        <HomeHeroManager
+          initialItems={
+            (data ?? []) as HomeHeroItem[]
+          }
+        />
+      )}
+    </main>
+  );
+}
+`
+);
+
+console.log("[CREATED] /admin/home-hero");
+
+/* =========================================================
+   6. 홈 page.tsx -> DB 이미지 사용
+========================================================= */
+
+if (!home.includes("LEGACY_HERO_IMAGES")) {
+  const match =
+    home.match(
+      /const\s+heroImages\s*=\s*\[[\s\S]*?\];/
+    );
+
+  if (!match) {
+    throw new Error(
+      "app/page.tsx heroImages 배열을 찾지 못했습니다."
+    );
+  }
+
+  const legacy =
+`const LEGACY_HERO_IMAGES = [
+${oldHeroUrls
+  .map((url) => `  "${url}",`)
+  .join("\n")}
+];`;
+
+  home = home.replace(
+    match[0],
+    legacy
+  );
+}
+
+home = home.replace(
+  /function\s+getRandomHeroImage\s*\(\s*\)\s*\{[\s\S]*?return\s+heroImages\[[\s\S]*?\]\s*\?\?\s*heroImages\[0\];[\s\S]*?\}/,
+`function getRandomHeroImage(images: string[]) {
+  const pool =
+    images.length > 0
+      ? images
+      : LEGACY_HERO_IMAGES;
+
+  return (
+    pool[Math.floor(Math.random() * pool.length)] ??
+    LEGACY_HERO_IMAGES[0]
+  );
+}`
+);
+
+if (!home.includes("{ data: homeHeroImages }")) {
+  const destructuring =
+    /const\s*\[\s*\{\s*data:\s*siteUpdates\s*\},\s*\{\s*data:\s*latestMainStory\s*\},\s*\{\s*data:\s*featuredEvent\s*\}\s*\]\s*=\s*[\r\n\s]*await\s+Promise\.all\(\[/;
+
+  if (!destructuring.test(home)) {
+    throw new Error(
+      "app/page.tsx Promise.all destructuring을 찾지 못했습니다."
+    );
+  }
+
+  home = home.replace(
+    destructuring,
+`const [
+    { data: siteUpdates },
+    { data: latestMainStory },
+    { data: featuredEvent },
+    { data: homeHeroImages },
+  ] =
+    await Promise.all([`
+  );
+}
+
+if (!home.includes('.from("home_hero_images")')) {
+  const promiseStart =
+    home.indexOf("await Promise.all([");
+
+  const promiseEnd =
+    home.indexOf("]);", promiseStart);
+
+  if (
+    promiseStart < 0 ||
+    promiseEnd < 0
+  ) {
+    throw new Error(
+      "app/page.tsx Promise.all 끝을 찾지 못했습니다."
+    );
+  }
+
+  const query =
+`
+      supabase
+        .from("home_hero_images")
+        .select("image_url")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+    `;
+
+  home =
+    home.slice(0, promiseEnd) +
+    query +
+    home.slice(promiseEnd);
+}
+
+home = home.replace(
+  /heroImage=\{getRandomHeroImage\(\)\}/,
+`heroImage={getRandomHeroImage(
+              (homeHeroImages ?? [])
+                .map((item: { image_url: string | null }) => item.image_url)
+                .filter((value): value is string => Boolean(value))
+            )}`
+);
+
+write(homeFile, home);
+
+console.log("[PATCHED] app/page.tsx");
+
+/* =========================================================
+   7. R2 editor-presign DELETE 지원
+========================================================= */
+
+const r2File =
+  "app/api/admin/r2/editor-presign/route.ts";
+
+let r2 = read(r2File);
+
+if (!r2.includes("DeleteObjectCommand")) {
+  const sdkImport =
+    /import\s*\{([^}]*)\}\s*from\s*["']@aws-sdk\/client-s3["'];/;
+
+  const match = r2.match(sdkImport);
+
+  if (!match) {
+    throw new Error(
+      "@aws-sdk/client-s3 import를 찾지 못했습니다."
+    );
+  }
+
+  const imports = match[1];
+
+  r2 = r2.replace(
+    match[0],
+`import {
+  DeleteObjectCommand,
+${imports.trim()}
+} from "@aws-sdk/client-s3";`
+  );
+}
+
+if (
+  !r2.includes(
+    'from "@/lib/utils/admin-auth"'
+  )
+) {
+  r2 =
+    'import { isAdmin } from "@/lib/utils/admin-auth";\n' +
+    r2;
+} else if (
+  !/import\s*\{[^}]*\bisAdmin\b[^}]*\}\s*from\s*["']@\/lib\/utils\/admin-auth["']/.test(
+    r2
+  )
+) {
+  r2 = r2.replace(
+    /import\s*\{([^}]*)\}\s*from\s*["']@\/lib\/utils\/admin-auth["'];/,
+    (all, names) =>
+      `import { isAdmin, ${names.trim()} } from "@/lib/utils/admin-auth";`
+  );
+}
+
+if (!r2.includes("export async function DELETE")) {
+  const envNames = [
+    ...new Set([
+      ...[...r2.matchAll(
+        /process\.env\.([A-Z0-9_]+)/g
+      )].map((m) => m[1]),
+      ...[...r2.matchAll(
+        /\benv\(\s*["']([A-Z0-9_]+)["']\s*\)/g
+      )].map((m) => m[1]),
+    ]),
+  ];
+
+  const findEnv = (...patterns) =>
+    envNames.find((name) =>
+      patterns.some((pattern) =>
+        pattern.test(name)
+      )
+    );
+
+  const accessEnv = findEnv(
+    /R2.*ACCESS.*KEY/i,
+    /ACCESS.*KEY.*R2/i
+  );
+
+  const secretEnv = findEnv(
+    /R2.*SECRET/i,
+    /SECRET.*R2/i
+  );
+
+  const bucketEnv = findEnv(
+    /R2.*BUCKET/i,
+    /BUCKET.*R2/i
+  );
+
+  const endpointEnv = findEnv(
+    /R2.*ENDPOINT/i,
+    /ENDPOINT.*R2/i
+  );
+
+  const accountEnv = findEnv(
+    /R2.*ACCOUNT/i,
+    /ACCOUNT.*R2/i
+  );
+
+  if (
+    !accessEnv ||
+    !secretEnv ||
+    !bucketEnv ||
+    (!endpointEnv && !accountEnv)
+  ) {
+    console.log(
+      "R2 env names:",
+      envNames
+    );
+
+    throw new Error(
+      "R2 환경변수 이름을 자동 판별하지 못했습니다."
+    );
+  }
+
+  const endpointCode =
+    endpointEnv
+      ? `process.env.${endpointEnv}!`
+      : `"https://" + process.env.${accountEnv} + ".r2.cloudflarestorage.com"`;
+
+  r2 +=
+`
+
+export async function DELETE(request: Request) {
+  try {
+    const admin = await isAdmin();
+
+    if (!admin) {
+      return NextResponse.json(
+        { ok: false, error: "관리자 권한이 필요합니다." },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const objectKey =
+      String(body?.objectKey || "")
+        .replace(/^\\/+/, "")
+        .trim();
+
+    if (
+      !objectKey ||
+      objectKey.includes("..")
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "잘못된 R2 objectKey입니다." },
+        { status: 400 }
+      );
+    }
+
+    const client = new S3Client({
+      region: "auto",
+      endpoint: ${endpointCode},
+      credentials: {
+        accessKeyId:
+          process.env.${accessEnv}!,
+        secretAccessKey:
+          process.env.${secretEnv}!,
+      },
+    });
+
+    await client.send(
+      new DeleteObjectCommand({
+        Bucket:
+          process.env.${bucketEnv}!,
+        Key: objectKey,
+      })
+    );
+
+    return NextResponse.json({
+      ok: true,
+    });
+  } catch (error) {
+    console.error(
+      "[editor-r2-delete] fatal:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "R2 파일 삭제 실패",
+      },
+      { status: 500 }
+    );
+  }
+}
+`;
+}
+
+write(r2File, r2);
+
+console.log("[PATCHED] R2 DELETE");
+
+/* =========================================================
+   8. PC 관리자 네비에 홈 이미지 추가
+========================================================= */
+
+const layoutFile = "app/layout.tsx";
+let layout = read(layoutFile);
+
+if (!layout.includes("/admin/home-hero")) {
+  const updateObject =
+    layout.match(
+      /^(\s*)\{\s*href:\s*["']\/admin\/updates["'][^\n]*\},?\s*$/m
+    );
+
+  if (updateObject) {
+    const indent = updateObject[1];
+
+    layout = layout.replace(
+      updateObject[0],
+      updateObject[0] +
+        "\n" +
+        indent +
+        '{ href: "/admin/home-hero", label: "홈 이미지", icon: "image" },'
+    );
+
+    console.log(
+      "[PATCHED] 관리자 네비 -> 홈 이미지"
+    );
+  } else {
+    const updateLink =
+      /(<Link\s+href=["']\/admin\/updates["'][\s\S]*?<\/Link>)/;
+
+    if (updateLink.test(layout)) {
+      layout = layout.replace(
+        updateLink,
+`$1
+                    <Link href="/admin/home-hero" className="nav-link">
+                      <span className="material-symbols-rounded">image</span>
+                      <span>홈 이미지</span>
+                    </Link>`
+      );
+
+      console.log(
+        "[PATCHED] 관리자 JSX 네비 -> 홈 이미지"
+      );
+    } else {
+      console.log(
+        "[WARN] 관리자 네비 위치는 자동 추가하지 못했습니다."
+      );
+      console.log(
+        "페이지 자체는 /admin/home-hero 에서 사용 가능합니다."
+      );
+    }
+  }
+}
+
+write(layoutFile, layout);
+
+/* =========================================================
+   9. CSS
+========================================================= */
+
+const cssFile = "app/globals.css";
+let css = read(cssFile);
+
+const cssMarker =
+  "HOME HERO ADMIN - 2026-11-16";
+
+if (!css.includes(cssMarker)) {
+  css +=
+`
+
+/* =========================================================
+   ${cssMarker}
+========================================================= */
+
+.home-hero-admin {
+  display: grid;
+  gap: 18px;
+}
+
+.home-hero-dropzone {
+  min-height: 150px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  padding: 24px;
+  border: 1px dashed rgba(185, 157, 198, 0.58);
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,255,255,.52),
+      rgba(239,235,250,.38)
+    );
+  color: #796b80;
+  cursor: pointer;
+  text-align: center;
+}
+
+.home-hero-dropzone .material-symbols-rounded {
+  font-size: 34px;
+  color: #b58fc0;
+}
+
+.home-hero-url-row {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 10px;
+}
+
+.home-hero-url-row input {
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 15px;
+  border: 1px solid rgba(211,197,220,.72);
+  border-radius: 14px;
+  background: rgba(255,255,255,.70);
+  font: inherit;
+}
+
+.home-hero-admin-note {
+  color: rgba(103,86,111,.65);
+  font-size: 12px;
+}
+
+.home-hero-admin-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0,1fr));
+  gap: 16px;
+}
+
+.home-hero-admin-card {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(218,205,225,.68);
+  border-radius: 18px;
+  background: rgba(255,255,255,.58);
+  box-shadow:
+    0 8px 24px rgba(88,69,101,.055);
+}
+
+.home-hero-admin-card.is-disabled {
+  opacity: .55;
+}
+
+.home-hero-admin-card.is-dragging {
+  opacity: .35;
+}
+
+.home-hero-drag-handle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  color: rgba(108,89,117,.55);
+  font-size: 11px;
+  cursor: grab;
+}
+
+.home-hero-drag-handle
+.material-symbols-rounded {
+  font-size: 18px;
+}
+
+.home-hero-admin-preview {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  border-radius: 13px;
+  background: #efedf2;
+}
+
+.home-hero-admin-preview img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.home-hero-hidden-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(45,39,49,.78);
+  color: white;
+  font-size: 10px;
+}
+
+.home-hero-admin-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 2px 5px;
+  color: #817487;
+  font-size: 11px;
+}
+
+.home-hero-admin-url {
+  overflow: hidden;
+  margin-bottom: 9px;
+  color: rgba(113,96,120,.52);
+  font-size: 9px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.home-hero-admin-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.home-hero-admin-actions button {
+  min-height: 34px;
+  border: 1px solid rgba(210,196,219,.62);
+  border-radius: 10px;
+  background: rgba(255,255,255,.66);
+  color: #716477;
+  cursor: pointer;
+}
+
+.home-hero-admin-actions
+button.is-danger {
+  border-color: rgba(224,170,181,.54);
+  color: #a65d6e;
+}
+
+@media (max-width: 900px) {
+  .home-hero-admin-grid {
+    grid-template-columns:
+      repeat(2, minmax(0,1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .home-hero-url-row {
+    grid-template-columns: 1fr;
+  }
+
+  .home-hero-admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+`;
+}
+
+write(cssFile, css);
+
+console.log("[PATCHED] globals.css");
+
+console.log("");
+console.log("=== HOME HERO ADMIN PATCH COMPLETE ===");
+console.log("Backup:", backup);
+console.log("");
+console.log("생성:");
+console.log("- /admin/home-hero");
+console.log("- drag/drop R2 upload");
+console.log("- URL 추가");
+console.log("- 사용/숨김");
+console.log("- drag reorder");
+console.log("- DB + R2 삭제");
+console.log("- 홈 랜덤 대문 DB 연동");
+

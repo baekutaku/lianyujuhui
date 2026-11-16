@@ -55,6 +55,12 @@ export default function StoryMediaSwitcher({ storyTitle, media }: Props) {
     media[0] ??
     null;
 
+  const galleryImages = media.filter(
+    (item) =>
+      item.media_type === "image" &&
+      item.usage_type === "story_gallery"
+  );
+
   const initialLang: "cn" | "kr" = mediaCn ? "cn" : "kr";
   const [activeLang, setActiveLang] = useState<"cn" | "kr">(initialLang);
 
@@ -123,6 +129,34 @@ export default function StoryMediaSwitcher({ storyTitle, media }: Props) {
           <div className="empty-box">등록된 영상/이미지가 없습니다.</div>
         )}
       </div>
+      {galleryImages.length > 0 ? (
+        <section className="story-pv-gallery-section">
+          <div className="story-pv-gallery-label">
+            이미지
+          </div>
+
+          <div className="story-pv-gallery">
+            {galleryImages.map((item) => (
+              <figure
+                key={item.id}
+                className="story-pv-gallery-item"
+              >
+                <img
+                  src={item.url}
+                  alt={item.title || storyTitle}
+                />
+
+                {item.title ? (
+                  <figcaption>
+                    {item.title}
+                  </figcaption>
+                ) : null}
+              </figure>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
     </div>
   );
 }

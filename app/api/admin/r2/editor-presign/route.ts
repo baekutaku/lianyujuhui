@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+PutObjectCommand, S3Client
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { isAdmin } from "@/lib/utils/admin-auth";
 
@@ -65,5 +68,74 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[editor-r2-presign] fatal error:", error);
     return NextResponse.json({ error: error instanceof Error ? error.message : "업로드 URL 생성 실패" }, { status: 500 });
+  }
+}
+
+
+export async function DELETE(request: Request) {
+  try {
+    const admin = await isAdmin();
+
+    if (!admin) {
+      return NextResponse.json(
+        { ok: false, error: "관리자 권한이 필요합니다." },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const objectKey =
+      String(body?.objectKey || "")
+        .replace(/^\/+/, "")
+        .trim();
+
+    if (
+      !objectKey ||
+      objectKey.includes("..")
+    ) {
+      return NextResponse.json(
+        { ok: false, error: "잘못된 R2 objectKey입니다." },
+        { status: 400 }
+      );
+    }
+
+    const client = new S3Client({
+      region: "auto",
+      endpoint: "https://" + process.env.R2_ACCOUNT_ID + ".r2.cloudflarestorage.com",
+      credentials: {
+        accessKeyId:
+          process.env.R2_ACCESS_KEY_ID!,
+        secretAccessKey:
+          process.env.R2_SECRET_ACCESS_KEY!,
+      },
+    });
+
+    await client.send(
+      new DeleteObjectCommand({
+        Bucket:
+          process.env.R2_BUCKET_NAME!,
+        Key: objectKey,
+      })
+    );
+
+    return NextResponse.json({
+      ok: true,
+    });
+  } catch (error) {
+    console.error(
+      "[editor-r2-delete] fatal:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "R2 파일 삭제 실패",
+      },
+      { status: 500 }
+    );
   }
 }
