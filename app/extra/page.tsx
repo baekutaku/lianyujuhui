@@ -74,7 +74,44 @@ export default function ExtraPage() {
           </Link>
         ))}
       </nav>
-    </main>
+    
+
+      <section className="extra-hundred-days-entry-wrap">
+        <Link
+          href="/extra/hundred-days"
+          className="extra-hundred-days-entry-card"
+        >
+          <div className="extra-hundred-days-entry-icon">
+            <span className="material-symbols-rounded">
+              history_edu
+            </span>
+          </div>
+
+          <div className="extra-hundred-days-entry-copy">
+            <span className="extra-hundred-days-entry-kicker">
+              HUNDRED DAYS
+            </span>
+
+            <strong>
+              백일동반
+            </strong>
+
+            <p>
+              사전 이야기와 DAY 0~100,
+              음성 및 특별 기록을 연도별로 정리합니다.
+            </p>
+
+            <span className="extra-hundred-days-entry-meta">
+              연도별 · 캐릭터별 아카이브
+            </span>
+          </div>
+
+          <span className="material-symbols-rounded extra-hundred-days-entry-arrow">
+            arrow_forward
+          </span>
+        </Link>
+      </section>
+</main>
   );
 }
 

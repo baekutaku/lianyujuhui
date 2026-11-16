@@ -22941,3 +22941,1416 @@ a.is-active {
   line-height: 1;
 }
 
+
+
+
+
+
+/* EXTRA HUNDRED DAYS - 2026-11-16 */
+
+/* =========================================================
+   BASE
+========================================================= */
+
+.hundred-days-page {
+  --hd-text: #62566a;
+  --hd-sub:
+    rgba(99, 83, 108, .58);
+  --hd-muted:
+    rgba(110, 91, 120, .38);
+  --hd-line:
+    rgba(195, 179, 205, .42);
+  --hd-bg:
+    rgba(255, 255, 255, .56);
+  --hd-soft:
+    rgba(241, 235, 247, .58);
+  --hd-accent:
+    rgba(225, 214, 237, .72);
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.hundred-days-page
+.extra-sub-header {
+  margin-bottom: 24px;
+}
+
+.hundred-days-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hundred-days-head-actions
+.primary-button,
+.hundred-days-head-actions
+.mini-button,
+.hundred-days-head-actions
+.extra-back-link {
+  min-height: 38px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  line-height: 1;
+}
+
+
+/* =========================================================
+   FILTER BAR
+========================================================= */
+
+.hundred-days-filter {
+  width: fit-content;
+
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  margin:
+    4px 0 28px;
+
+  padding: 6px;
+
+  border:
+    1px solid
+    rgba(198, 183, 209, .38);
+
+  border-radius: 14px;
+
+  background:
+    rgba(255, 255, 255, .48);
+
+  box-shadow:
+    0 7px 24px
+    rgba(83, 66, 92, .025);
+}
+
+.hundred-days-filter select {
+  min-width: 150px;
+  min-height: 38px;
+
+  padding:
+    0 32px 0 12px;
+
+  border:
+    1px solid
+    rgba(194, 177, 205, .42);
+
+  border-radius: 10px;
+
+  outline: none;
+
+  background:
+    rgba(255, 255, 255, .72);
+
+  color:
+    var(--hd-text);
+
+  font-family: inherit;
+  font-size: 11px;
+}
+
+.hundred-days-filter
+.mini-button {
+  min-width: 52px;
+  min-height: 38px;
+
+  border-radius: 10px;
+}
+
+
+/* =========================================================
+   SERIES GRID
+========================================================= */
+
+.hundred-days-series-grid {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fill,
+      minmax(285px, 340px)
+    );
+
+  gap: 18px;
+
+  align-items: start;
+}
+
+.hundred-days-series-card {
+  position: relative;
+
+  overflow: hidden;
+
+  min-height: 330px;
+
+  display: flex;
+  flex-direction: column;
+
+  border:
+    1px solid
+    var(--hd-line);
+
+  border-radius: 19px;
+
+  background:
+    rgba(255, 255, 255, .56);
+
+  color: inherit;
+  text-decoration: none;
+
+  box-shadow:
+    0 12px 32px
+    rgba(83, 68, 92, .04);
+
+  transition:
+    transform .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease;
+}
+
+.hundred-days-series-card:hover {
+  transform:
+    translateY(-3px);
+
+  border-color:
+    rgba(181, 161, 195, .62);
+
+  box-shadow:
+    0 18px 42px
+    rgba(83, 68, 92, .085);
+}
+
+.hundred-days-series-card > img,
+.hundred-days-series-placeholder {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+
+  flex: 0 0 auto;
+
+  object-fit: cover;
+}
+
+.hundred-days-series-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background:
+    radial-gradient(
+      circle at 28% 28%,
+      rgba(255, 255, 255, .94),
+      transparent 42%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(245, 240, 249, .96),
+      rgba(235, 228, 243, .90)
+    );
+}
+
+.hundred-days-series-placeholder
+.material-symbols-rounded {
+  color:
+    rgba(128, 106, 139, .24);
+
+  font-size: 42px;
+  font-weight: 300;
+}
+
+.hundred-days-series-body {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 6px;
+
+  padding:
+    17px 18px 18px;
+}
+
+.hundred-days-series-year {
+  width: fit-content;
+
+  padding:
+    3px 7px;
+
+  border-radius: 999px;
+
+  background:
+    rgba(234, 225, 241, .62);
+
+  color:
+    rgba(108, 87, 119, .62);
+
+  font-size: 9px;
+  font-weight: 800;
+
+  letter-spacing: .04em;
+}
+
+.hundred-days-series-body
+strong {
+  margin-top: 2px;
+
+  color:
+    #625469;
+
+  font-size: 17px;
+  font-weight: 760;
+
+  line-height: 1.35;
+}
+
+.hundred-days-series-body
+> span:not(.hundred-days-series-year) {
+  color:
+    rgba(93, 77, 101, .50);
+
+  font-size: 11px;
+}
+
+.hundred-days-series-body
+small {
+  margin-top: auto;
+  padding-top: 10px;
+
+  color:
+    rgba(104, 87, 113, .44);
+
+  font-size: 10px;
+}
+
+
+/* =========================================================
+   SERIES DETAIL
+========================================================= */
+
+.hundred-days-series-description {
+  max-width: 900px;
+
+  margin:
+    -6px 0 28px;
+
+  padding:
+    14px 16px;
+
+  border-left:
+    3px solid
+    rgba(210, 194, 220, .70);
+
+  background:
+    rgba(255, 255, 255, .35);
+
+  color:
+    rgba(84, 71, 91, .68);
+
+  font-size: 11px;
+  line-height: 1.8;
+}
+
+.hundred-days-prologue {
+  margin-bottom: 30px;
+
+  padding:
+    23px 24px 25px;
+
+  border:
+    1px solid
+    rgba(195, 179, 205, .45);
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, .65),
+      rgba(248, 244, 251, .52)
+    );
+
+  box-shadow:
+    0 10px 30px
+    rgba(82, 67, 91, .035);
+}
+
+.hundred-days-section-label {
+  margin-bottom: 7px;
+
+  color:
+    rgba(125, 101, 137, .44);
+
+  font-size: 9px;
+  font-weight: 850;
+
+  letter-spacing: .14em;
+}
+
+.hundred-days-prologue h2 {
+  margin:
+    0 0 20px;
+
+  color:
+    #625469;
+
+  font-size: 20px;
+  font-weight: 740;
+}
+
+.hundred-days-story-text {
+  margin:
+    14px 0;
+}
+
+.hundred-days-story-text p,
+.hundred-days-mail-body p {
+  margin: 0;
+
+  color:
+    rgba(70, 60, 76, .83);
+
+  font-size: 12px;
+  line-height: 1.9;
+
+  white-space: pre-wrap;
+}
+
+
+/* =========================================================
+   DAY MAIL LIST
+========================================================= */
+
+.hundred-days-mail-section {
+  max-width: 980px;
+}
+
+.hundred-days-mail-list {
+  display: grid;
+  gap: 9px;
+}
+
+.hundred-days-mail {
+  overflow: hidden;
+
+  border:
+    1px solid
+    rgba(195, 179, 205, .41);
+
+  border-radius: 14px;
+
+  background:
+    rgba(255, 255, 255, .50);
+
+  transition:
+    border-color .16s ease,
+    background .16s ease,
+    box-shadow .16s ease;
+}
+
+.hundred-days-mail:hover {
+  border-color:
+    rgba(183, 164, 197, .57);
+
+  background:
+    rgba(255, 255, 255, .68);
+}
+
+.hundred-days-mail[open] {
+  border-color:
+    rgba(181, 162, 195, .58);
+
+  background:
+    rgba(255, 255, 255, .74);
+
+  box-shadow:
+    0 10px 28px
+    rgba(82, 67, 91, .035);
+}
+
+.hundred-days-mail
+> summary {
+  min-height: 66px;
+
+  display: grid;
+
+  grid-template-columns:
+    72px
+    minmax(0, 1fr)
+    auto
+    auto
+    24px;
+
+  align-items: center;
+
+  gap: 11px;
+
+  padding:
+    9px 14px;
+
+  box-sizing: border-box;
+
+  cursor: pointer;
+  list-style: none;
+}
+
+.hundred-days-mail
+> summary::-webkit-details-marker {
+  display: none;
+}
+
+.hundred-days-day-label {
+  color:
+    rgba(108, 87, 118, .72);
+
+  font-size: 11px;
+  font-weight: 850;
+
+  letter-spacing: .015em;
+}
+
+.hundred-days-mail-summary {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+.hundred-days-mail-summary
+strong {
+  overflow: hidden;
+
+  color:
+    #625469;
+
+  font-size: 12px;
+  font-weight: 720;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hundred-days-mail-summary
+span {
+  color:
+    rgba(101, 84, 110, .45);
+
+  font-size: 9px;
+}
+
+.hundred-days-voice-badge {
+  padding:
+    4px 8px;
+
+  border-radius: 999px;
+
+  background:
+    rgba(231, 222, 243, .76);
+
+  color:
+    rgba(98, 78, 111, .70);
+
+  font-size: 8px;
+  font-weight: 850;
+
+  letter-spacing: .05em;
+}
+
+.hundred-days-chevron {
+  color:
+    rgba(108, 89, 117, .34);
+
+  font-size: 18px;
+
+  transition:
+    transform .16s ease;
+}
+
+.hundred-days-mail[open]
+.hundred-days-chevron {
+  transform:
+    rotate(180deg);
+}
+
+.hundred-days-mail-body {
+  display: grid;
+  gap: 17px;
+
+  padding:
+    18px 20px 21px;
+
+  border-top:
+    1px solid
+    rgba(195, 179, 205, .27);
+}
+
+.hundred-days-meta-note {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 10px;
+
+  padding:
+    10px 12px;
+
+  border-radius: 10px;
+
+  background:
+    rgba(241, 235, 247, .57);
+
+  color:
+    rgba(77, 65, 84, .72);
+
+  font-size: 10px;
+  line-height: 1.65;
+}
+
+.hundred-days-meta-note
+strong {
+  flex: 0 0 auto;
+
+  color:
+    rgba(108, 85, 119, .72);
+}
+
+.hundred-days-voice-player {
+  min-height: 52px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 11px;
+
+  padding:
+    8px 13px;
+
+  box-sizing: border-box;
+
+  border:
+    1px solid
+    rgba(192, 174, 204, .44);
+
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(239, 232, 246, .72),
+      rgba(248, 245, 251, .66)
+    );
+}
+
+.hundred-days-voice-player
+.material-symbols-rounded {
+  color:
+    rgba(106, 82, 118, .68);
+
+  font-size: 21px;
+}
+
+.hundred-days-voice-player
+a {
+  color:
+    rgba(80, 65, 89, .82);
+
+  font-size: 11px;
+  font-weight: 750;
+
+  text-decoration: none;
+}
+
+.hundred-days-voice-player
+audio {
+  width:
+    min(100%, 540px);
+}
+
+.hundred-days-image {
+  display: block;
+
+  max-width:
+    min(100%, 760px);
+
+  border-radius: 12px;
+}
+
+
+/* =========================================================
+   FORMS
+========================================================= */
+
+.hundred-days-form {
+  display: grid;
+  gap: 20px;
+}
+
+.hundred-days-form
+.form-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap:
+    15px 14px;
+}
+
+.hundred-days-form
+.field {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+.hundred-days-form
+.field.full {
+  grid-column:
+    1 / -1;
+}
+
+.hundred-days-form
+.field > span {
+  color:
+    rgba(84, 70, 92, .78);
+
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.hundred-days-form
+input,
+.hundred-days-form
+select,
+.hundred-days-form
+textarea {
+  width: 100%;
+
+  box-sizing: border-box;
+
+  border:
+    1px solid
+    rgba(191, 175, 203, .47);
+
+  border-radius: 11px;
+
+  outline: none;
+
+  background:
+    rgba(255, 255, 255, .68);
+
+  color:
+    #615568;
+
+  font-family: inherit;
+  font-size: 11px;
+
+  transition:
+    border-color .15s ease,
+    background .15s ease,
+    box-shadow .15s ease;
+}
+
+.hundred-days-form
+input:focus,
+.hundred-days-form
+select:focus,
+.hundred-days-form
+textarea:focus {
+  border-color:
+    rgba(172, 150, 188, .70);
+
+  background:
+    rgba(255, 255, 255, .90);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(222, 211, 232, .25);
+}
+
+.hundred-days-form
+input,
+.hundred-days-form
+select {
+  min-height: 42px;
+
+  padding:
+    0 12px;
+}
+
+.hundred-days-form
+textarea {
+  padding:
+    12px 13px;
+
+  line-height: 1.75;
+
+  resize: vertical;
+}
+
+.hundred-days-media-box {
+  display: grid;
+  gap: 14px;
+
+  padding: 17px;
+
+  border:
+    1px solid
+    rgba(196, 181, 207, .42);
+
+  border-radius: 15px;
+
+  background:
+    rgba(255, 255, 255, .38);
+}
+
+.hundred-days-check {
+  width: fit-content;
+
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  color:
+    rgba(80, 67, 87, .76);
+
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.hundred-days-check
+input {
+  width: 15px;
+  min-height: auto;
+}
+
+.hundred-days-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 8px;
+
+  padding-top: 3px;
+}
+
+.hundred-days-delete {
+  color:
+    rgba(157, 81, 105, .82);
+}
+
+
+/* =========================================================
+   IMAGE UPLOAD
+========================================================= */
+
+.hundred-days-image-field {
+  display: grid;
+  gap: 9px;
+}
+
+.hundred-days-image-field-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  gap: 12px;
+}
+
+.hundred-days-image-field-head
+> div {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+.hundred-days-image-field-head
+strong {
+  color:
+    rgba(84, 70, 92, .80);
+
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.hundred-days-image-field-head
+span {
+  color:
+    rgba(102, 85, 111, .42);
+
+  font-size: 9px;
+}
+
+.hundred-days-image-clear {
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+
+  color:
+    rgba(155, 81, 103, .72);
+
+  font-family: inherit;
+  font-size: 9px;
+
+  cursor: pointer;
+}
+
+.hundred-days-image-drop {
+  overflow: hidden;
+
+  min-height: 175px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+
+  border:
+    1px dashed
+    rgba(177, 157, 192, .55);
+
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(248, 245, 251, .78),
+      rgba(241, 235, 247, .55)
+    );
+
+  transition:
+    border-color .16s ease,
+    background .16s ease,
+    transform .16s ease;
+}
+
+.hundred-days-image-drop.is-dragging {
+  border-color:
+    rgba(159, 132, 180, .84);
+
+  background:
+    rgba(237, 227, 245, .76);
+
+  transform:
+    scale(.998);
+}
+
+.hundred-days-drop-button {
+  width: 100%;
+  min-height: 175px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 5px;
+
+  border: 0;
+
+  background: transparent;
+
+  color:
+    rgba(98, 81, 108, .62);
+
+  font-family: inherit;
+
+  cursor: pointer;
+}
+
+.hundred-days-drop-button
+.material-symbols-rounded {
+  margin-bottom: 3px;
+
+  color:
+    rgba(130, 106, 143, .36);
+
+  font-size: 31px;
+}
+
+.hundred-days-drop-button
+strong {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.hundred-days-drop-button
+small {
+  color:
+    rgba(104, 88, 113, .42);
+
+  font-size: 9px;
+}
+
+.hundred-days-image-preview {
+  position: relative;
+
+  width: 100%;
+  min-height: 175px;
+}
+
+.hundred-days-image-preview
+img {
+  width: 100%;
+  height: 100%;
+  min-height: 175px;
+  max-height: 380px;
+
+  display: block;
+
+  object-fit: cover;
+}
+
+.hundred-days-image-preview-overlay {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background:
+    rgba(52, 43, 57, 0);
+
+  opacity: 0;
+
+  transition:
+    background .16s ease,
+    opacity .16s ease;
+}
+
+.hundred-days-image-preview:hover
+.hundred-days-image-preview-overlay {
+  background:
+    rgba(52, 43, 57, .25);
+
+  opacity: 1;
+}
+
+.hundred-days-image-preview-overlay
+button {
+  min-height: 36px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 6px;
+
+  padding:
+    0 12px;
+
+  border:
+    1px solid
+    rgba(255, 255, 255, .54);
+
+  border-radius: 999px;
+
+  background:
+    rgba(255, 255, 255, .90);
+
+  color:
+    #67586e;
+
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.hundred-days-image-preview-overlay
+.material-symbols-rounded {
+  font-size: 16px;
+}
+
+.hundred-days-image-url-row {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    auto;
+
+  gap: 7px;
+}
+
+.hundred-days-image-url-row
+input {
+  min-height: 38px;
+}
+
+.hundred-days-image-url-row
+button {
+  min-width: 58px;
+
+  border:
+    1px solid
+    rgba(189, 171, 202, .48);
+
+  border-radius: 10px;
+
+  background:
+    rgba(240, 233, 246, .72);
+
+  color:
+    rgba(85, 69, 94, .78);
+
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (
+  max-width: 900px
+) {
+  .hundred-days-series-grid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+}
+
+
+@media (
+  max-width: 700px
+) {
+  .hundred-days-page
+  .extra-sub-header {
+    gap: 18px;
+  }
+
+  .hundred-days-head-actions {
+    justify-content:
+      flex-start;
+  }
+
+  .hundred-days-filter {
+    width: 100%;
+
+    box-sizing: border-box;
+  }
+
+  .hundred-days-filter
+  select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .hundred-days-series-grid {
+    grid-template-columns:
+      1fr;
+
+    gap: 13px;
+  }
+
+  .hundred-days-series-card {
+    min-height: 0;
+  }
+
+  .hundred-days-series-card
+  > img,
+  .hundred-days-series-placeholder {
+    aspect-ratio:
+      16 / 8.5;
+  }
+
+  .hundred-days-mail
+  > summary {
+    grid-template-columns:
+      58px
+      minmax(0, 1fr)
+      22px;
+
+    gap: 8px;
+
+    padding:
+      10px 12px;
+  }
+
+  .hundred-days-mail
+  > summary
+  .mini-button,
+  .hundred-days-voice-badge {
+    display: none;
+  }
+
+  .hundred-days-mail-body {
+    padding:
+      16px 14px 18px;
+  }
+
+  .hundred-days-form
+  .form-grid {
+    grid-template-columns:
+      1fr;
+  }
+
+  .hundred-days-form
+  .field.full {
+    grid-column: auto;
+  }
+
+  .hundred-days-image-drop,
+  .hundred-days-drop-button,
+  .hundred-days-image-preview,
+  .hundred-days-image-preview
+  img {
+    min-height: 145px;
+  }
+}
+
+/* END EXTRA HUNDRED DAYS - 2026-11-16 */
+
+
+/* EXTRA HUNDRED DAYS ENTRY */
+
+.extra-hundred-days-entry-wrap {
+  margin-top: 22px;
+}
+
+.extra-hundred-days-entry-card {
+  position: relative;
+
+  width: min(100%, 520px);
+  min-height: 128px;
+
+  display: grid;
+  grid-template-columns:
+    58px minmax(0, 1fr) 28px;
+
+  align-items: center;
+
+  gap: 15px;
+
+  box-sizing: border-box;
+
+  padding:
+    20px 21px;
+
+  overflow: hidden;
+
+  border:
+    1px solid
+    rgba(195, 178, 207, .46);
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, .72),
+      rgba(242, 235, 248, .58)
+    );
+
+  color: inherit;
+  text-decoration: none;
+
+  box-shadow:
+    0 12px 32px
+    rgba(82, 67, 91, .045);
+
+  transition:
+    transform .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease;
+}
+
+.extra-hundred-days-entry-card::before {
+  content: "";
+
+  position: absolute;
+
+  width: 180px;
+  height: 180px;
+
+  right: -65px;
+  top: -80px;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(221, 210, 235, .34),
+      transparent 68%
+    );
+
+  pointer-events: none;
+}
+
+.extra-hundred-days-entry-card:hover {
+  transform:
+    translateY(-3px);
+
+  border-color:
+    rgba(177, 156, 192, .67);
+
+  box-shadow:
+    0 18px 42px
+    rgba(82, 67, 91, .085);
+}
+
+.extra-hundred-days-entry-icon {
+  width: 54px;
+  height: 54px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border:
+    1px solid
+    rgba(193, 174, 207, .40);
+
+  border-radius: 15px;
+
+  background:
+    rgba(240, 232, 247, .70);
+}
+
+.extra-hundred-days-entry-icon
+.material-symbols-rounded {
+  color:
+    rgba(111, 87, 123, .63);
+
+  font-size: 27px;
+  font-weight: 300;
+}
+
+.extra-hundred-days-entry-copy {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+.extra-hundred-days-entry-kicker {
+  color:
+    rgba(120, 96, 133, .42);
+
+  font-size: 8px;
+  font-weight: 850;
+
+  letter-spacing: .12em;
+}
+
+.extra-hundred-days-entry-copy
+strong {
+  color: #625469;
+
+  font-size: 16px;
+  font-weight: 760;
+}
+
+.extra-hundred-days-entry-copy
+p {
+  max-width: 410px;
+
+  margin:
+    2px 0 3px;
+
+  color:
+    rgba(85, 71, 93, .58);
+
+  font-size: 10px;
+  line-height: 1.65;
+}
+
+.extra-hundred-days-entry-meta {
+  color:
+    rgba(108, 88, 117, .40);
+
+  font-size: 9px;
+}
+
+.extra-hundred-days-entry-arrow {
+  position: relative;
+  z-index: 1;
+
+  color:
+    rgba(107, 86, 117, .42);
+
+  font-size: 19px;
+
+  transition:
+    transform .18s ease;
+}
+
+.extra-hundred-days-entry-card:hover
+.extra-hundred-days-entry-arrow {
+  transform:
+    translateX(3px);
+}
+
+
+@media (max-width: 700px) {
+  .extra-hundred-days-entry-wrap {
+    margin-top: 16px;
+  }
+
+  .extra-hundred-days-entry-card {
+    width: 100%;
+
+    grid-template-columns:
+      48px minmax(0, 1fr) 22px;
+
+    gap: 12px;
+
+    padding:
+      17px 16px;
+
+    border-radius: 15px;
+  }
+
+  .extra-hundred-days-entry-icon {
+    width: 46px;
+    height: 46px;
+
+    border-radius: 13px;
+  }
+
+  .extra-hundred-days-entry-copy
+  strong {
+    font-size: 14px;
+  }
+}
+
+/* END EXTRA HUNDRED DAYS ENTRY */

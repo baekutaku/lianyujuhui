@@ -69,3 +69,13 @@ node_modules
 *.bak-*
 
 *.broken-*
+
+backups/
+
+.extra-*-backup-*
+
+.patch-*.mjs
+
+.refine-*.mjs
+
+.add-*.mjs
