@@ -298,77 +298,114 @@ export default async function Page({
       ) : null}
 
 
+      
       {prologue ? (
-        <section className="hundred-days-prologue">
+        <details className="hundred-days-prologue">
 
-          <div className="hundred-days-section-label">
-            PRE STORY
+          <summary className="hundred-days-prologue-summary">
+
+            <div className="hundred-days-prologue-summary-copy">
+
+              <span className="hundred-days-section-label">
+                PRE STORY
+              </span>
+
+              <strong>
+                {
+                  prologue.title ||
+                  "사전 이야기"
+                }
+              </strong>
+
+              <span>
+                이벤트 시작 전 이야기
+              </span>
+
+            </div>
+
+
+            <span className="material-symbols-rounded hundred-days-prologue-chevron">
+              expand_more
+            </span>
+
+          </summary>
+
+
+          <div className="hundred-days-prologue-body">
+
+            {prologue.original_text ? (
+              <div className="hundred-days-story-text">
+
+                <span className="extra-category-kicker">
+                  ORIGINAL
+                </span>
+
+                <p>
+                  {
+                    prologue.original_text
+                  }
+                </p>
+
+              </div>
+            ) : null}
+
+
+            {prologue.translation_text ? (
+              <div className="hundred-days-story-text">
+
+                <span className="extra-category-kicker">
+                  TRANSLATION
+                </span>
+
+                <p>
+                  {
+                    prologue.translation_text
+                  }
+                </p>
+
+              </div>
+            ) : null}
+
+
+            {prologue.image_url ? (
+              <img
+                src={
+                  prologue.image_url
+                }
+                alt=""
+                className="hundred-days-image"
+              />
+            ) : null}
+
+
+            {admin ? (
+              <div className="hundred-days-prologue-admin">
+
+                <Link
+                  href={
+                    "/extra/hundred-days/" +
+                    encodeURIComponent(
+                      series.slug
+                    ) +
+                    "/items/" +
+                    prologue.id +
+                    "/edit"
+                  }
+                  className="mini-button"
+                >
+                  사전 이야기 수정
+                </Link>
+
+              </div>
+            ) : null}
+
           </div>
 
-          <h2>
-            {
-              prologue.title ||
-              "사전 이야기"
-            }
-          </h2>
-
-
-          {prologue.original_text ? (
-            <div className="hundred-days-story-text">
-
-              <span className="extra-category-kicker">
-                ORIGINAL
-              </span>
-
-              <p>
-                {
-                  prologue.original_text
-                }
-              </p>
-
-            </div>
-          ) : null}
-
-
-          {prologue.translation_text ? (
-            <div className="hundred-days-story-text">
-
-              <span className="extra-category-kicker">
-                TRANSLATION
-              </span>
-
-              <p>
-                {
-                  prologue.translation_text
-                }
-              </p>
-
-            </div>
-          ) : null}
-
-
-          {admin ? (
-            <Link
-              href={
-                "/extra/hundred-days/" +
-                encodeURIComponent(
-                  series.slug
-                ) +
-                "/items/" +
-                prologue.id +
-                "/edit"
-              }
-              className="mini-button"
-            >
-              사전 이야기 수정
-            </Link>
-          ) : null}
-
-        </section>
+        </details>
       ) : null}
 
 
-      <section className="hundred-days-mail-section">
+<section className="hundred-days-mail-section">
 
         <div className="hundred-days-mail-list">
 
